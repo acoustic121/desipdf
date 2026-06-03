@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { TOOLS, CATEGORIES, INDIAN_LANGUAGES, INTERNATIONAL_LANGUAGES } from '../utils/constants'
 import { useI18n } from '../utils/i18n'
+import { useAuth } from '../utils/useAuth'
+
 
 const FAQ_ITEMS = [
   { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹51/month or ₹499/year.' },
@@ -46,6 +48,7 @@ function ToolCard({ tool }) {
 
 export default function Home() {
   const { t } = useI18n()
+  const { isPremium } = useAuth()
   const [activeCategory, setActiveCategory] = useState('all')
 
   const filtered = activeCategory === 'all'
@@ -77,9 +80,15 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
-            ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
-          </div>
+          {!isPremium ? (
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+              ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+              ⭐ Unlimited Premium Member Plan
+            </div>
+          )}
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">

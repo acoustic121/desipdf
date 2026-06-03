@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { getRemainingUses, FREE_LIMIT_PER_DAY } from '../utils/usageLimit'
 import LimitModal from './LimitModal'
+import { useAuth } from '../utils/useAuth'
 
 export default function UsageBanner() {
+  const { isPremium } = useAuth()
   const [remaining, setRemaining] = useState(FREE_LIMIT_PER_DAY)
   const [showModal, setShowModal] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -17,7 +19,8 @@ export default function UsageBanner() {
     return () => window.removeEventListener('pdfchampion-usage-updated', handler)
   }, [])
 
-  if (!mounted) return null
+  if (!mounted || isPremium) return null
+
 
   const used = FREE_LIMIT_PER_DAY - remaining
   const pct = (used / FREE_LIMIT_PER_DAY) * 100
