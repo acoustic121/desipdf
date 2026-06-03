@@ -1,9 +1,22 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../utils/useAuth'
 import toast from 'react-hot-toast'
+
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  AUD: 'A$',
+  CAD: 'C$',
+  JPY: '¥',
+  CNY: '¥',
+  NGN: '₦',
+}
+
 
 const FREE_FEATURES = [
   { label: 'All PDF Tools', free: '15/day', premium: 'Unlimited' },
@@ -40,6 +53,63 @@ export default function Pricing() {
   const { user, isPremium } = useAuth()
   const router = useRouter()
 
+  // Multi-currency state
+  const [currency, setCurrency] = useState('INR')
+  const [rates, setRates] = useState({ INR: 1 })
+  const [currencySymbol, setCurrencySymbol] = useState('₹')
+
+  useEffect(() => {
+    const fetchGeoAndRates = async () => {
+      let detectedCurrency = 'INR'
+      try {
+        const geoRes = await fetch('https://ipapi.co/json/')
+        if (geoRes.ok) {
+          const geoData = await geoRes.json()
+          if (geoData.currency) {
+            detectedCurrency = geoData.currency
+            setCurrency(detectedCurrency)
+            setCurrencySymbol(CURRENCY_SYMBOLS[detectedCurrency] || detectedCurrency)
+          }
+        }
+      } catch (err) {
+        console.error('Geo IP lookup failed:', err)
+      }
+
+      try {
+        const rateRes = await fetch('https://open.er-api.com/v6/latest/INR')
+        if (rateRes.ok) {
+          const rateData = await rateRes.json()
+          if (rateData.rates) {
+            setRates(rateData.rates)
+          }
+        }
+      } catch (err) {
+        console.error('Exchange rate fetch failed:', err)
+      }
+    }
+
+    fetchGeoAndRates()
+  }, [])
+
+  const rate = rates[currency] || 1
+  const convertedMonthly = MONTHLY_PRICE * rate
+  const convertedYearly = YEARLY_PRICE * rate
+
+  const formatPrice = (val) => {
+    if (currency === 'INR') {
+      return Math.round(val).toString()
+    }
+    if (currency === 'JPY') {
+      return Math.round(val).toLocaleString()
+    }
+    return val.toFixed(2)
+  }
+
+  const displayMonthly = formatPrice(convertedMonthly)
+  const displayYearly = formatPrice(convertedYearly)
+  const displayPerMonth = billing === 'yearly' ? formatPrice(convertedYearly / 12) : displayMonthly
+
+  // Base price in INR for creating the order
   const price = billing === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE
   const perMonth = billing === 'yearly' ? Math.round(YEARLY_PRICE / 12) : MONTHLY_PRICE
   const savings = billing === 'yearly' ? Math.round(100 - (YEARLY_PRICE / (MONTHLY_PRICE * 12)) * 100) : 0
@@ -116,11 +186,12 @@ export default function Pricing() {
     }
   }
 
+
   return (
     <>
       <Head>
         <title>Pricing – PDFChampion</title>
-        <meta name="description" content="PDFChampion free and premium plans. Get unlimited PDF conversions for ₹50/month." />
+        <meta name="description" content="PDFChampion free and premium plans. Get unlimited PDF conversions for ₹49/month." />
       </Head>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -190,14 +261,14 @@ export default function Pricing() {
             <p className="text-sm text-blue-200 mb-6">Best for regular use</p>
             <div className="mb-2">
               <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold text-white">₹{perMonth}</span>
+                <span className="text-4xl font-bold text-white">{currencySymbol}{displayPerMonth}</span>
                 <span className="text-blue-200 text-sm mb-1.5">/month</span>
               </div>
               {billing === 'yearly' && (
-                <p className="text-sm text-blue-200">₹{YEARLY_PRICE} billed yearly · Save ₹{MONTHLY_PRICE * 12 - YEARLY_PRICE}</p>
+                <p className="text-sm text-blue-200">{currencySymbol}{displayYearly} billed yearly · Save {currencySymbol}{formatPrice(MONTHLY_PRICE * 12 * rate - convertedYearly)}</p>
               )}
               {billing === 'monthly' && (
-                <p className="text-sm text-blue-200">₹{MONTHLY_PRICE} billed monthly</p>
+                <p className="text-sm text-blue-200">{currencySymbol}{displayMonthly} billed monthly</p>
               )}
             </div>
             <button
@@ -205,7 +276,7 @@ export default function Pricing() {
               disabled={paying || isPremium}
               className="block w-full text-center py-3 rounded-xl bg-white text-blue-700 font-bold hover:bg-blue-50 transition-colors mb-6 mt-4 disabled:opacity-70"
             >
-              {paying ? '⏳ Processing…' : isPremium ? '✓ Current Plan' : user ? `Subscribe for ₹${price}` : 'Get Premium'}
+              {paying ? '⏳ Processing…' : isPremium ? '✓ Current Plan' : user ? `Subscribe for ${currencySymbol}${billing === 'monthly' ? displayMonthly : displayYearly}` : 'Get Premium'}
             </button>
             <div className="space-y-3 text-sm text-blue-100">
               {[
