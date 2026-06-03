@@ -3,9 +3,9 @@ import Head from 'next/head'
 const FAQS = [
   { q: 'Is DesiPDF free?', a: 'Yes, all tools are 100% free. No hidden costs, ever.' },
   { q: 'Do I need to create an account?', a: 'No account required. Just upload and convert.' },
-  { q: 'What is the maximum file size?', a: 'You can upload files up to 50MB.' },
-  { q: 'How long are my files stored?', a: 'Files are automatically deleted within 2 hours of upload.' },
-  { q: 'Are my files private?', a: 'Yes. We do not read, sell, or share your files. They are processed and then deleted.' },
+  { q: 'What is the maximum file size?', a: 'There is no file size limit since your files are processed locally on your device.' },
+  { q: 'How long are my files stored?', a: 'We never store your files. They are processed entirely in your web browser and never uploaded to our servers.' },
+  { q: 'Are my files private?', a: 'Yes, 100% private. Because processing runs entirely in your local browser, your sensitive data never leaves your device.' },
   { q: 'Does it work on mobile?', a: 'Fully responsive. Works on Android and iPhone browsers.' },
   { q: 'Which languages are supported?', a: 'English, Hindi, Tamil, Telugu, Bengali, Marathi, and Gujarati.' },
   { q: 'Will there be watermarks on my files?', a: 'Never. Your output files are 100% clean.' },

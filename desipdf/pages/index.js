@@ -6,8 +6,8 @@ import { useI18n } from '../utils/i18n'
 
 const FAQ_ITEMS = [
   { q: 'Is DesiPDF completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹51/month or ₹499/year.' },
-  { q: 'Are my files safe?', a: 'Files are processed on secure servers and automatically deleted within 2 hours. We never read, share, or sell your data.' },
-  { q: 'What is the maximum file size?', a: 'You can upload files up to 50MB for free.' },
+  { q: 'Are my files safe?', a: 'Yes. Files are processed entirely inside your local browser on your device and are never uploaded to any server. Your sensitive data never leaves your device.' },
+  { q: 'What is the maximum file size?', a: 'There is no file size limit! Since all processing is performed locally in your browser, you can convert files of any size.' },
   { q: 'Does it work on mobile?', a: 'Yes! DesiPDF is fully responsive and works on all Android and iPhone browsers.' },
   { q: 'Do I need to install anything?', a: 'No installation needed. Everything runs directly in your browser.' },
   { q: 'Which languages are supported?', a: 'DesiPDF supports 29 languages — 7 Indian languages (English, Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati) and 22 international languages including Spanish, French, German, Japanese, Arabic, Chinese, and more.' },

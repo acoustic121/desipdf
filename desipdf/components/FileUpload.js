@@ -82,7 +82,7 @@ export default function FileUpload({
             <p className="text-base font-semibold text-gray-700 dark:text-gray-300">{label}</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{sublabel}</p>
             <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
-              {accept.toUpperCase().replace(/\./g, '')} • Max {maxSize / 1024 / 1024}MB
+              {accept.toUpperCase().replace(/\./g, '')} • No size limit • Processed in browser
             </p>
           </div>
         </div>
