@@ -20,8 +20,6 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-
   const handleSignup = async (e) => {
     e.preventDefault()
     if (!name || !email || !password) return toast.error('Please fill in all fields')
@@ -33,7 +31,6 @@ export default function Signup() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     })
 
@@ -43,7 +40,8 @@ export default function Signup() {
     } else if (data.user?.identities?.length === 0) {
       toast.error('An account with this email already exists. Please log in.')
     } else {
-      setEmailSent(true)
+      toast.success('Account created! Welcome to DesiPDF 🎉')
+      router.replace('/')
     }
   }
 
@@ -61,20 +59,6 @@ export default function Signup() {
     }
   }
 
-  if (emailSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">📧</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Check your email</h2>
-          <p className="text-gray-500 dark:text-gray-400">
-            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
-          </p>
-          <Link href="/login" className="btn-primary inline-flex mt-6">Back to Login</Link>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <>
