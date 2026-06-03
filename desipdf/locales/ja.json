@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "インド向け無料PDFツール"
+  },
+  "nav": {
+    "home": "ホーム",
+    "about": "私たちについて",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "インドが必要とするPDFツールキット",
+    "sub": "PDFの変換、圧縮、結合、分割が完全無料。登録不要。"
+  },
+  "tools": {
+    "pdf-to-jpg": "PDFをJPGに",
+    "jpg-to-pdf": "JPGをPDFに",
+    "merge-pdf": "PDFを結合",
+    "split-pdf": "PDFを分割",
+    "compress-pdf": "PDFを圧縮",
+    "rotate-pdf": "PDFを回転",
+    "extract-pages": "ページを抽出",
+    "reorder-pages": "ページを並べ替え",
+    "pdf-watermark": "透かしを追加",
+    "word-to-pdf": "WordをPDFに",
+    "pdf-to-word": "PDFをWordに",
+    "excel-to-pdf": "ExcelをPDFに",
+    "pdf-to-excel": "PDFをExcelに",
+    "pptx-to-pdf": "PPTをPDFに"
+  },
+  "actions": {
+    "convert": "変換",
+    "download": "ダウンロード",
+    "upload": "ファイルをアップロード",
+    "processing": "処理中..."
+  }
+}

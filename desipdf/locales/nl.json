@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Gratis PDF-tools voor India"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "Over ons",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "De PDF-toolkit die India nodig heeft",
+    "sub": "Converteer, comprimeer, samenvoegen, splits PDF — volledig gratis. Geen aanmelding."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF naar JPG",
+    "jpg-to-pdf": "JPG naar PDF",
+    "merge-pdf": "PDF samenvoegen",
+    "split-pdf": "PDF splitsen",
+    "compress-pdf": "PDF comprimeren",
+    "rotate-pdf": "PDF roteren",
+    "extract-pages": "Pagina's extraheren",
+    "reorder-pages": "Pagina's herordenen",
+    "pdf-watermark": "Watermerk toevoegen",
+    "word-to-pdf": "Word naar PDF",
+    "pdf-to-word": "PDF naar Word",
+    "excel-to-pdf": "Excel naar PDF",
+    "pdf-to-excel": "PDF naar Excel",
+    "pptx-to-pdf": "PPT naar PDF"
+  },
+  "actions": {
+    "convert": "Converteren",
+    "download": "Downloaden",
+    "upload": "Bestand uploaden",
+    "processing": "Verwerking..."
+  }
+}

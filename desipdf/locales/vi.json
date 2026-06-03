@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Công cụ PDF miễn phí cho Ấn Độ"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "about": "Về chúng tôi",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Bộ công cụ PDF mà Ấn Độ cần",
+    "sub": "Chuyển đổi, nén, gộp, tách PDF — hoàn toàn miễn phí. Không cần đăng ký."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF sang JPG",
+    "jpg-to-pdf": "JPG sang PDF",
+    "merge-pdf": "Gộp PDF",
+    "split-pdf": "Tách PDF",
+    "compress-pdf": "Nén PDF",
+    "rotate-pdf": "Xoay PDF",
+    "extract-pages": "Trích xuất trang",
+    "reorder-pages": "Sắp xếp lại trang",
+    "pdf-watermark": "Thêm hình mờ",
+    "word-to-pdf": "Word sang PDF",
+    "pdf-to-word": "PDF sang Word",
+    "excel-to-pdf": "Excel sang PDF",
+    "pdf-to-excel": "PDF sang Excel",
+    "pptx-to-pdf": "PPT sang PDF"
+  },
+  "actions": {
+    "convert": "Chuyển đổi",
+    "download": "Tải xuống",
+    "upload": "Tải lên tệp",
+    "processing": "Đang xử lý..."
+  }
+}

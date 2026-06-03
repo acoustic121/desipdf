@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "เครื่องมือ PDF ฟรีสำหรับอินเดีย"
+  },
+  "nav": {
+    "home": "หน้าหลัก",
+    "about": "เกี่ยวกับเรา",
+    "faq": "คำถามที่พบบ่อย"
+  },
+  "hero": {
+    "headline": "ชุดเครื่องมือ PDF ที่อินเดียต้องการ",
+    "sub": "แปลง บีบอัด รวม แยก PDF — ฟรีทั้งหมด ไม่ต้องสมัครสมาชิก"
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF เป็น JPG",
+    "jpg-to-pdf": "JPG เป็น PDF",
+    "merge-pdf": "รวม PDF",
+    "split-pdf": "แยก PDF",
+    "compress-pdf": "บีบอัด PDF",
+    "rotate-pdf": "หมุน PDF",
+    "extract-pages": "แยกหน้า",
+    "reorder-pages": "จัดเรียงหน้าใหม่",
+    "pdf-watermark": "เพิ่มลายน้ำ",
+    "word-to-pdf": "Word เป็น PDF",
+    "pdf-to-word": "PDF เป็น Word",
+    "excel-to-pdf": "Excel เป็น PDF",
+    "pdf-to-excel": "PDF เป็น Excel",
+    "pptx-to-pdf": "PPT เป็น PDF"
+  },
+  "actions": {
+    "convert": "แปลง",
+    "download": "ดาวน์โหลด",
+    "upload": "อัปโหลดไฟล์",
+    "processing": "กำลังประมวลผล..."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Hindistan için Ücretsiz PDF Araçları"
+  },
+  "nav": {
+    "home": "Ana Sayfa",
+    "about": "Hakkımızda",
+    "faq": "SSS"
+  },
+  "hero": {
+    "headline": "Hindistan'ın İhtiyaç Duyduğu PDF Araç Seti",
+    "sub": "PDF dönüştür, sıkıştır, birleştir, böl — tamamen ücretsiz. Kayıt gerekmez."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF'den JPG'ye",
+    "jpg-to-pdf": "JPG'den PDF'ye",
+    "merge-pdf": "PDF Birleştir",
+    "split-pdf": "PDF Böl",
+    "compress-pdf": "PDF Sıkıştır",
+    "rotate-pdf": "PDF Döndür",
+    "extract-pages": "Sayfa Çıkar",
+    "reorder-pages": "Sayfa Sırala",
+    "pdf-watermark": "Filigran Ekle",
+    "word-to-pdf": "Word'den PDF'ye",
+    "pdf-to-word": "PDF'den Word'e",
+    "excel-to-pdf": "Excel'den PDF'ye",
+    "pdf-to-excel": "PDF'den Excel'e",
+    "pptx-to-pdf": "PPT'den PDF'ye"
+  },
+  "actions": {
+    "convert": "Dönüştür",
+    "download": "İndir",
+    "upload": "Dosya Yükle",
+    "processing": "İşleniyor..."
+  }
+}

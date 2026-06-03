@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "為印度提供的免費PDF工具"
+  },
+  "nav": {
+    "home": "首頁",
+    "about": "關於我們",
+    "faq": "常見問題"
+  },
+  "hero": {
+    "headline": "印度所需的PDF工具套件",
+    "sub": "轉換、壓縮、合併、拆分PDF — 完全免費。無需註冊。"
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF轉JPG",
+    "jpg-to-pdf": "JPG轉PDF",
+    "merge-pdf": "合併PDF",
+    "split-pdf": "拆分PDF",
+    "compress-pdf": "壓縮PDF",
+    "rotate-pdf": "旋轉PDF",
+    "extract-pages": "提取頁面",
+    "reorder-pages": "重新排列",
+    "pdf-watermark": "添加浮水印",
+    "word-to-pdf": "Word轉PDF",
+    "pdf-to-word": "PDF轉Word",
+    "excel-to-pdf": "Excel轉PDF",
+    "pdf-to-excel": "PDF轉Excel",
+    "pptx-to-pdf": "PPT轉PDF"
+  },
+  "actions": {
+    "convert": "轉換",
+    "download": "下載",
+    "upload": "上傳檔案",
+    "processing": "處理中..."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Δωρεάν εργαλεία PDF για την Ινδία"
+  },
+  "nav": {
+    "home": "Αρχική",
+    "about": "Σχετικά",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Το σύνολο εργαλείων PDF που χρειάζεται η Ινδία",
+    "sub": "Μετατρέψτε, συμπιέστε, συγχωνεύστε, διαιρέστε PDF — εντελώς δωρεάν."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF σε JPG",
+    "jpg-to-pdf": "JPG σε PDF",
+    "merge-pdf": "Συγχώνευση PDF",
+    "split-pdf": "Διαίρεση PDF",
+    "compress-pdf": "Συμπίεση PDF",
+    "rotate-pdf": "Περιστροφή PDF",
+    "extract-pages": "Εξαγωγή σελίδων",
+    "reorder-pages": "Αναδιάταξη",
+    "pdf-watermark": "Προσθήκη υδατογραφήματος",
+    "word-to-pdf": "Word σε PDF",
+    "pdf-to-word": "PDF σε Word",
+    "excel-to-pdf": "Excel σε PDF",
+    "pdf-to-excel": "PDF σε Excel",
+    "pptx-to-pdf": "PPT σε PDF"
+  },
+  "actions": {
+    "convert": "Μετατροπή",
+    "download": "Λήψη",
+    "upload": "Μεταφόρτωση",
+    "processing": "Επεξεργασία..."
+  }
+}

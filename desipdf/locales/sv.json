@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Gratis PDF-verktyg för Indien"
+  },
+  "nav": {
+    "home": "Hem",
+    "about": "Om oss",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "PDF-verktygslådan Indien behöver",
+    "sub": "Konvertera, komprimera, slå samman, dela PDF — helt gratis. Ingen registrering."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF till JPG",
+    "jpg-to-pdf": "JPG till PDF",
+    "merge-pdf": "Slå samman PDF",
+    "split-pdf": "Dela PDF",
+    "compress-pdf": "Komprimera PDF",
+    "rotate-pdf": "Rotera PDF",
+    "extract-pages": "Extrahera sidor",
+    "reorder-pages": "Ändra ordning",
+    "pdf-watermark": "Lägg till vattenstämpel",
+    "word-to-pdf": "Word till PDF",
+    "pdf-to-word": "PDF till Word",
+    "excel-to-pdf": "Excel till PDF",
+    "pdf-to-excel": "PDF till Excel",
+    "pptx-to-pdf": "PPT till PDF"
+  },
+  "actions": {
+    "convert": "Konvertera",
+    "download": "Ladda ner",
+    "upload": "Ladda upp fil",
+    "processing": "Bearbetar..."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "인도를 위한 무료 PDF 도구"
+  },
+  "nav": {
+    "home": "홈",
+    "about": "소개",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "인도가 필요로 하는 PDF 툴킷",
+    "sub": "PDF 변환, 압축, 병합, 분할 — 완전 무료. 가입 불필요."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF를 JPG로",
+    "jpg-to-pdf": "JPG를 PDF로",
+    "merge-pdf": "PDF 병합",
+    "split-pdf": "PDF 분할",
+    "compress-pdf": "PDF 압축",
+    "rotate-pdf": "PDF 회전",
+    "extract-pages": "페이지 추출",
+    "reorder-pages": "페이지 재정렬",
+    "pdf-watermark": "워터마크 추가",
+    "word-to-pdf": "Word를 PDF로",
+    "pdf-to-word": "PDF를 Word로",
+    "excel-to-pdf": "Excel을 PDF로",
+    "pdf-to-excel": "PDF를 Excel로",
+    "pptx-to-pdf": "PPT를 PDF로"
+  },
+  "actions": {
+    "convert": "변환",
+    "download": "다운로드",
+    "upload": "파일 업로드",
+    "processing": "처리 중..."
+  }
+}

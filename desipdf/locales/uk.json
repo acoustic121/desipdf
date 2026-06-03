@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Безкоштовні PDF-інструменти для Індії"
+  },
+  "nav": {
+    "home": "Головна",
+    "about": "Про нас",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Набір PDF-інструментів для Індії",
+    "sub": "Конвертуйте, стискайте, об'єднуйте, розділяйте PDF — повністю безкоштовно."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF у JPG",
+    "jpg-to-pdf": "JPG у PDF",
+    "merge-pdf": "Об'єднати PDF",
+    "split-pdf": "Розділити PDF",
+    "compress-pdf": "Стиснути PDF",
+    "rotate-pdf": "Повернути PDF",
+    "extract-pages": "Витягти сторінки",
+    "reorder-pages": "Змінити порядок",
+    "pdf-watermark": "Додати водяний знак",
+    "word-to-pdf": "Word у PDF",
+    "pdf-to-word": "PDF у Word",
+    "excel-to-pdf": "Excel у PDF",
+    "pdf-to-excel": "PDF у Excel",
+    "pptx-to-pdf": "PPT у PDF"
+  },
+  "actions": {
+    "convert": "Конвертувати",
+    "download": "Завантажити",
+    "upload": "Завантажити файл",
+    "processing": "Обробка..."
+  }
+}

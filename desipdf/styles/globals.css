@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0066FF;
+  --color-secondary: #00D9FF;
+  --color-accent: #FF6B35;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 font-sans transition-colors duration-300;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white
+      bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-500 hover:to-blue-700
+      shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold
+      border-2 border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50
+      dark:hover:bg-blue-950 transition-all duration-200 cursor-pointer;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100
+      dark:border-gray-800 hover:shadow-md transition-all duration-200;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
+      bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+      transition-all duration-200;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  }
+}
+
+/* Drag and drop zone */
+.drop-zone {
+  @apply relative flex flex-col items-center justify-center w-full min-h-48 rounded-2xl
+    border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer
+    bg-gray-50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/30
+    hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200;
+}
+.drop-zone-active {
+  @apply border-blue-500 bg-blue-50 dark:bg-blue-950/40;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-gray-100 dark:bg-gray-900; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-700 rounded-full; }

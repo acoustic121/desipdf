@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Zana za PDF bure kwa India"
+  },
+  "nav": {
+    "home": "Nyumbani",
+    "about": "Kuhusu sisi",
+    "faq": "Maswali"
+  },
+  "hero": {
+    "headline": "Zana za PDF zinazohitajika India",
+    "sub": "Badilisha, bana, unganisha, gawanya PDF — bure kabisa. Hakuna usajili."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF hadi JPG",
+    "jpg-to-pdf": "JPG hadi PDF",
+    "merge-pdf": "Unganisha PDF",
+    "split-pdf": "Gawanya PDF",
+    "compress-pdf": "Bana PDF",
+    "rotate-pdf": "Zungushia PDF",
+    "extract-pages": "Toa kurasa",
+    "reorder-pages": "Panga upya kurasa",
+    "pdf-watermark": "Ongeza alama ya maji",
+    "word-to-pdf": "Word hadi PDF",
+    "pdf-to-word": "PDF hadi Word",
+    "excel-to-pdf": "Excel hadi PDF",
+    "pdf-to-excel": "PDF hadi Excel",
+    "pptx-to-pdf": "PPT hadi PDF"
+  },
+  "actions": {
+    "convert": "Badilisha",
+    "download": "Pakua",
+    "upload": "Pakia faili",
+    "processing": "Inachakata..."
+  }
+}

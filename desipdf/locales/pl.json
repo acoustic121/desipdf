@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Bezpłatne narzędzia PDF dla Indii"
+  },
+  "nav": {
+    "home": "Strona główna",
+    "about": "O nas",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Zestaw narzędzi PDF dla Indii",
+    "sub": "Konwertuj, kompresuj, łącz, dziel pliki PDF — całkowicie za darmo. Bez rejestracji."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF do JPG",
+    "jpg-to-pdf": "JPG do PDF",
+    "merge-pdf": "Scal PDF",
+    "split-pdf": "Podziel PDF",
+    "compress-pdf": "Kompresuj PDF",
+    "rotate-pdf": "Obróć PDF",
+    "extract-pages": "Wyodrębnij strony",
+    "reorder-pages": "Zmień kolejność",
+    "pdf-watermark": "Dodaj znak wodny",
+    "word-to-pdf": "Word do PDF",
+    "pdf-to-word": "PDF do Word",
+    "excel-to-pdf": "Excel do PDF",
+    "pdf-to-excel": "PDF do Excel",
+    "pptx-to-pdf": "PPT do PDF"
+  },
+  "actions": {
+    "convert": "Konwertuj",
+    "download": "Pobierz",
+    "upload": "Prześlij plik",
+    "processing": "Przetwarzanie..."
+  }
+}

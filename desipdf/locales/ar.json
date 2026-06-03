@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "أدوات PDF مجانية للهند"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "about": "من نحن",
+    "faq": "الأسئلة الشائعة"
+  },
+  "hero": {
+    "headline": "مجموعة أدوات PDF التي تحتاجها الهند",
+    "sub": "تحويل وضغط ودمج وتقسيم ملفات PDF — مجانًا تمامًا. بدون تسجيل."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF إلى JPG",
+    "jpg-to-pdf": "JPG إلى PDF",
+    "merge-pdf": "دمج PDF",
+    "split-pdf": "تقسيم PDF",
+    "compress-pdf": "ضغط PDF",
+    "rotate-pdf": "تدوير PDF",
+    "extract-pages": "استخراج الصفحات",
+    "reorder-pages": "إعادة ترتيب",
+    "pdf-watermark": "إضافة علامة مائية",
+    "word-to-pdf": "Word إلى PDF",
+    "pdf-to-word": "PDF إلى Word",
+    "excel-to-pdf": "Excel إلى PDF",
+    "pdf-to-excel": "PDF إلى Excel",
+    "pptx-to-pdf": "PPT إلى PDF"
+  },
+  "actions": {
+    "convert": "تحويل",
+    "download": "تحميل",
+    "upload": "رفع ملف",
+    "processing": "جارٍ المعالجة..."
+  }
+}

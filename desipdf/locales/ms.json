@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Alat PDF percuma untuk India"
+  },
+  "nav": {
+    "home": "Laman Utama",
+    "about": "Tentang kami",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Toolkit PDF yang diperlukan India",
+    "sub": "Tukar, mampat, gabung, pisah PDF — percuma sepenuhnya. Tanpa pendaftaran."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF ke JPG",
+    "jpg-to-pdf": "JPG ke PDF",
+    "merge-pdf": "Gabung PDF",
+    "split-pdf": "Pisah PDF",
+    "compress-pdf": "Mampat PDF",
+    "rotate-pdf": "Putar PDF",
+    "extract-pages": "Ekstrak halaman",
+    "reorder-pages": "Susun semula",
+    "pdf-watermark": "Tambah tera air",
+    "word-to-pdf": "Word ke PDF",
+    "pdf-to-word": "PDF ke Word",
+    "excel-to-pdf": "Excel ke PDF",
+    "pdf-to-excel": "PDF ke Excel",
+    "pptx-to-pdf": "PPT ke PDF"
+  },
+  "actions": {
+    "convert": "Tukar",
+    "download": "Muat turun",
+    "upload": "Muat naik fail",
+    "processing": "Memproses..."
+  }
+}

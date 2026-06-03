@@ -1,0 +1,30 @@
+{
+  "site": { "name": "DesiPDF", "tagline": "இந்தியாவிற்கான இலவச PDF கருவிகள்" },
+  "nav": { "home": "முகப்பு", "about": "எங்களைப் பற்றி", "faq": "கேள்வி-பதில்" },
+  "hero": {
+    "headline": "இந்தியாவிற்கான PDF கருவித்தொகுப்பு",
+    "sub": "PDF மாற்றவும், சுருக்கவும், இணைக்கவும் — இலவசமாக. பதிவு தேவையில்லை."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF to JPG",
+    "jpg-to-pdf": "JPG to PDF",
+    "merge-pdf": "PDF இணைக்கவும்",
+    "split-pdf": "PDF பிரிக்கவும்",
+    "compress-pdf": "PDF சுருக்கவும்",
+    "rotate-pdf": "PDF சுழற்றவும்",
+    "extract-pages": "பக்கங்களை எடுக்கவும்",
+    "reorder-pages": "பக்க வரிசை மாற்றவும்",
+    "pdf-watermark": "வாட்டர்மார்க் சேர்க்கவும்",
+    "word-to-pdf": "Word to PDF",
+    "pdf-to-word": "PDF to Word",
+    "excel-to-pdf": "Excel to PDF",
+    "pdf-to-excel": "PDF to Excel",
+    "pptx-to-pdf": "PPT to PDF"
+  },
+  "actions": {
+    "convert": "மாற்றவும்",
+    "download": "பதிவிறக்கவும்",
+    "upload": "கோப்பு பதிவேற்றவும்",
+    "processing": "செயலாக்குகிறது..."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "site": { "name": "DesiPDF", "tagline": "भारत के लिए मुफ़्त PDF टूल्स" },
+  "nav": { "home": "होम", "about": "हमारे बारे में", "faq": "सवाल-जवाब" },
+  "hero": {
+    "headline": "भारत का सबसे बड़ा PDF टूलकिट",
+    "sub": "PDF कन्वर्ट, कम्प्रेस, मर्ज, स्प्लिट करें — बिल्कुल मुफ़्त। कोई साइनअप नहीं।"
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF से JPG",
+    "jpg-to-pdf": "JPG से PDF",
+    "merge-pdf": "PDF मर्ज करें",
+    "split-pdf": "PDF स्प्लिट करें",
+    "compress-pdf": "PDF कम्प्रेस करें",
+    "rotate-pdf": "PDF घुमाएं",
+    "extract-pages": "पेज निकालें",
+    "reorder-pages": "पेज क्रम बदलें",
+    "pdf-watermark": "वॉटरमार्क जोड़ें",
+    "word-to-pdf": "Word से PDF",
+    "pdf-to-word": "PDF से Word",
+    "excel-to-pdf": "Excel से PDF",
+    "pdf-to-excel": "PDF से Excel",
+    "pptx-to-pdf": "PPT से PDF"
+  },
+  "actions": {
+    "convert": "कन्वर्ट करें",
+    "download": "डाउनलोड करें",
+    "upload": "फ़ाइल अपलोड करें",
+    "processing": "प्रोसेसिंग..."
+  }
+}

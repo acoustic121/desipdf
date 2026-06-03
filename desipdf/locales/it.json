@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Strumenti PDF gratuiti per l'India"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "Chi siamo",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Il toolkit PDF di cui l'India ha bisogno",
+    "sub": "Converti, comprimi, unisci, dividi PDF — completamente gratis. Senza registrazione."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF in JPG",
+    "jpg-to-pdf": "JPG in PDF",
+    "merge-pdf": "Unisci PDF",
+    "split-pdf": "Dividi PDF",
+    "compress-pdf": "Comprimi PDF",
+    "rotate-pdf": "Ruota PDF",
+    "extract-pages": "Estrai pagine",
+    "reorder-pages": "Riordina pagine",
+    "pdf-watermark": "Filigrana",
+    "word-to-pdf": "Word in PDF",
+    "pdf-to-word": "PDF in Word",
+    "excel-to-pdf": "Excel in PDF",
+    "pdf-to-excel": "PDF in Excel",
+    "pptx-to-pdf": "PPT in PDF"
+  },
+  "actions": {
+    "convert": "Converti",
+    "download": "Scarica",
+    "upload": "Carica file",
+    "processing": "Elaborazione..."
+  }
+}

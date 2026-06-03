@@ -1,0 +1,30 @@
+{
+  "site": { "name": "DesiPDF", "tagline": "Free PDF Tools for India" },
+  "nav": { "home": "Home", "about": "About", "faq": "FAQ" },
+  "hero": {
+    "headline": "The Only PDF Toolkit India Needs",
+    "sub": "Convert, compress, merge, split PDFs — all free. No signup. No watermarks."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF to JPG",
+    "jpg-to-pdf": "JPG to PDF",
+    "merge-pdf": "Merge PDF",
+    "split-pdf": "Split PDF",
+    "compress-pdf": "Compress PDF",
+    "rotate-pdf": "Rotate PDF",
+    "extract-pages": "Extract Pages",
+    "reorder-pages": "Reorder Pages",
+    "pdf-watermark": "Add Watermark",
+    "word-to-pdf": "Word to PDF",
+    "pdf-to-word": "PDF to Word",
+    "excel-to-pdf": "Excel to PDF",
+    "pdf-to-excel": "PDF to Excel",
+    "pptx-to-pdf": "PPT to PDF"
+  },
+  "actions": {
+    "convert": "Convert",
+    "download": "Download",
+    "upload": "Upload File",
+    "processing": "Processing..."
+  }
+}

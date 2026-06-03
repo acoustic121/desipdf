@@ -1,0 +1,37 @@
+{
+  "site": {
+    "name": "DesiPDF",
+    "tagline": "Бесплатные PDF-инструменты для Индии"
+  },
+  "nav": {
+    "home": "Главная",
+    "about": "О нас",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "headline": "Набор PDF-инструментов для Индии",
+    "sub": "Конвертируйте, сжимайте, объединяйте, разделяйте PDF — полностью бесплатно. Без регистрации."
+  },
+  "tools": {
+    "pdf-to-jpg": "PDF в JPG",
+    "jpg-to-pdf": "JPG в PDF",
+    "merge-pdf": "Объединить PDF",
+    "split-pdf": "Разделить PDF",
+    "compress-pdf": "Сжать PDF",
+    "rotate-pdf": "Повернуть PDF",
+    "extract-pages": "Извлечь страницы",
+    "reorder-pages": "Переупорядочить",
+    "pdf-watermark": "Водяной знак",
+    "word-to-pdf": "Word в PDF",
+    "pdf-to-word": "PDF в Word",
+    "excel-to-pdf": "Excel в PDF",
+    "pdf-to-excel": "PDF в Excel",
+    "pptx-to-pdf": "PPT в PDF"
+  },
+  "actions": {
+    "convert": "Конвертировать",
+    "download": "Скачать",
+    "upload": "Загрузить файл",
+    "processing": "Обработка..."
+  }
+}
