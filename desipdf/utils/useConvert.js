@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { hasReachedLimit, incrementUsage, getRemainingUses } from './usageLimit'
 import { downloadBlob } from './helpers'
+import { event } from './analytics'
 
 /**
  * useConvert — shared hook for all tool pages.
@@ -65,6 +66,20 @@ export function useConvert(isPremiumOverride = false) {
         toast.success('Done!', { id: toastId })
       }
 
+      // Track successful serverless conversion
+      try {
+        event({
+          action: 'convert_api_success',
+          category: 'conversion',
+          label: apiPath,
+          value: 1,
+          is_premium: premium ? 'true' : 'false',
+          filename: downloadFilename,
+        })
+      } catch (err) {
+        console.error('Failed to log event', err)
+      }
+
       const blob = await res.blob()
       downloadBlob(blob, downloadFilename)
       return true
@@ -107,6 +122,19 @@ export function useConvert(isPremiumOverride = false) {
         toast.success('Done!', { id: toastId })
       }
 
+      // Track successful client-side conversion
+      try {
+        event({
+          action: 'convert_client_success',
+          category: 'conversion',
+          label: downloadFilename,
+          value: 1,
+          is_premium: premium ? 'true' : 'false',
+        })
+      } catch (err) {
+        console.error('Failed to log event', err)
+      }
+
       const blob = result instanceof Blob ? result : new Blob([result])
       downloadBlob(blob, downloadFilename)
       return true
@@ -120,4 +148,5 @@ export function useConvert(isPremiumOverride = false) {
 
   return { convert, runClientSide, loading, showLimitModal, setShowLimitModal }
 }
+
 
