@@ -19,7 +19,11 @@ export default function ProtectPdf() {
       const arrayBuffer = await file.arrayBuffer()
       const pdfDoc = await PDFDocument.load(arrayBuffer)
       const outBytes = await pdfDoc.save({ useObjectStreams: false })
-      return outBytes
+
+      // Encrypt the saved PDF bytes with the specified password
+      const { encryptPDF } = await import('@pdfsmaller/pdf-encrypt-lite')
+      const encryptedBytes = await encryptPDF(outBytes, password)
+      return encryptedBytes
     }, `protected-${file.name}`)
   }
   return (<>
