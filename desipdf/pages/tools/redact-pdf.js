@@ -40,7 +40,7 @@ export default function RedactPdf() {
     }, `redacted-${file.name}`)
   }
   return (<>
-    <Head><title>Redact PDF – DesiPDF</title></Head>
+    <Head><title>Redact PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

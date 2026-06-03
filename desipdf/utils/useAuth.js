@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
       setIsPremium(!!data)
       // Cache in localStorage so useConvert can read it without async
       if (typeof window !== 'undefined') {
-        localStorage.setItem('desipdf_premium', data ? 'true' : 'false')
+        localStorage.setItem('pdfchampion_premium', data ? 'true' : 'false')
       }
     } catch {
       setIsPremium(false)
@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
     setSession(null)
     setIsPremium(false)
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('desipdf_premium')
+      localStorage.removeItem('pdfchampion_premium')
     }
   }
 

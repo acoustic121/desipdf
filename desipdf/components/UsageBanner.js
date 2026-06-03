@@ -13,8 +13,8 @@ export default function UsageBanner() {
 
     // Listen for usage changes dispatched by tool pages
     const handler = () => setRemaining(getRemainingUses())
-    window.addEventListener('desipdf-usage-updated', handler)
-    return () => window.removeEventListener('desipdf-usage-updated', handler)
+    window.addEventListener('pdfchampion-usage-updated', handler)
+    return () => window.removeEventListener('pdfchampion-usage-updated', handler)
   }, [])
 
   if (!mounted) return null

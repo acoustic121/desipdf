@@ -17,7 +17,7 @@ export function useConvert(isPremiumOverride = false) {
     if (isPremiumOverride) return true
     // Also check a localStorage flag set after successful payment
     try {
-      const flag = localStorage.getItem('desipdf_premium')
+      const flag = localStorage.getItem('pdfchampion_premium')
       if (flag === 'true') return true
     } catch {}
     return false
@@ -55,7 +55,7 @@ export function useConvert(isPremiumOverride = false) {
         incrementUsage()
         const remaining = getRemainingUses()
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('desipdf-usage-updated'))
+          window.dispatchEvent(new Event('pdfchampion-usage-updated'))
         }
         const msg = remaining === 0
           ? 'Done! ⚠️ That was your last free conversion today.'
@@ -97,7 +97,7 @@ export function useConvert(isPremiumOverride = false) {
         incrementUsage()
         const remaining = getRemainingUses()
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('desipdf-usage-updated'))
+          window.dispatchEvent(new Event('pdfchampion-usage-updated'))
         }
         const msg = remaining === 0
           ? 'Done! ⚠️ That was your last free conversion today.'

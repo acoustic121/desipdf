@@ -5,12 +5,12 @@ import { TOOLS, CATEGORIES, INDIAN_LANGUAGES, INTERNATIONAL_LANGUAGES } from '..
 import { useI18n } from '../utils/i18n'
 
 const FAQ_ITEMS = [
-  { q: 'Is DesiPDF completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹51/month or ₹499/year.' },
+  { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹51/month or ₹499/year.' },
   { q: 'Are my files safe?', a: 'Yes. Files are processed entirely inside your local browser on your device and are never uploaded to any server. Your sensitive data never leaves your device.' },
   { q: 'What is the maximum file size?', a: 'There is no file size limit! Since all processing is performed locally in your browser, you can convert files of any size.' },
-  { q: 'Does it work on mobile?', a: 'Yes! DesiPDF is fully responsive and works on all Android and iPhone browsers.' },
+  { q: 'Does it work on mobile?', a: 'Yes! PDFChampion is fully responsive and works on all Android and iPhone browsers.' },
   { q: 'Do I need to install anything?', a: 'No installation needed. Everything runs directly in your browser.' },
-  { q: 'Which languages are supported?', a: 'DesiPDF supports 29 languages — 7 Indian languages (English, Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati) and 22 international languages including Spanish, French, German, Japanese, Arabic, Chinese, and more.' },
+  { q: 'Which languages are supported?', a: 'PDFChampion supports 29 languages — including English, Hindi, Spanish, French, German, Japanese, and more.' },
 ]
 
 function ToolCard({ tool }) {
@@ -60,9 +60,9 @@ export default function Home() {
   return (
     <>
       <SeoHead
-        title="Free PDF Tools for India – Convert, Merge, Compress PDFs Online"
-        description="DesiPDF is a free online PDF tool for India. Merge, split, compress, convert, rotate, watermark, and protect PDF files. 15 free uses per day. Works in Hindi, Tamil, Telugu and 29 languages."
-        keywords="pdf tools india, merge pdf, compress pdf, pdf to word, word to pdf, jpg to pdf, pdf converter online free, hindi pdf tools"
+        title="Free PDF Tools – Convert, Merge, Compress PDFs Online"
+        description="PDFChampion is a free online PDF tool. Merge, split, compress, convert, rotate, watermark, and protect PDF files. 15 free uses per day. Works in 29 languages."
+        keywords="pdf tools, merge pdf, compress pdf, pdf to word, word to pdf, jpg to pdf, pdf converter online free"
         canonical="/"
       />
 
@@ -78,7 +78,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
-            🇮🇳 Made In India &nbsp;·&nbsp; 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
+            ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
           </div>
 
           {/* Headline */}
@@ -156,20 +156,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── WHY DESIPDF ──────────────────────────────────────────────────── */}
+      {/* ── WHY PDFCHAMPION ──────────────────────────────────────────────────── */}
       <section className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-900/50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Why Choose DesiPDF?</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Built specifically for India's needs</p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Why Choose PDFChampion?</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Built for speed, simplicity, and privacy</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               { icon: '🆓', title: '100% Free Forever', desc: 'No hidden fees, no subscriptions, no premium tiers. Every tool, always free.' },
-              { icon: '🔒', title: 'Private & Secure', desc: 'Files are auto-deleted within 2 hours. We never store, read, or share your documents.' },
-              { icon: '⚡', title: 'Lightning Fast', desc: 'Serverless architecture means your files are processed in seconds, not minutes.' },
-              { icon: '📱', title: 'Works on Any Device', desc: 'Phone, tablet, laptop — DesiPDF works perfectly on every screen and browser.' },
-              { icon: '🌍', title: '7 Indian + 22 International', desc: 'Use DesiPDF in Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, English + 22 world languages.' },
+              { icon: '🔒', title: 'Private & Secure', desc: 'Processed locally in your browser. Your files are never uploaded to any server and stay 100% private.' },
+              { icon: '⚡', title: 'Lightning Fast', desc: 'Processed directly in your browser on-device without any slow network upload delays.' },
+              { icon: '📱', title: 'Works on Any Device', desc: 'Phone, tablet, laptop — PDFChampion works perfectly on every screen and browser.' },
+              { icon: '🌍', title: 'Supports 29 Languages', desc: 'Use PDFChampion in English, Spanish, French, German, Japanese, Hindi, Tamil, Telugu, and more.' },
               { icon: '🚫', title: 'Zero Watermarks', desc: 'Your output files are clean. No stamps, no logos, no "made with" text — ever.' },
             ].map((f) => (
               <div key={f.title} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 hover:shadow-md transition-all">

@@ -86,8 +86,8 @@ export default function Pricing() {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: order.amount,
           currency: 'INR',
-          name: 'DesiPDF',
-          description: `DesiPDF Premium – ${billing === 'monthly' ? '1 Month' : '1 Year'}`,
+          name: 'PDFChampion',
+          description: `PDFChampion Premium – ${billing === 'monthly' ? '1 Month' : '1 Year'}`,
           order_id: order.id,
           prefill: { email: user.email, name: user.user_metadata?.full_name || '' },
           theme: { color: '#0066FF' },
@@ -100,7 +100,7 @@ export default function Pricing() {
             })
             const result = await verify.json()
             if (verify.ok && result.success) {
-              toast.success('🎉 Welcome to DesiPDF Premium!')
+              toast.success('🎉 Welcome to PDFChampion Premium!')
               router.push('/')
             } else {
               toast.error('Payment verification failed. Contact support.')
@@ -119,8 +119,8 @@ export default function Pricing() {
   return (
     <>
       <Head>
-        <title>Pricing – DesiPDF</title>
-        <meta name="description" content="DesiPDF free and premium plans. Get unlimited PDF conversions for ₹50/month." />
+        <title>Pricing – PDFChampion</title>
+        <meta name="description" content="PDFChampion free and premium plans. Get unlimited PDF conversions for ₹50/month." />
       </Head>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

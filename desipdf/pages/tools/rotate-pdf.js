@@ -37,7 +37,7 @@ export default function RotatePdf() {
     }, `rotated-${file.name}`)
   }
   return (<>
-    <Head><title>Rotate PDF – DesiPDF</title></Head>
+    <Head><title>Rotate PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

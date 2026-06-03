@@ -35,7 +35,7 @@ export default function ReorderPages() {
     }, `reordered-${file.name}`)
   }
   return (<>
-    <Head><title>Reorder Pages – DesiPDF</title></Head>
+    <Head><title>Reorder Pages – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={handleFileSelect} accept=".pdf" />

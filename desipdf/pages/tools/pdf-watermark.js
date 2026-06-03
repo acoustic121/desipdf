@@ -47,7 +47,7 @@ export default function PdfWatermark() {
     }, `watermarked-${file.name}`)
   }
   return (<>
-    <Head><title>Watermark PDF – DesiPDF</title></Head>
+    <Head><title>Watermark PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

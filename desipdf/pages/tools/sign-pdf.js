@@ -63,7 +63,7 @@ export default function SignPdf() {
     }, `signed-${file.name}`)
   }
   return (<>
-    <Head><title>Sign PDF – DesiPDF</title></Head>
+    <Head><title>Sign PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

@@ -4,7 +4,7 @@ export default function PrivacyPolicy() {
   return (
     <>
       <Head>
-        <title>Privacy Policy – DesiPDF</title>
+        <title>Privacy Policy – PDFChampion</title>
       </Head>
       <div className="max-w-3xl mx-auto px-4 py-20 text-gray-600 dark:text-gray-400 space-y-6 leading-relaxed">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Privacy Policy</h1>
@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Third Parties</h2>
         <p>We do not sell or share your data or files with any third parties.</p>
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Contact</h2>
-        <p>For any privacy concerns, contact us at privacy@desipdf.com.</p>
+        <p>For any privacy concerns, contact us at privacy@pdfchampion.com.</p>
       </div>
     </>
   )

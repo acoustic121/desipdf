@@ -66,7 +66,7 @@ export default function WordToPdf() {
     }, file.name.replace(/\.docx?$/, '.pdf'))
   }
   return (<>
-    <Head><title>Word to PDF – DesiPDF</title></Head>
+    <Head><title>Word to PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".doc,.docx" label="Drop your Word document here" sublabel="Supports .doc and .docx files" />

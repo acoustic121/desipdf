@@ -47,7 +47,7 @@ export default withRateLimit(async function handler(req, res) {
       pagesToExtract = indices.map((i) => [i])
     }
 
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'desipdf-split-'))
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfchampion-split-'))
     const zipPath = path.join(tmpDir, 'split.zip')
     const output = fs.createWriteStream(zipPath)
     const archive = archiver('zip', { zlib: { level: 6 } })

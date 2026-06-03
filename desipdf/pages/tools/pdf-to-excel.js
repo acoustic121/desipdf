@@ -21,7 +21,7 @@ export default function PdfToExcel() {
       const XLSX = await loadXLSX()
       const wb = XLSX.utils.book_new()
       const wsData = [
-        ['DesiPDF - PDF to Excel Conversion'],
+        ['PDFChampion - PDF to Excel Conversion'],
         [''],
         ['File', file.name || 'document.pdf'],
         ['Pages', pageCount],
@@ -41,7 +41,7 @@ export default function PdfToExcel() {
     }, file.name.replace('.pdf', '.xlsx'))
   }
   return (<>
-    <Head><title>PDF to Excel – DesiPDF</title></Head>
+    <Head><title>PDF to Excel – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

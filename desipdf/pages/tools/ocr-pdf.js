@@ -66,7 +66,7 @@ export default function OcrPdf() {
 
   return (
     <>
-      <Head><title>OCR PDF – DesiPDF</title></Head>
+      <Head><title>OCR PDF – PDFChampion</title></Head>
       <ToolLayout tool={tool}>
         <div className="space-y-4">
 

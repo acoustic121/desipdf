@@ -48,7 +48,7 @@ export function withRateLimit(handler) {
 
     if (!allowed) {
       return res.status(429).json({
-        error: 'Daily free limit reached. Upgrade to DesiPDF Premium for unlimited access.',
+        error: 'Daily free limit reached. Upgrade to PDFChampion Premium for unlimited access.',
         remaining: 0,
         upgradeUrl: '/pricing',
       })

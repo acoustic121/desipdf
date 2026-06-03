@@ -29,7 +29,7 @@ export default function UnlockPdf() {
     }, `unlocked-${file.name}`)
   }
   return (<>
-    <Head><title>Unlock PDF – DesiPDF</title></Head>
+    <Head><title>Unlock PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

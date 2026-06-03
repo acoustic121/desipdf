@@ -44,7 +44,7 @@ export default function PageNumbers() {
     }, `numbered-${file.name}`)
   }
   return (<>
-    <Head><title>Page Numbers – DesiPDF</title></Head>
+    <Head><title>Page Numbers – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

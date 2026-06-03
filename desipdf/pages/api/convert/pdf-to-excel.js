@@ -33,7 +33,7 @@ export default withRateLimit(async function handler(req, res) {
     // Create workbook with metadata (full table extraction requires OCR/parsing library)
     const wb = XLSX.utils.book_new()
     const wsData = [
-      ['DesiPDF - PDF to Excel Conversion'],
+      ['PDFChampion - PDF to Excel Conversion'],
       [''],
       ['File', file.originalFilename || 'document.pdf'],
       ['Pages', pageCount],

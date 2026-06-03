@@ -5,7 +5,7 @@ const tool = TOOLS.find((t) => t.id === 'compare-pdf')
 export default function Page() {
   return (
     <>
-      <Head><title>{tool?.name} – DesiPDF</title></Head>
+      <Head><title>{tool?.name} – PDFChampion</title></Head>
       <ComingSoon tool={tool} />
     </>
   )

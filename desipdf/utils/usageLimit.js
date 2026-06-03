@@ -4,7 +4,7 @@
 export const FREE_LIMIT_PER_DAY = 15
 export const FREE_FILES_PER_MERGE = 10  // max files in a single merge/batch operation
 
-const STORAGE_KEY = 'desipdf_usage'
+const STORAGE_KEY = 'pdfchampion_usage'
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10) // "2026-06-03"

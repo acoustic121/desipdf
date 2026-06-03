@@ -57,7 +57,7 @@ export default function ExcelToPdf() {
     }, file.name.replace(/\.xlsx?$/, '.pdf'))
   }
   return (<>
-    <Head><title>Excel to PDF – DesiPDF</title></Head>
+    <Head><title>Excel to PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".xls,.xlsx" label="Drop your Excel file here" sublabel="Supports .xls and .xlsx" />

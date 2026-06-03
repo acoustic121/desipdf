@@ -85,7 +85,7 @@ export default function ScanToPdf() {
 
   return (
     <>
-      <Head><title>Scan to PDF – DesiPDF</title></Head>
+      <Head><title>Scan to PDF – PDFChampion</title></Head>
       <ToolLayout tool={tool}>
         <div className="space-y-5">
           {/* Camera preview */}

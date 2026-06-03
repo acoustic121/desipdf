@@ -1,9 +1,9 @@
-# DesiPDF – Deploy to Vercel in 5 Minutes
+# PDFChampion – Deploy to Vercel in 5 Minutes
 
 ## 1. Install dependencies
 
 ```bash
-cd desipdf
+cd pdfchampion
 npm install
 ```
 
@@ -33,7 +33,7 @@ Or use the Vercel dashboard:
 
 ## 4. Add your domain
 
-In Vercel dashboard → Project → Settings → Domains → Add `desipdf.com`
+In Vercel dashboard → Project → Settings → Domains → Add `pdfchampion.com`
 
 Then in your domain registrar, point:
 - `A` record → `76.76.21.21`
@@ -49,7 +49,7 @@ Add the same keys in Vercel → Settings → Environment Variables.
 ## File structure
 
 ```
-desipdf/
+pdfchampion/
 ├── pages/
 │   ├── index.js          # Homepage
 │   ├── about.js

@@ -29,12 +29,12 @@ export default function RepairPdf() {
     }, `repaired-${file.name}`)
   }
   return (<>
-    <Head><title>Repair PDF – DesiPDF</title></Head>
+    <Head><title>Repair PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" label="Drop damaged PDF here" sublabel="We'll try to recover and rebuild the file structure"/>
       {file && <div className="mt-6 space-y-4">
-        <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400">🔧 DesiPDF will reload and rebuild the PDF structure to fix common corruption issues.</div>
+        <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400">🔧 PDFChampion will reload and rebuild the PDF structure to fix common corruption issues.</div>
         <button onClick={handle} disabled={loading} className="btn-primary w-full justify-center py-3.5">{loading?'⏳ Repairing…':'🔧 Repair PDF'}</button>
       </div>}
     </ToolLayout>

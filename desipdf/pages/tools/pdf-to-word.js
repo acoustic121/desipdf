@@ -41,7 +41,7 @@ export default function PdfToWord() {
     }, file.name.replace('.pdf', '.docx'))
   }
   return (<>
-    <Head><title>PDF to Word – DesiPDF</title></Head>
+    <Head><title>PDF to Word – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

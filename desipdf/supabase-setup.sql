@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════
--- DesiPDF – Supabase Database Setup
+-- PDFChampion – Supabase Database Setup
 -- Run this in Supabase → SQL Editor → New Query
 -- ══════════════════════════════════════════════════════════
 

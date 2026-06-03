@@ -30,7 +30,7 @@ export default function PdfToJpg() {
       // Check premium status to determine page limits
       let isPremium = false
       try {
-        const flag = localStorage.getItem('desipdf_premium')
+        const flag = localStorage.getItem('pdfchampion_premium')
         if (flag === 'true') isPremium = true
       } catch {}
 

@@ -27,7 +27,7 @@ export default function ProtectPdf() {
     }, `protected-${file.name}`)
   }
   return (<>
-    <Head><title>Protect PDF – DesiPDF</title></Head>
+    <Head><title>Protect PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

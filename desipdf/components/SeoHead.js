@@ -7,7 +7,7 @@ import Head from 'next/head'
  *   title       – page title (shown in browser tab + Google blue link)
  *   description – meta description (shown in Google snippet under the title)
  *   keywords    – comma-separated keywords string
- *   canonical   – canonical URL of the page (e.g. https://desipdf.com/tools/merge-pdf)
+ *   canonical   – canonical URL of the page (e.g. https://pdfchampion.com/tools/merge-pdf)
  *   ogImage     – absolute URL of the Open Graph image (defaults to /og-image.png)
  */
 export default function SeoHead({
@@ -15,10 +15,10 @@ export default function SeoHead({
   description,
   keywords = '',
   canonical,
-  ogImage = 'https://desipdf.vercel.app/og-image.png',
+  ogImage = 'https://pdfchampion.vercel.app/og-image.png',
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://desipdf.vercel.app'
-  const fullTitle = title ? `${title} | DesiPDF` : 'DesiPDF – Free PDF Tools for India'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pdfchampion.vercel.app'
+  const fullTitle = title ? `${title} | PDFChampion` : 'PDFChampion – Free PDF Tools'
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
 
   return (
@@ -29,7 +29,7 @@ export default function SeoHead({
       {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={fullCanonical} />
       <meta name="robots" content="index, follow" />
-      <meta name="author" content="DesiPDF" />
+      <meta name="author" content="PDFChampion" />
 
       {/* ── Open Graph (Facebook / WhatsApp preview) ──────────────────── */}
       <meta property="og:type" content="website" />
@@ -37,7 +37,7 @@ export default function SeoHead({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={fullCanonical} />
       <meta property="og:image" content={ogImage} />
-      <meta property="og:site_name" content="DesiPDF" />
+      <meta property="og:site_name" content="PDFChampion" />
       <meta property="og:locale" content="en_IN" />
 
       {/* ── Twitter Card ──────────────────────────────────────────────── */}

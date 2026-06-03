@@ -53,7 +53,7 @@ export default function SplitPdf() {
 
   return (
     <>
-      <Head><title>Split PDF – DesiPDF</title></Head>
+      <Head><title>Split PDF – PDFChampion</title></Head>
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />

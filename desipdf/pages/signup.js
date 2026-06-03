@@ -40,7 +40,7 @@ export default function Signup() {
     } else if (data.user?.identities?.length === 0) {
       toast.error('An account with this email already exists. Please log in.')
     } else {
-      toast.success('Account created! Welcome to DesiPDF 🎉')
+      toast.success('Account created! Welcome to PDFChampion 🎉')
       router.replace('/')
     }
   }
@@ -62,14 +62,14 @@ export default function Signup() {
 
   return (
     <>
-      <Head><title>Sign Up – DesiPDF</title></Head>
+      <Head><title>Sign Up – PDFChampion</title></Head>
       <div className="min-h-screen bg-gradient-to-b from-blue-50 dark:from-gray-900 to-transparent flex items-center justify-center px-4 py-16">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold">
               <span>📄</span>
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">DesiPDF</span>
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">PDFChampion</span>
             </Link>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-4">Create your account</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Free forever. Upgrade anytime.</p>

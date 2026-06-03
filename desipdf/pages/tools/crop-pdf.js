@@ -36,7 +36,7 @@ export default function CropPdf() {
     }, `cropped-${file.name}`)
   }
   return (<>
-    <Head><title>Crop PDF – DesiPDF</title></Head>
+    <Head><title>Crop PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />

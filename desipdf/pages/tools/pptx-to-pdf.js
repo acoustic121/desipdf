@@ -69,7 +69,7 @@ export default function PptxToPdf() {
     }, file.name.replace(/\.pptx?$/, '.pdf'))
   }
   return (<>
-    <Head><title>PPT to PDF – DesiPDF</title></Head>
+    <Head><title>PPT to PDF – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".ppt,.pptx" label="Drop your PowerPoint file here" sublabel="Supports .ppt and .pptx" />

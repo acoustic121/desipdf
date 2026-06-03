@@ -1,7 +1,7 @@
 import Head from 'next/head'
 
 const FAQS = [
-  { q: 'Is DesiPDF free?', a: 'Yes, all tools are 100% free. No hidden costs, ever.' },
+  { q: 'Is PDFChampion free?', a: 'Yes, all tools are 100% free. No hidden costs, ever.' },
   { q: 'Do I need to create an account?', a: 'No account required. Just upload and convert.' },
   { q: 'What is the maximum file size?', a: 'There is no file size limit since your files are processed locally on your device.' },
   { q: 'How long are my files stored?', a: 'We never store your files. They are processed entirely in your web browser and never uploaded to our servers.' },
@@ -10,18 +10,18 @@ const FAQS = [
   { q: 'Which languages are supported?', a: 'English, Hindi, Tamil, Telugu, Bengali, Marathi, and Gujarati.' },
   { q: 'Will there be watermarks on my files?', a: 'Never. Your output files are 100% clean.' },
   { q: 'How many files can I convert?', a: 'There is no limit. Convert as many files as you need.' },
-  { q: 'Can I use DesiPDF for commercial purposes?', a: 'Yes, feel free to use it for business needs.' },
+  { q: 'Can I use PDFChampion for commercial purposes?', a: 'Yes, feel free to use it for business needs.' },
 ]
 
 export default function FAQ() {
   return (
     <>
       <Head>
-        <title>FAQ – DesiPDF</title>
+        <title>FAQ – PDFChampion</title>
       </Head>
       <div className="max-w-3xl mx-auto px-4 py-20">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">FAQ</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-10">Answers to the most common questions about DesiPDF.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-10">Answers to the most common questions about PDFChampion.</p>
         <div className="space-y-4">
           {FAQS.map((item, i) => (
             <details key={i} className="card p-5 group">

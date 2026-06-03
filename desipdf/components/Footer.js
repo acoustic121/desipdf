@@ -9,10 +9,10 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2 font-bold text-xl mb-3">
               <span>📄</span>
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">DesiPDF</span>
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">PDFChampion</span>
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-              Free online PDF tools built for India. No signup, no watermarks, no limits. Process files in your browser.
+              Free online PDF tools. No signup, no watermarks, no limits. Process files in your browser.
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-          <p>© {new Date().getFullYear()} DesiPDF. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} PDFChampion. All rights reserved.</p>
           <p>Made with ❤️ in India 🇮🇳</p>
         </div>
       </div>

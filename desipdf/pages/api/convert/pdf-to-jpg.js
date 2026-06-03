@@ -45,7 +45,7 @@ export default withRateLimit(async function handler(req, res) {
     const cappedDpi = isPremium ? Math.min(dpi, 300) : Math.min(dpi, 150)
     const scale = cappedDpi / 72
 
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'desipdf-jpg-'))
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfchampion-jpg-'))
     const zipPath = path.join(tmpDir, 'pages.zip')
     const output = fs.createWriteStream(zipPath)
     const archive = archiver('zip', { zlib: { level: 3 } }) // faster compression

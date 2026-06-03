@@ -50,17 +50,17 @@ export default function Login() {
 
   return (
     <>
-      <Head><title>Login – DesiPDF</title></Head>
+      <Head><title>Login – PDFChampion</title></Head>
       <div className="min-h-screen bg-gradient-to-b from-blue-50 dark:from-gray-900 to-transparent flex items-center justify-center px-4 py-16">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold">
               <span>📄</span>
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">DesiPDF</span>
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">PDFChampion</span>
             </Link>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-4">Welcome back</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Log in to your DesiPDF account</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Log in to your PDFChampion account</p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8 shadow-sm">

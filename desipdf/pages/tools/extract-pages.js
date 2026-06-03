@@ -32,7 +32,7 @@ export default function ExtractPages() {
     }, 'extracted-pages.pdf')
   }
   return (<>
-    <Head><title>Extract Pages – DesiPDF</title></Head>
+    <Head><title>Extract Pages – PDFChampion</title></Head>
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".pdf" />
