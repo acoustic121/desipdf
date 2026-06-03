@@ -11,7 +11,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { lang, setLang, t } = useI18n()
-  const { user, isPremium, signOut } = useAuth()
+  const { user, isPremium, premiumDaysRemaining, signOut } = useAuth()
   const router = useRouter()
   const userMenuRef = useRef(null)
 
@@ -54,7 +54,18 @@ export default function Header() {
     : user?.email?.[0]?.toUpperCase() || '?'
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-100 dark:border-gray-800">
+    <>
+      {isPremium && premiumDaysRemaining !== null && premiumDaysRemaining <= 3 && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-center py-2 px-4 text-xs font-semibold flex items-center justify-center gap-2 select-none">
+          <span>
+            ⚠️ Your Premium subscription expires {premiumDaysRemaining === 0 ? 'today' : premiumDaysRemaining === 1 ? 'tomorrow' : `in ${premiumDaysRemaining} days`}.
+          </span>
+          <Link href="/pricing" className="underline hover:text-amber-100 font-bold transition-colors">
+            Renew now
+          </Link>
+        </div>
+      )}
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -197,5 +208,6 @@ export default function Header() {
         )}
       </div>
     </header>
+    </>
   )
 }
