@@ -7,7 +7,11 @@ export const FREE_FILES_PER_MERGE = 10  // max files in a single merge/batch ope
 const STORAGE_KEY = 'pdfchampion_usage'
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10) // "2026-06-03"
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}` // local date YYYY-MM-DD
 }
 
 export function getUsageData() {
@@ -53,8 +57,25 @@ export function resetUsage() {
 
 const ipStore = new Map() // { ip: { count, date } }
 
-export function checkIpLimit(ip, limit = 15) {
-  const today = new Date().toISOString().slice(0, 10)
+export function checkIpLimit(ip, limit = 15, timezone = 'UTC') {
+  let today
+  try {
+    const d = new Date()
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+    const parts = formatter.formatToParts(d)
+    const year = parts.find(p => p.type === 'year').value
+    const month = parts.find(p => p.type === 'month').value
+    const day = parts.find(p => p.type === 'day').value
+    today = `${year}-${month}-${day}`
+  } catch (e) {
+    today = new Date().toISOString().slice(0, 10)
+  }
+
   const entry = ipStore.get(ip)
 
   if (!entry || entry.date !== today) {

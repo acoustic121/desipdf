@@ -42,7 +42,8 @@ export function withRateLimit(handler) {
 
     // Free users: check IP rate limit
     const ip = getClientIp(req)
-    const { allowed, remaining } = checkIpLimit(ip)
+    const timezone = req.headers['x-vercel-ip-timezone'] || 'Asia/Kolkata'
+    const { allowed, remaining } = checkIpLimit(ip, 15, timezone)
     res.setHeader('X-RateLimit-Limit', 15)
     res.setHeader('X-RateLimit-Remaining', remaining)
 
