@@ -17,6 +17,11 @@ const CURRENCY_SYMBOLS = {
   NGN: '₦',
 }
 
+const REGIONAL_PRICES = {
+  USD: { monthly: 1.00, yearly: 9.00 },
+  EUR: { monthly: 1.00, yearly: 9.00 },
+  GBP: { monthly: 1.00, yearly: 9.00 },
+}
 
 const FREE_FEATURES = [
   { label: 'All PDF Tools', free: '15/day', premium: 'Unlimited' },
@@ -92,8 +97,8 @@ export default function Pricing() {
   }, [])
 
   const rate = rates[currency] || 1
-  const convertedMonthly = MONTHLY_PRICE * rate
-  const convertedYearly = YEARLY_PRICE * rate
+
+  let displayMonthly, displayYearly, displayPerMonth, inrPrice
 
   const formatPrice = (val) => {
     if (currency === 'INR') {
@@ -105,9 +110,26 @@ export default function Pricing() {
     return val.toFixed(2)
   }
 
-  const displayMonthly = formatPrice(convertedMonthly)
-  const displayYearly = formatPrice(convertedYearly)
-  const displayPerMonth = billing === 'yearly' ? formatPrice(convertedYearly / 12) : displayMonthly
+  if (REGIONAL_PRICES[currency]) {
+    const regional = REGIONAL_PRICES[currency]
+    displayMonthly = regional.monthly.toFixed(2)
+    displayYearly = regional.yearly.toFixed(2)
+    displayPerMonth = (regional.yearly / 12).toFixed(2)
+    inrPrice = billing === 'monthly' ? (regional.monthly / rate) : (regional.yearly / rate)
+  } else {
+    const convertedMonthly = MONTHLY_PRICE * rate
+    const convertedYearly = YEARLY_PRICE * rate
+    displayMonthly = formatPrice(convertedMonthly)
+    displayYearly = formatPrice(convertedYearly)
+    displayPerMonth = billing === 'yearly' ? formatPrice(convertedYearly / 12) : displayMonthly
+    inrPrice = billing === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE
+  }
+
+  const savingsAmount = REGIONAL_PRICES[currency]
+    ? REGIONAL_PRICES[currency].monthly * 12 - REGIONAL_PRICES[currency].yearly
+    : MONTHLY_PRICE * 12 - YEARLY_PRICE
+  
+  const displaySavings = formatPrice(savingsAmount * (REGIONAL_PRICES[currency] ? 1 : rate))
 
   // Base price in INR for creating the order
   const price = billing === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE
@@ -142,7 +164,7 @@ export default function Pricing() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ billing, amount: price * 100 }), // amount in paise
+        body: JSON.stringify({ billing, amount: Math.round(inrPrice * 100) }), // amount in paise
       })
       const order = await res.json()
       if (!res.ok) throw new Error(order.error || 'Could not create order')
@@ -265,7 +287,7 @@ export default function Pricing() {
                 <span className="text-blue-200 text-sm mb-1.5">/month</span>
               </div>
               {billing === 'yearly' && (
-                <p className="text-sm text-blue-200">{currencySymbol}{displayYearly} billed yearly · Save {currencySymbol}{formatPrice(MONTHLY_PRICE * 12 * rate - convertedYearly)}</p>
+                <p className="text-sm text-blue-200">{currencySymbol}{displayYearly} billed yearly · Save {currencySymbol}{displaySavings}</p>
               )}
               {billing === 'monthly' && (
                 <p className="text-sm text-blue-200">{currencySymbol}{displayMonthly} billed monthly</p>
