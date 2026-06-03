@@ -21,6 +21,8 @@ const REGIONAL_PRICES = {
   USD: { monthly: 1.00, yearly: 9.00 },
   EUR: { monthly: 1.00, yearly: 9.00 },
   GBP: { monthly: 1.00, yearly: 9.00 },
+  CAD: { monthly: 1.49, yearly: 14.99 },
+  AUD: { monthly: 1.49, yearly: 14.99 },
 }
 
 const FREE_FEATURES = [
