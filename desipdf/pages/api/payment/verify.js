@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       plan: 'premium',
       status: 'active',
       billing_period: billing,
-      amount: billing === 'yearly' ? 49900 : 5100, // paise (₹499 or ₹51)
+      amount: billing === 'yearly' ? 49900 : 500, // paise (₹499 or ₹5)
       expires_at: expiresAt.toISOString(),
       payment_id: razorpay_payment_id,
       order_id: razorpay_order_id,

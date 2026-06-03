@@ -31,7 +31,7 @@ const FREE_FEATURES = [
   { label: 'Email support', free: '–', premium: '✓' },
 ]
 
-const MONTHLY_PRICE = 51
+const MONTHLY_PRICE = 5
 const YEARLY_PRICE = 499
 
 export default function Pricing() {
