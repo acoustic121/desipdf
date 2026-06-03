@@ -27,7 +27,7 @@ export default function ToolLayout({ tool, children }) {
 
         {/* Trust badges */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-600">
-          <span>🔒 Files deleted after 2 hours</span>
+          <span>🔒 100% Private (Processed in browser)</span>
           <span>🆓 100% Free</span>
           <span>⚡ Fast processing</span>
           <span>📱 Works on mobile</span>
