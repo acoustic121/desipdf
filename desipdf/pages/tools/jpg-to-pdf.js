@@ -9,14 +9,47 @@ const tool = TOOLS.find((t) => t.id === 'jpg-to-pdf')
 export default function JpgToPdf() {
   const [files, setFiles] = useState([])
   const [pageSize, setPageSize] = useState('A4')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     const arr = Array.isArray(files) ? files : [files].filter(Boolean)
     if (!arr.length) return
-    const fd = new FormData()
-    arr.forEach(f => fd.append('files', f))
-    fd.append('pageSize', pageSize)
-    await convert('/api/convert/jpg-to-pdf', fd, 'converted.pdf')
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const pdfDoc = await PDFDocument.create()
+
+      const PAGE_SIZES = {
+        A4: [595.28, 841.89],
+        Letter: [612, 792],
+        A3: [841.89, 1190.55],
+      }
+      const [pgW, pgH] = PAGE_SIZES[pageSize] || PAGE_SIZES.A4
+
+      for (const file of arr) {
+        const arrayBuffer = await file.arrayBuffer()
+        const imgBytes = new Uint8Array(arrayBuffer)
+        const isPng = imgBytes[0] === 0x89 && imgBytes[1] === 0x50
+
+        let img
+        try {
+          img = isPng ? await pdfDoc.embedPng(imgBytes) : await pdfDoc.embedJpg(imgBytes)
+        } catch {
+          try { img = await pdfDoc.embedPng(imgBytes) } catch { img = await pdfDoc.embedJpg(imgBytes) }
+        }
+
+        const page = pdfDoc.addPage([pgW, pgH])
+        const dims = img.size()
+        const scale = Math.min(pgW / dims.width, pgH / dims.height)
+        page.drawImage(img, {
+          x: (pgW - dims.width * scale) / 2,
+          y: (pgH - dims.height * scale) / 2,
+          width: dims.width * scale,
+          height: dims.height * scale,
+        })
+      }
+
+      const pdfBytes = await pdfDoc.save()
+      return pdfBytes
+    }, 'converted.pdf')
   }
   return (<>
     <SeoHead

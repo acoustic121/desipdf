@@ -8,11 +8,25 @@ import { useConvert } from '../../utils/useConvert'
 const tool = TOOLS.find((t) => t.id === 'repair-pdf')
 export default function RepairPdf() {
   const [file, setFile] = useState(null)
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file)
-    await convert('/api/convert/repair-pdf', fd, `repaired-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      let pdfDoc
+      try {
+        pdfDoc = await PDFDocument.load(arrayBuffer, {
+          ignoreEncryption: true,
+          throwOnInvalidObject: false,
+          updateMetadata: false,
+        })
+      } catch (e) {
+        throw new Error('Could not repair this PDF. The file may be too damaged.')
+      }
+      const outBytes = await pdfDoc.save({ useObjectStreams: false })
+      return outBytes
+    }, `repaired-${file.name}`)
   }
   return (<>
     <Head><title>Repair PDF – DesiPDF</title></Head>

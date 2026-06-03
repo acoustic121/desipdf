@@ -76,5 +76,48 @@ export function useConvert(isPremiumOverride = false) {
     }
   }
 
-  return { convert, loading, showLimitModal, setShowLimitModal }
+  const runClientSide = async (actionFn, downloadFilename) => {
+    const premium = checkPremium()
+
+    // 1. Check client-side limit (skip for premium users)
+    if (!premium && hasReachedLimit()) {
+      setShowLimitModal(true)
+      return false
+    }
+
+    setLoading(true)
+    const toastId = toast.loading('Processing in your browser…')
+
+    try {
+      const result = await actionFn()
+      if (!result) throw new Error('Processing failed')
+
+      // 2. Success — increment usage (only for free users)
+      if (!premium) {
+        incrementUsage()
+        const remaining = getRemainingUses()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('desipdf-usage-updated'))
+        }
+        const msg = remaining === 0
+          ? 'Done! ⚠️ That was your last free conversion today.'
+          : `Done! ${remaining} free use${remaining !== 1 ? 's' : ''} remaining today.`
+        toast.success(msg, { id: toastId, duration: 5000 })
+      } else {
+        toast.success('Done!', { id: toastId })
+      }
+
+      const blob = result instanceof Blob ? result : new Blob([result])
+      downloadBlob(blob, downloadFilename)
+      return true
+    } catch (err) {
+      toast.error(err.message || 'An error occurred', { id: toastId })
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { convert, runClientSide, loading, showLimitModal, setShowLimitModal }
 }
+

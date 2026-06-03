@@ -9,11 +9,27 @@ const tool = TOOLS.find((t) => t.id === 'extract-pages')
 export default function ExtractPages() {
   const [file, setFile] = useState(null)
   const [range, setRange] = useState('')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file || !range.trim()) return
-    const fd = new FormData(); fd.append('file', file); fd.append('range', range)
-    await convert('/api/convert/extract-pages', fd, 'extracted-pages.pdf')
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const { parsePageRange } = await import('../../utils/helpers')
+      const arrayBuffer = await file.arrayBuffer()
+      const srcDoc = await PDFDocument.load(arrayBuffer)
+      const totalPages = srcDoc.getPageCount()
+
+      const pageNums = parsePageRange(range, totalPages)
+      if (pageNums.length === 0) throw new Error('No valid pages in range')
+
+      const newDoc = await PDFDocument.create()
+      const indices = pageNums.map((n) => n - 1)
+      const copied = await newDoc.copyPages(srcDoc, indices)
+      copied.forEach((p) => newDoc.addPage(p))
+
+      const outBytes = await newDoc.save()
+      return outBytes
+    }, 'extracted-pages.pdf')
   }
   return (<>
     <Head><title>Extract Pages – DesiPDF</title></Head>

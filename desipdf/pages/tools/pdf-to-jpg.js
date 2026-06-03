@@ -14,55 +14,60 @@ const tool = TOOLS.find((t) => t.id === 'pdf-to-jpg')
 export default function PdfToJpg() {
   const [file, setFile] = useState(null)
   const [dpi, setDpi] = useState('150')
-  const [loading, setLoading] = useState(false)
-  const { showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
   const handleConvert = async () => {
     if (!file) return toast.error('Please upload a PDF first')
-    setLoading(true)
-    const toastId = toast.loading('Converting PDF to JPG…')
+    await runClientSide(async () => {
+      const { loadPdfJs, loadJsZip } = await import('../../utils/clientLoader')
+      const pdfjs = await loadPdfJs()
+      const JSZip = await loadJsZip()
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise
+      const totalPages = pdf.numPages
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('dpi', dpi)
+      // Check premium status to determine page limits
+      let isPremium = false
+      try {
+        const flag = localStorage.getItem('desipdf_premium')
+        if (flag === 'true') isPremium = true
+      } catch {}
 
-      const res = await fetch('/api/convert/pdf-to-jpg', {
-        method: 'POST',
-        body: formData,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      })
+      const FREE_PAGE_LIMIT = 10
+      const PREMIUM_PAGE_LIMIT = 200
+      const pageLimit = isPremium ? PREMIUM_PAGE_LIMIT : FREE_PAGE_LIMIT
+      const pageCount = Math.min(totalPages, pageLimit)
 
-      if (res.status === 429) {
-        toast.error('Daily limit reached.', { id: toastId })
-        setShowLimitModal(true)
-        return
+      const requestedDpi = parseInt(dpi || '150')
+      const cappedDpi = isPremium ? Math.min(requestedDpi, 300) : Math.min(requestedDpi, 150)
+      const scale = cappedDpi / 72
+
+      const zip = new JSZip()
+
+      for (let i = 0; i < pageCount; i++) {
+        const page = await pdf.getPage(i + 1)
+        const viewport = page.getViewport({ scale })
+        const canvas = document.createElement('canvas')
+        const context = canvas.getContext('2d')
+        canvas.height = viewport.height
+        canvas.width = viewport.width
+
+        await page.render({ canvasContext: context, viewport }).promise
+
+        // Convert canvas to blob
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8))
+        zip.file(`page-${String(i + 1).padStart(3, '0')}.jpg`, blob)
       }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Conversion failed')
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+
+      if (totalPages > pageCount) {
+        toast.success(`Done! Converted ${pageCount} of ${totalPages} pages. Upgrade to Premium for all pages.`, { duration: 6000 })
       }
 
-      const wasTruncated = res.headers.get('X-Pages-Truncated') === 'true'
-      const total = res.headers.get('X-Pages-Total')
-      const converted = res.headers.get('X-Pages-Converted')
-
-      const blob = await res.blob()
-      downloadBlob(blob, file.name.replace('.pdf', '-pages.zip'))
-
-      if (wasTruncated) {
-        toast.success(`Done! Converted ${converted} of ${total} pages. Upgrade to Premium for all pages.`, { id: toastId, duration: 6000 })
-      } else {
-        toast.success('Done! Downloading your images.', { id: toastId })
-      }
-    } catch (err) {
-      toast.error(err.message, { id: toastId })
-    } finally {
-      setLoading(false)
-    }
+      return zipBlob
+    }, file.name.replace('.pdf', '-pages.zip'))
   }
 
   return (

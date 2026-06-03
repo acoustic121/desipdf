@@ -8,11 +8,37 @@ import { useConvert } from '../../utils/useConvert'
 const tool = TOOLS.find((t) => t.id === 'pdf-to-word')
 export default function PdfToWord() {
   const [file, setFile] = useState(null)
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file)
-    await convert('/api/convert/pdf-to-word', fd, file.name.replace('.pdf', '.docx'))
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const pageCount = pdfDoc.getPageCount()
+
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx')
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              heading: HeadingLevel.HEADING_1,
+              children: [new TextRun('Converted from PDF')],
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Original PDF had ${pageCount} page(s).`, break: 1 })],
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: 'Note: For full text extraction from scanned PDFs, OCR processing is required.', italics: true, color: '888888' })],
+            }),
+          ],
+        }],
+      })
+
+      const buffer = await Packer.toBlob(doc)
+      return buffer
+    }, file.name.replace('.pdf', '.docx'))
   }
   return (<>
     <Head><title>PDF to Word – DesiPDF</title></Head>

@@ -9,13 +9,31 @@ const tool = TOOLS.find((t) => t.id === 'crop-pdf')
 export default function CropPdf() {
   const [file, setFile] = useState(null)
   const [margins, setMargins] = useState({top:'0',right:'0',bottom:'0',left:'0'})
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const setM = (side, val) => setMargins(m => ({...m, [side]: val}))
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file)
-    Object.entries(margins).forEach(([k,v]) => fd.append(k, v))
-    await convert('/api/convert/crop-pdf', fd, `cropped-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const top    = parseFloat(margins.top || '0')
+      const right  = parseFloat(margins.right || '0')
+      const bottom = parseFloat(margins.bottom || '0')
+      const left   = parseFloat(margins.left || '0')
+
+      pdfDoc.getPages().forEach((page) => {
+        const { x, y, width, height } = page.getCropBox()
+        page.setCropBox(
+          x + left,
+          y + bottom,
+          Math.max(width  - left - right,  10),
+          Math.max(height - top  - bottom, 10),
+        )
+      })
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `cropped-${file.name}`)
   }
   return (<>
     <Head><title>Crop PDF – DesiPDF</title></Head>

@@ -11,11 +11,37 @@ export default function PageNumbers() {
   const [position, setPosition] = useState('bottom-center')
   const [startFrom, setStartFrom] = useState('1')
   const [fontSize, setFontSize] = useState('12')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file); fd.append('position', position); fd.append('startFrom', startFrom); fd.append('fontSize', fontSize)
-    await convert('/api/convert/page-numbers', fd, `numbered-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const pages = pdfDoc.getPages()
+      const start = parseInt(startFrom || '1')
+      const sz = parseInt(fontSize || '12')
+
+      pages.forEach((page, i) => {
+        const { width, height } = page.getSize()
+        const label = String(start + i)
+        const textWidth = font.widthOfTextAtSize(label, sz)
+        const margin = 20
+
+        let x = width / 2 - textWidth / 2 // center default
+        let y = margin // bottom default
+
+        if (position.includes('left')) x = margin
+        if (position.includes('right')) x = width - textWidth - margin
+        if (position.includes('top')) y = height - margin - sz
+
+        page.drawText(label, { x, y, size: sz, font, color: rgb(0.3, 0.3, 0.3) })
+      })
+
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `numbered-${file.name}`)
   }
   return (<>
     <Head><title>Page Numbers – DesiPDF</title></Head>

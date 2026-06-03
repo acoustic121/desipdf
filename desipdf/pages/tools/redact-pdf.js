@@ -9,14 +9,35 @@ const tool = TOOLS.find((t) => t.id === 'redact-pdf')
 export default function RedactPdf() {
   const [file, setFile] = useState(null)
   const [regions, setRegions] = useState([{page:'1',x:'50',y:'700',width:'200',height:'20'}])
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
   const add = () => setRegions([...regions,{page:'1',x:'50',y:'700',width:'200',height:'20'}])
   const upd = (i,f,v) => { const r=[...regions]; r[i][f]=v; setRegions(r) }
   const rem = (i) => setRegions(regions.filter((_,idx)=>idx!==i))
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file); fd.append('regions', JSON.stringify(regions))
-    await convert('/api/convert/redact-pdf', fd, `redacted-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument, rgb } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const pages = pdfDoc.getPages()
+
+      for (const r of regions) {
+        const pageIndex = parseInt(r.page || '1') - 1
+        if (pageIndex < 0 || pageIndex >= pages.length) continue
+        const page = pages[pageIndex]
+        page.drawRectangle({
+          x: parseFloat(r.x || '0'),
+          y: parseFloat(r.y || '0'),
+          width: parseFloat(r.width || '0'),
+          height: parseFloat(r.height || '0'),
+          color: rgb(0, 0, 0),
+          opacity: 1,
+        })
+      }
+
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `redacted-${file.name}`)
   }
   return (<>
     <Head><title>Redact PDF – DesiPDF</title></Head>

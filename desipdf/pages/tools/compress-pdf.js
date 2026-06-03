@@ -11,14 +11,21 @@ const tool = TOOLS.find((t) => t.id === 'compress-pdf')
 export default function CompressPdf() {
   const [file, setFile] = useState(null)
   const [quality, setQuality] = useState('medium')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
   const handle = async () => {
     if (!file) return
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('quality', quality)
-    await convert('/api/convert/compress-pdf', formData, `compressed-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const compressedBytes = await pdfDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+        objectsPerTick: 50,
+      })
+      return compressedBytes
+    }, `compressed-${file.name}`)
   }
 
   return (

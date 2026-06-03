@@ -9,11 +9,24 @@ const tool = TOOLS.find((t) => t.id === 'unlock-pdf')
 export default function UnlockPdf() {
   const [file, setFile] = useState(null)
   const [password, setPassword] = useState('')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file); fd.append('password', password)
-    await convert('/api/convert/unlock-pdf', fd, `unlocked-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      let pdfDoc
+      try {
+        pdfDoc = await PDFDocument.load(arrayBuffer, {
+          password,
+          ignoreEncryption: true,
+        })
+      } catch (e) {
+        throw new Error('Could not open PDF. Check the password and try again.')
+      }
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `unlocked-${file.name}`)
   }
   return (<>
     <Head><title>Unlock PDF – DesiPDF</title></Head>

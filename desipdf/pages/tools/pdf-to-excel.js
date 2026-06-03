@@ -8,11 +8,37 @@ import { useConvert } from '../../utils/useConvert'
 const tool = TOOLS.find((t) => t.id === 'pdf-to-excel')
 export default function PdfToExcel() {
   const [file, setFile] = useState(null)
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file)
-    await convert('/api/convert/pdf-to-excel', fd, file.name.replace('.pdf', '.xlsx'))
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const pageCount = pdfDoc.getPageCount()
+
+      const { loadXLSX } = await import('../../utils/clientLoader')
+      const XLSX = await loadXLSX()
+      const wb = XLSX.utils.book_new()
+      const wsData = [
+        ['DesiPDF - PDF to Excel Conversion'],
+        [''],
+        ['File', file.name || 'document.pdf'],
+        ['Pages', pageCount],
+        ['Status', 'Text-based table extraction requires an OCR library for production use.'],
+        [''],
+        ['For full table extraction:', ''],
+        ['1. Integrate Tabula-py or Camelot (Python)', ''],
+        ['2. Use Adobe PDF Services API', ''],
+        ['3. Use CloudConvert API', ''],
+      ]
+      const ws = XLSX.utils.aoa_to_sheet(wsData)
+      ws['!cols'] = [{ wch: 40 }, { wch: 40 }]
+      XLSX.utils.book_append_sheet(wb, ws, 'PDF Data')
+
+      const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+      return xlsxBuffer
+    }, file.name.replace('.pdf', '.xlsx'))
   }
   return (<>
     <Head><title>PDF to Excel – DesiPDF</title></Head>

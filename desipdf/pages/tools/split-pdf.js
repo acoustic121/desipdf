@@ -12,15 +12,43 @@ export default function SplitPdf() {
   const [file, setFile] = useState(null)
   const [mode, setMode] = useState('all')
   const [range, setRange] = useState('')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
   const handle = async () => {
     if (!file) { const t = (await import('react-hot-toast')).default; t.error('Upload a PDF'); return }
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('mode', mode)
-    formData.append('range', range)
-    await convert('/api/convert/split-pdf', formData, 'split-pages.zip')
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const { parsePageRange } = await import('../../utils/helpers')
+      const { loadJsZip } = await import('../../utils/clientLoader')
+      const JSZip = await loadJsZip()
+
+      const arrayBuffer = await file.arrayBuffer()
+      const srcDoc = await PDFDocument.load(arrayBuffer)
+      const totalPages = srcDoc.getPageCount()
+
+      let pagesToExtract = []
+      if (mode === 'all') {
+        pagesToExtract = Array.from({ length: totalPages }, (_, i) => [i])
+      } else {
+        const indices = parsePageRange(range, totalPages).map((p) => p - 1)
+        pagesToExtract = indices.map((i) => [i])
+      }
+
+      const zip = new JSZip()
+
+      for (let idx = 0; idx < pagesToExtract.length; idx++) {
+        const pageIndices = pagesToExtract[idx]
+        const newDoc = await PDFDocument.create()
+        const copied = await newDoc.copyPages(srcDoc, pageIndices)
+        copied.forEach((p) => newDoc.addPage(p))
+        const bytes = await newDoc.save()
+        const name = `page-${String(pageIndices[0] + 1).padStart(3, '0')}.pdf`
+        zip.file(name, bytes)
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      return zipBlob
+    }, 'split-pages.zip')
   }
 
   return (

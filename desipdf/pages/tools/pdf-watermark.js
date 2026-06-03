@@ -11,11 +11,40 @@ export default function PdfWatermark() {
   const [text, setText] = useState('CONFIDENTIAL')
   const [opacity, setOpacity] = useState('30')
   const [color, setColor] = useState('#ff0000')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file || !text.trim()) return
-    const fd = new FormData(); fd.append('file', file); fd.append('text', text); fd.append('opacity', opacity); fd.append('color', color)
-    await convert('/api/convert/pdf-watermark', fd, `watermarked-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument, rgb, StandardFonts, degrees } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      const pages = pdfDoc.getPages()
+      
+      const op = parseFloat(opacity || '30') / 100
+      const r = parseInt(color.slice(1, 3), 16) / 255
+      const g = parseInt(color.slice(3, 5), 16) / 255
+      const b = parseInt(color.slice(5, 7), 16) / 255
+
+      pages.forEach((page) => {
+        const { width, height } = page.getSize()
+        const fontSize = Math.min(width, height) * 0.12
+        const textWidth = font.widthOfTextAtSize(text, fontSize)
+
+        page.drawText(text, {
+          x: (width - textWidth) / 2,
+          y: height / 2 - fontSize / 2,
+          size: fontSize,
+          font,
+          color: rgb(r, g, b),
+          opacity: op,
+          rotate: degrees(45),
+        })
+      })
+
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `watermarked-${file.name}`)
   }
   return (<>
     <Head><title>Watermark PDF – DesiPDF</title></Head>

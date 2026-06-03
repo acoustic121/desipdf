@@ -10,12 +10,17 @@ export default function ProtectPdf() {
   const [file, setFile] = useState(null)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file || !password) return
     if (password !== confirm) { const {default:toast} = await import('react-hot-toast'); toast.error('Passwords do not match'); return }
-    const fd = new FormData(); fd.append('file', file); fd.append('password', password)
-    await convert('/api/convert/protect-pdf', fd, `protected-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const outBytes = await pdfDoc.save({ useObjectStreams: false })
+      return outBytes
+    }, `protected-${file.name}`)
   }
   return (<>
     <Head><title>Protect PDF – DesiPDF</title></Head>

@@ -14,7 +14,7 @@ export default function SignPdf() {
   const [x, setX] = useState('50')
   const [y, setY] = useState('100')
   const [sigWidth, setSigWidth] = useState('200')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const canvasRef = useRef(null)
   const drawing = useRef(false)
   const lastPos = useRef(null)
@@ -37,10 +37,30 @@ export default function SignPdf() {
   const handle = async () => {
     if (!file) return
     if (tab==='type' && !typedName.trim()) return
-    const sigDataUrl = getSigDataUrl()
-    const base64 = sigDataUrl.split(',')[1]
-    const fd = new FormData(); fd.append('file', file); fd.append('signature', base64); fd.append('page', page); fd.append('x', x); fd.append('y', y); fd.append('width', sigWidth)
-    await convert('/api/convert/sign-pdf', fd, `signed-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const pagesList = pdfDoc.getPages()
+      const pageNum = parseInt(page || '1') - 1
+      const targetPage = pagesList[Math.min(pageNum, pagesList.length - 1)]
+
+      const sigDataUrl = getSigDataUrl()
+      const sigBase64 = sigDataUrl.split(',')[1]
+      const sigBuffer = Uint8Array.from(atob(sigBase64), c => c.charCodeAt(0))
+      
+      const sigImage = await pdfDoc.embedPng(sigBuffer)
+      const { width: iW, height: iH } = sigImage
+      const wVal = parseFloat(sigWidth || '200')
+      const hVal = (iH / iW) * wVal
+      const xVal = parseFloat(x || '50')
+      const yVal = parseFloat(y || '100')
+
+      targetPage.drawImage(sigImage, { x: xVal, y: yVal, width: wVal, height: hVal })
+
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `signed-${file.name}`)
   }
   return (<>
     <Head><title>Sign PDF – DesiPDF</title></Head>

@@ -48,22 +48,36 @@ export default function ScanToPdf() {
     setLoading(true)
     const toastId = toast.loading(`Creating PDF from ${captures.length} page(s)…`)
     try {
-      const formData = new FormData()
+      const { PDFDocument } = await import('pdf-lib')
+      const pdfDoc = await PDFDocument.create()
+
+      const pgW = 595.28
+      const pgH = 841.89
+
       for (let i = 0; i < captures.length; i++) {
         const base64 = captures[i].split(',')[1]
-        const blob = await fetch(captures[i]).then((r) => r.blob())
-        formData.append('files', blob, `scan-${i + 1}.jpg`)
+        const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+        const img = await pdfDoc.embedJpg(imgBytes)
+
+        const page = pdfDoc.addPage([pgW, pgH])
+        const dims = img.size()
+        const scale = Math.min(pgW / dims.width, pgH / dims.height)
+        page.drawImage(img, {
+          x: (pgW - dims.width * scale) / 2,
+          y: (pgH - dims.height * scale) / 2,
+          width: dims.width * scale,
+          height: dims.height * scale,
+        })
       }
-      formData.append('pageSize', 'A4')
-      const res = await fetch('/api/convert/jpg-to-pdf', { method: 'POST', body: formData })
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed')
-      const pdfBlob = await res.blob()
+
+      const pdfBytes = await pdfDoc.save()
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
       downloadBlob(pdfBlob, 'scanned-document.pdf')
       toast.success('PDF created!', { id: toastId })
       stopCamera()
       setCaptures([])
     } catch (err) {
-      toast.error(err.message, { id: toastId })
+      toast.error(err.message || 'Failed to create PDF', { id: toastId })
     } finally {
       setLoading(false)
     }

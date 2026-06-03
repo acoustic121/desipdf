@@ -10,11 +10,31 @@ export default function RotatePdf() {
   const [file, setFile] = useState(null)
   const [angle, setAngle] = useState('90')
   const [pages, setPages] = useState('all')
-  const { convert, loading, showLimitModal, setShowLimitModal } = useConvert()
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
   const handle = async () => {
     if (!file) return
-    const fd = new FormData(); fd.append('file', file); fd.append('angle', angle); fd.append('pages', pages)
-    await convert('/api/convert/rotate-pdf', fd, `rotated-${file.name}`)
+    await runClientSide(async () => {
+      const { PDFDocument, degrees } = await import('pdf-lib')
+      const arrayBuffer = await file.arrayBuffer()
+      const pdfDoc = await PDFDocument.load(arrayBuffer)
+      const pageList = pdfDoc.getPages()
+      const rotAngle = parseInt(angle || '90')
+
+      pageList.forEach((page, i) => {
+        const pageNum = i + 1
+        const shouldRotate =
+          pages === 'all' ||
+          (pages === 'odd' && pageNum % 2 !== 0) ||
+          (pages === 'even' && pageNum % 2 === 0)
+        if (shouldRotate) {
+          const current = page.getRotation().angle
+          page.setRotation(degrees((current + rotAngle) % 360))
+        }
+      })
+
+      const outBytes = await pdfDoc.save()
+      return outBytes
+    }, `rotated-${file.name}`)
   }
   return (<>
     <Head><title>Rotate PDF – DesiPDF</title></Head>
