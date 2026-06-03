@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import SeoHead from '../../components/SeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -22,7 +22,12 @@ export default function MergePdf() {
 
   return (
     <>
-      <Head><title>Merge PDF – DesiPDF</title></Head>
+      <SeoHead
+        title="Merge PDF Files Online – Combine PDFs Free"
+        description="Merge multiple PDF files into one document online for free. No installation required. Fast, secure, and easy to use. Combine PDFs in any order instantly."
+        keywords="merge pdf, combine pdf, join pdf files, merge pdf online free, combine multiple pdf"
+        canonical="/tools/merge-pdf"
+      />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFiles} accept=".pdf" multiple label="Drop PDFs to merge" sublabel="Select multiple PDFs — merged in order" />

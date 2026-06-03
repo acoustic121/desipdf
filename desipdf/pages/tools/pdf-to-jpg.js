@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import SeoHead from '../../components/SeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -67,7 +67,12 @@ export default function PdfToJpg() {
 
   return (
     <>
-      <Head><title>PDF to JPG – DesiPDF</title></Head>
+      <SeoHead
+        title="PDF to JPG Online – Convert PDF Pages to Images Free"
+        description="Convert PDF to JPG images online for free. Each PDF page becomes a high-quality JPG image. No software needed. Fast and secure conversion."
+        keywords="pdf to jpg, convert pdf to image, pdf to jpeg, pdf to png, pdf pages to images online free"
+        canonical="/tools/pdf-to-jpg"
+      />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />

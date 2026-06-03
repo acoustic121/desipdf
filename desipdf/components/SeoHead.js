@@ -1,0 +1,50 @@
+import Head from 'next/head'
+
+/**
+ * SeoHead – drop this into every page to get full SEO coverage.
+ *
+ * Props:
+ *   title       – page title (shown in browser tab + Google blue link)
+ *   description – meta description (shown in Google snippet under the title)
+ *   keywords    – comma-separated keywords string
+ *   canonical   – canonical URL of the page (e.g. https://desipdf.com/tools/merge-pdf)
+ *   ogImage     – absolute URL of the Open Graph image (defaults to /og-image.png)
+ */
+export default function SeoHead({
+  title,
+  description,
+  keywords = '',
+  canonical,
+  ogImage = 'https://desipdf.vercel.app/og-image.png',
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://desipdf.vercel.app'
+  const fullTitle = title ? `${title} | DesiPDF` : 'DesiPDF – Free PDF Tools for India'
+  const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
+
+  return (
+    <Head>
+      {/* ── Basic SEO ─────────────────────────────────────────────────── */}
+      <title>{fullTitle}</title>
+      <meta name="description" content={description} />
+      {keywords && <meta name="keywords" content={keywords} />}
+      <link rel="canonical" href={fullCanonical} />
+      <meta name="robots" content="index, follow" />
+      <meta name="author" content="DesiPDF" />
+
+      {/* ── Open Graph (Facebook / WhatsApp preview) ──────────────────── */}
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={fullTitle} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={fullCanonical} />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:site_name" content="DesiPDF" />
+      <meta property="og:locale" content="en_IN" />
+
+      {/* ── Twitter Card ──────────────────────────────────────────────── */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={fullTitle} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={ogImage} />
+    </Head>
+  )
+}

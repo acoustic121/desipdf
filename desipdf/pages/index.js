@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import SeoHead from '../components/SeoHead'
 import Link from 'next/link'
 import { useState } from 'react'
 import { TOOLS, CATEGORIES, INDIAN_LANGUAGES, INTERNATIONAL_LANGUAGES } from '../utils/constants'
@@ -59,10 +59,12 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>DesiPDF – Free PDF Tools for India</title>
-        <meta name="description" content="Free online PDF tools for India. Convert, compress, merge, split, sign, protect PDFs. 10 free/day. 29 languages supported." />
-      </Head>
+      <SeoHead
+        title="Free PDF Tools for India – Convert, Merge, Compress PDFs Online"
+        description="DesiPDF is a free online PDF tool for India. Merge, split, compress, convert, rotate, watermark, and protect PDF files. 15 free uses per day. Works in Hindi, Tamil, Telugu and 29 languages."
+        keywords="pdf tools india, merge pdf, compress pdf, pdf to word, word to pdf, jpg to pdf, pdf converter online free, hindi pdf tools"
+        canonical="/"
+      />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white">
