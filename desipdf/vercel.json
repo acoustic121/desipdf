@@ -1,0 +1,31 @@
+{
+  "functions": {
+    "pages/api/convert/merge-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/compress-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/split-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/pdf-to-jpg.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/jpg-to-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/word-to-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/pdf-to-word.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/excel-to-pdf.js": {
+      "maxDuration": 300
+    },
+    "pages/api/convert/pdf-to-excel.js": {
+      "maxDuration": 300
+    }
+  }
+}

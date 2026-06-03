@@ -4,8 +4,8 @@ import fs from 'fs'
 import { PDFDocument } from 'pdf-lib'
 
 export const config = {
-  api: { bodyParser: false },
-  maxDuration: 60,
+  api: { bodyParser: false, responseLimit: false },
+  maxDuration: 300,
 }
 
 export default withRateLimit(async function handler(req, res) {
