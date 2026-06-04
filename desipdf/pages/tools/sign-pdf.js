@@ -737,9 +737,35 @@ export default function SignPdf() {
         } else if (el.type === 'shape') {
           const c = hexToRgb(el.color)
           const rc = rgb(c.r, c.g, c.b)
-          if (el.shapeType === 'check') page.drawText('✓', { x: pX, y: pY + 4, size: pH * 0.9, font, color: rc })
-          else if (el.shapeType === 'cross') page.drawText('✗', { x: pX, y: pY + 4, size: pH * 0.9, font, color: rc })
-          else if (el.shapeType === 'circle') page.drawCircle({ x: pX + pW / 2, y: pY + pH / 2, size: Math.min(pW, pH) / 2, borderWidth: 2, borderColor: rc })
+          if (el.shapeType === 'check') {
+            const thickness = Math.max(1.5, Math.min(pW, pH) * 0.12)
+            page.drawLine({
+              start: { x: pX + pW * 0.2, y: pY + pH * 0.45 },
+              end: { x: pX + pW * 0.45, y: pY + pH * 0.2 },
+              thickness,
+              color: rc
+            })
+            page.drawLine({
+              start: { x: pX + pW * 0.45, y: pY + pH * 0.2 },
+              end: { x: pX + pW * 0.85, y: pY + pH * 0.8 },
+              thickness,
+              color: rc
+            })
+          } else if (el.shapeType === 'cross') {
+            const thickness = Math.max(1.5, Math.min(pW, pH) * 0.12)
+            page.drawLine({
+              start: { x: pX + pW * 0.2, y: pY + pH * 0.8 },
+              end: { x: pX + pW * 0.8, y: pY + pH * 0.2 },
+              thickness,
+              color: rc
+            })
+            page.drawLine({
+              start: { x: pX + pW * 0.2, y: pY + pH * 0.2 },
+              end: { x: pX + pW * 0.8, y: pY + pH * 0.8 },
+              thickness,
+              color: rc
+            })
+          } else if (el.shapeType === 'circle') page.drawCircle({ x: pX + pW / 2, y: pY + pH / 2, size: Math.min(pW, pH) / 2, borderWidth: 2, borderColor: rc })
           else if (el.shapeType === 'rectangle') page.drawRectangle({ x: pX, y: pY, width: pW, height: pH, borderWidth: 2, borderColor: rc })
           else if (el.shapeType === 'line') page.drawLine({ start: { x: pX, y: pY + pH / 2 }, end: { x: pX + pW, y: pY + pH / 2 }, thickness: 2, color: rc })
         }
