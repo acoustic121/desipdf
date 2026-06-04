@@ -97,7 +97,7 @@ function PdfPageRenderer({ pdfDoc, pageNum, scale = 1.25, onRendered }) {
     }
   }, [pdfDoc, pageNum, scale])
 
-  return <canvas ref={canvasRef} className="shadow-md rounded-lg max-w-full" />
+  return <canvas ref={canvasRef} className="shadow-md rounded-lg w-full h-auto block" />
 }
 
 // Child Component: Thumbnail Previewer (Left Sidebar)
@@ -978,16 +978,15 @@ export default function SignPdf() {
             )}
 
             {pdfPages.map(page => (
-              <div key={page.pageNum} className="flex flex-col items-center">
+              <div key={page.pageNum} className="flex flex-col items-center w-full">
                 <span className="text-[10px] text-gray-400 mb-2 font-medium">Page {page.pageNum} of {pdfPages.length}</span>
                 <div
                   id={`page-container-${page.pageNum}`}
                   onClick={(e) => handlePageClick(e, page.pageNum)}
-                  className="relative bg-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow cursor-pointer max-w-full"
+                  className="relative bg-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
                   style={{
-                    width: '100%',
-                    maxWidth: `${page.width * 1.35}px`,
-                    aspectRatio: `${page.width} / ${page.height}`,
+                    width: pageSizes[page.pageNum]?.w || page.width * 1.35,
+                    maxWidth: '100%',
                     containerType: 'inline-size'
                   }}
                 >
