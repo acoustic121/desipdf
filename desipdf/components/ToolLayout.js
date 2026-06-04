@@ -1,7 +1,25 @@
 import Link from 'next/link'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { SEO_GUIDES } from '../utils/seoGuides'
 
 export default function ToolLayout({ tool, children }) {
+  const guide = SEO_GUIDES[tool.id] || {
+    steps: [
+      `Select your file by clicking the upload box or dragging it in.`,
+      `The conversion processes automatically and securely inside your local browser tab.`,
+      `Click the download button to save the converted file to your device.`
+    ],
+    benefits: [
+      { title: '100% Privacy Safeguard', desc: 'No file uploads. Your sensitive information is processed locally on your device.' },
+      { title: 'Blazing Fast Speed', desc: 'No upload or download wait times. Conversions complete in the blink of an eye.' },
+      { title: 'Generous Free Limits', desc: 'Convert up to 15 files per day completely free, or go Premium for unlimited access.' }
+    ],
+    faqs: [
+      { q: 'Are my files sent to any servers?', a: 'No, PDFChampion processes files locally using modern browser technology. Your files are never uploaded or stored.' },
+      { q: 'Does this tool work on mobile devices?', a: 'Yes. PDFChampion is fully responsive and optimized for Chrome, Safari, and other mobile browsers.' }
+    ]
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50/50 dark:from-gray-900/50 to-transparent py-10 px-4">
       <div className="max-w-2xl mx-auto">
@@ -31,6 +49,62 @@ export default function ToolLayout({ tool, children }) {
           <span>🆓 100% Free</span>
           <span>⚡ Fast processing</span>
           <span>📱 Works on mobile</span>
+        </div>
+
+        {/* Divider */}
+        <hr className="my-12 border-gray-200 dark:border-gray-800" />
+
+        {/* SEO Guide Section */}
+        <div className="space-y-10">
+          {/* How to use */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <span>📖</span> How to use {tool.name}
+            </h2>
+            <ol className="space-y-3">
+              {guide.steps.map((step, index) => (
+                <li key={index} className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center">
+                    {index + 1}
+                  </span>
+                  <span className="leading-6">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Benefits */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <span>🌟</span> Benefits of {tool.name}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {guide.benefits.map((benefit, index) => (
+                <div key={index} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{benefit.title}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-normal">{benefit.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tool specific FAQ */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <span>❓</span> {tool.name} FAQs
+            </h2>
+            <div className="space-y-3">
+              {guide.faqs.map((faq, index) => (
+                <details key={index} className="group border border-gray-100 dark:border-gray-800/80 rounded-xl bg-white/50 dark:bg-gray-900/50 p-4">
+                  <summary className="flex items-center justify-between cursor-pointer font-medium text-sm text-gray-800 dark:text-gray-200 list-none">
+                    {faq.q}
+                    <span className="text-blue-500 text-lg group-open:rotate-45 transition-transform duration-200 flex-shrink-0 ml-2">+</span>
+                  </summary>
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{faq.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
