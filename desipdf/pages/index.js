@@ -79,16 +79,21 @@ export default function Home() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          {/* Badge */}
-          {!isPremium ? (
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
-              ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
+          {/* Badges */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {!isPremium ? (
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium">
+                ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium">
+                ⭐ Unlimited Premium Member Plan
+              </div>
+            )}
+            <div className="inline-flex items-center gap-1.5 bg-orange-500/20 backdrop-blur border border-orange-500/30 rounded-full px-4 py-1.5 text-sm font-semibold text-orange-200">
+              🇮🇳 Made in India
             </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
-              ⭐ Unlimited Premium Member Plan
-            </div>
-          )}
+          </div>
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
