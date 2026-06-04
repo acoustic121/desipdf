@@ -316,6 +316,118 @@ function SignatureModal({ isOpen, onClose, onSave }) {
   )
 }
 
+// ─── Stamp Modal ─────────────────────────────────────────────────────────────
+
+function StampModal({ isOpen, onClose, onSelect, onCustomUpload }) {
+  if (!isOpen) return null
+
+  const stamps = [
+    { text: 'APPROVED',     color: '#10b981', bg: '#10b98118' },
+    { text: 'REJECTED',     color: '#ef4444', bg: '#ef444418' },
+    { text: 'SIGN HERE',    color: '#3b82f6', bg: '#3b82f618' },
+    { text: 'CONFIDENTIAL', color: '#f97316', bg: '#f9731618' },
+    { text: 'COPY',         color: '#6b7280', bg: '#6b728018' },
+    { text: 'DRAFT',        color: '#8b5cf6', bg: '#8b5cf618' },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full p-6 z-10 border border-gray-100 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white font-sans">Select Stamp</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl font-bold">×</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {stamps.map(st => (
+            <button
+              key={st.text}
+              onClick={() => { onSelect(st.text, st.color); onClose() }}
+              className="group p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-md transition-all flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800"
+            >
+              <div 
+                className="w-full py-3 px-2 border-2 text-center font-extrabold text-xs tracking-wider rounded transition-transform group-hover:scale-105"
+                style={{
+                  borderColor: st.color,
+                  color: st.color,
+                  backgroundColor: st.bg,
+                  transform: 'rotate(-2deg)'
+                }}
+              >
+                {st.text}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="border-t border-gray-100 dark:border-slate-800 pt-4">
+          <label className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl cursor-pointer transition-all text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+            🖼️ Upload custom image stamp
+            <input type="file" accept="image/*" onChange={(e) => { onCustomUpload(e); onClose() }} className="hidden" />
+          </label>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Shape Modal ─────────────────────────────────────────────────────────────
+
+function ShapeModal({ isOpen, onClose, onSelect }) {
+  if (!isOpen) return null
+
+  const shapes = [
+    { type: 'check', label: '✓ Checkmark', icon: '✓', color: '#10b981', bg: '#10b98115' },
+    { type: 'cross', label: '✗ Cross', icon: '✗', color: '#ef4444', bg: '#ef444415' },
+    { type: 'circle', label: '○ Circle', icon: '○', color: '#6366f1', bg: '#6366f115' },
+    { type: 'rectangle', label: '□ Box', icon: '□', color: '#f59e0b', bg: '#f59e0b15' },
+    { type: 'line', label: '— Line', icon: '—', color: '#64748b', bg: '#64748b15' },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 z-10 border border-gray-100 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white font-sans">Select Shape</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl font-bold">×</button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {shapes.map(sh => (
+            <button
+              key={sh.type}
+              onClick={() => { onSelect(sh.type); onClose() }}
+              className="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-md transition-all flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 gap-2"
+            >
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold"
+                style={{
+                  color: sh.color,
+                  backgroundColor: sh.bg
+                }}
+              >
+                {sh.type === 'circle' && (
+                  <div className="w-5 h-5 rounded-full border-2" style={{ borderColor: sh.color }} />
+                )}
+                {sh.type === 'rectangle' && (
+                  <div className="w-5 h-5 border-2" style={{ borderColor: sh.color }} />
+                )}
+                {sh.type === 'line' && (
+                  <div className="w-6 h-0.5" style={{ backgroundColor: sh.color }} />
+                )}
+                {sh.type !== 'circle' && sh.type !== 'rectangle' && sh.type !== 'line' && sh.icon}
+              </div>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-sans">{sh.label.split(' ').slice(1).join(' ')}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── MAIN PAGE ───────────────────────────────────────────────────────────────
 
 export default function SignPdf() {
@@ -330,8 +442,8 @@ export default function SignPdf() {
   const [activeElementId, setActiveElementId] = useState(null)
 
   const [isSigModalOpen, setIsSigModalOpen] = useState(false)
-  const [showStampsDropdown, setShowStampsDropdown] = useState(false)
-  const [showShapesDropdown, setShowShapesDropdown] = useState(false)
+  const [isStampModalOpen, setIsStampModalOpen] = useState(false)
+  const [isShapeModalOpen, setIsShapeModalOpen] = useState(false)
 
   const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
@@ -483,7 +595,6 @@ export default function SignPdf() {
 
   const selectStamp = (text, color) => {
     setActiveTool({ type: 'stamp', data: generateStampDataUrl(text, color), wPercent: 24, hPercent: 8 })
-    setShowStampsDropdown(false)
   }
 
   const handleCustomStampUpload = (e) => {
@@ -495,12 +606,10 @@ export default function SignPdf() {
       img.src = ev.target.result
     }
     reader.readAsDataURL(f)
-    setShowStampsDropdown(false)
   }
 
   const selectShape = (shapeType) => {
     setActiveTool({ type: 'shape', shapeType, color: '#ef4444', wPercent: shapeType === 'line' ? 22 : 7, hPercent: shapeType === 'line' ? 1.5 : 7 })
-    setShowShapesDropdown(false)
   }
 
   const handleCustomImageUpload = (e) => {
@@ -563,15 +672,7 @@ export default function SignPdf() {
 
   const activeElement = elements.find(el => el.id === activeElementId)
 
-  // ── STAMPS CONFIG ─────────────────────────────────────────────────────────
-  const stamps = [
-    { text: 'APPROVED',     color: '#10b981', bg: '#d1fae5' },
-    { text: 'REJECTED',     color: '#ef4444', bg: '#fee2e2' },
-    { text: 'SIGN HERE',    color: '#3b82f6', bg: '#dbeafe' },
-    { text: 'CONFIDENTIAL', color: '#f97316', bg: '#ffedd5' },
-    { text: 'COPY',         color: '#6b7280', bg: '#f3f4f6' },
-    { text: 'DRAFT',        color: '#8b5cf6', bg: '#ede9fe' },
-  ]
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EDITOR LAYOUT (after PDF uploaded)
@@ -588,6 +689,8 @@ export default function SignPdf() {
         />
         {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
         <SignatureModal isOpen={isSigModalOpen} onClose={() => setIsSigModalOpen(false)} onSave={handleSignatureSaved} />
+        <StampModal isOpen={isStampModalOpen} onClose={() => setIsStampModalOpen(false)} onSelect={selectStamp} onCustomUpload={handleCustomStampUpload} />
+        <ShapeModal isOpen={isShapeModalOpen} onClose={() => setIsShapeModalOpen(false)} onSelect={selectShape} />
 
         {/* ── TOP NAV BAR ─────────────────────────────────────────────────── */}
         <div className="h-14 flex items-center justify-between px-3 sm:px-5 shrink-0 gap-2"
@@ -622,43 +725,17 @@ export default function SignPdf() {
               ✍️ Sign
             </button>
 
-            {/* Stamp dropdown */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => { setShowStampsDropdown(v => !v); setShowShapesDropdown(false) }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTool?.type === 'stamp'
-                    ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/30'
-                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                🎴 Stamp <span className="opacity-60">▾</span>
-              </button>
-              {showStampsDropdown && (
-                <div className="absolute top-10 left-0 z-50 w-52 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
-                  style={{ background: 'rgba(15,23,42,0.97)', backdropFilter: 'blur(16px)' }}>
-                  <div className="p-2 space-y-0.5">
-                    {stamps.map(st => (
-                      <button
-                        key={st.text}
-                        onClick={() => selectStamp(st.text, st.color)}
-                        className="w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-all hover:bg-white/10 flex items-center gap-2"
-                        style={{ color: st.color }}
-                      >
-                        <span className="inline-block w-2 h-2 rounded-full" style={{ background: st.color }} />
-                        {st.text}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="border-t border-white/10 p-2">
-                    <label className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer transition-all">
-                      🖼️ Upload custom image
-                      <input type="file" accept="image/*" onChange={handleCustomStampUpload} className="hidden" />
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Stamp */}
+            <button
+              onClick={() => setIsStampModalOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all border ${
+                activeTool?.type === 'stamp'
+                  ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/30'
+                  : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              🎴 Stamp
+            </button>
 
             {/* Text */}
             <button
@@ -682,42 +759,17 @@ export default function SignPdf() {
               <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
             </label>
 
-            {/* Shapes dropdown */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => { setShowShapesDropdown(v => !v); setShowStampsDropdown(false) }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTool?.type === 'shape'
-                    ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/30'
-                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                ✏️ Shape <span className="opacity-60">▾</span>
-              </button>
-              {showShapesDropdown && (
-                <div className="absolute top-10 left-0 z-50 w-44 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
-                  style={{ background: 'rgba(15,23,42,0.97)', backdropFilter: 'blur(16px)' }}>
-                  <div className="p-2 space-y-0.5">
-                    {[
-                      { type: 'check', label: '✓ Checkmark', color: '#10b981' },
-                      { type: 'cross', label: '✗ Cross',     color: '#ef4444' },
-                      { type: 'circle', label: '○ Circle',   color: '#6366f1' },
-                      { type: 'rectangle', label: '□ Box',   color: '#f59e0b' },
-                      { type: 'line', label: '— Line',       color: '#64748b' },
-                    ].map(sh => (
-                      <button
-                        key={sh.type}
-                        onClick={() => selectShape(sh.type)}
-                        className="w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-all hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-2"
-                      >
-                        <span style={{ color: sh.color }}>{sh.label.split(' ')[0]}</span>
-                        <span>{sh.label.split(' ').slice(1).join(' ')}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Shape */}
+            <button
+              onClick={() => setIsShapeModalOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all border ${
+                activeTool?.type === 'shape'
+                  ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/30'
+                  : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              ✏️ Shape
+            </button>
           </div>
 
           {/* Right – Save */}
