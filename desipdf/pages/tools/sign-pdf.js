@@ -583,11 +583,89 @@ export default function SignPdf() {
 
   const deleteElement = (id) => { setElements(prev => prev.filter(el => el.id !== id)); if (activeElementId === id) setActiveElementId(null) }
   const updateElementText = (id, text) => setElements(prev => prev.map(el => el.id === id ? { ...el, text } : el))
+  
   const resizeElement = (id, wPct) => setElements(prev => prev.map(el => {
     if (el.id !== id) return el
     const ratio = el.hPercent / el.wPercent
-    return { ...el, wPercent: wPct, hPercent: wPct * ratio }
+    const updated = { ...el, wPercent: wPct, hPercent: wPct * ratio }
+    if (el.type === 'text') {
+      const origW = el.wPercent || 20
+      const origFontSize = el.fontSize || 16
+      updated.fontSize = Math.max(6, Math.round(origFontSize * (wPct / origW)))
+    }
+    return updated
   }))
+
+  // ── Resize (mouse) ─────────────────────────────────────────────────────────
+  const resizeStart = (e, elId) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const element = elements.find(el => el.id === elId)
+    if (!element) return
+
+    const startX = e.clientX
+    const origW = element.wPercent
+    const origFontSize = element.fontSize || 16
+    const ratio = element.hPercent / element.wPercent
+
+    const onMove = (mv) => {
+      const pageEl = document.getElementById(`page-container-${element.pageNum}`)
+      if (!pageEl) return
+      const rect = pageEl.getBoundingClientRect()
+      const dw = ((mv.clientX - startX) / rect.width) * 100
+      
+      const newW = Math.max(5, Math.min(100 - element.x, origW + dw))
+      const newH = newW * ratio
+
+      setElements(prev => prev.map(el => {
+        if (el.id !== elId) return el
+        const updated = { ...el, wPercent: newW, hPercent: Math.min(100 - el.y, newH) }
+        if (el.type === 'text') {
+          updated.fontSize = Math.max(6, Math.round(origFontSize * (newW / origW)))
+        }
+        return updated
+      }))
+    }
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // ── Resize (touch) ─────────────────────────────────────────────────────────
+  const resizeStartTouch = (e, elId) => {
+    e.stopPropagation()
+    const element = elements.find(el => el.id === elId)
+    if (!element) return
+
+    const startX = e.touches[0].clientX
+    const origW = element.wPercent
+    const origFontSize = element.fontSize || 16
+    const ratio = element.hPercent / element.wPercent
+
+    const onMove = (mv) => {
+      if (mv.cancelable) mv.preventDefault()
+      const pageEl = document.getElementById(`page-container-${element.pageNum}`)
+      if (!pageEl) return
+      const rect = pageEl.getBoundingClientRect()
+      const dw = ((mv.touches[0].clientX - startX) / rect.width) * 100
+      
+      const newW = Math.max(5, Math.min(100 - element.x, origW + dw))
+      const newH = newW * ratio
+
+      setElements(prev => prev.map(el => {
+        if (el.id !== elId) return el
+        const updated = { ...el, wPercent: newW, hPercent: Math.min(100 - el.y, newH) }
+        if (el.type === 'text') {
+          updated.fontSize = Math.max(6, Math.round(origFontSize * (newW / origW)))
+        }
+        return updated
+      }))
+    }
+    const onEnd = () => { window.removeEventListener('touchmove', onMove, { passive: false }); window.removeEventListener('touchend', onEnd) }
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onEnd)
+  }
+
   const updateElementProps = (id, props) => setElements(prev => prev.map(el => el.id === id ? { ...el, ...props } : el))
 
   // ── Tool setters ─────────────────────────────────────────────────────────
@@ -837,7 +915,7 @@ export default function SignPdf() {
                     onChange={e => updateElementProps(activeElement.id, { fontSize: parseInt(e.target.value) })}
                     className="bg-white/10 border border-white/20 text-white rounded-lg px-2 py-0.5 text-xs focus:outline-none"
                   >
-                    {[10, 12, 14, 16, 18, 20, 24, 28, 32].map(sz => <option key={sz} value={sz}>{sz}px</option>)}
+                    {[8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96, 108, 120].map(sz => <option key={sz} value={sz}>{sz}px</option>)}
                   </select>
                 </div>
               </>
@@ -954,6 +1032,16 @@ export default function SignPdf() {
                                 className="absolute -top-6 right-0 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg z-20 transition-colors"
                                 style={{ fontSize: '10px', lineHeight: 1 }}
                               >×</button>
+                            )}
+
+                            {/* Resize handle */}
+                            {isSelected && (
+                              <div
+                                onMouseDown={e => resizeStart(e, el.id)}
+                                onTouchStart={e => resizeStartTouch(e, el.id)}
+                                className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-indigo-600 hover:bg-indigo-700 border-2 border-white rounded-full cursor-se-resize z-20 shadow-md transition-transform hover:scale-125 flex items-center justify-center"
+                                style={{ touchAction: 'none' }}
+                              />
                             )}
 
                             {el.type === 'text' && (
