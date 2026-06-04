@@ -55,7 +55,7 @@ function generateStampDataUrl(text, color = '#10b981') {
 }
 
 // Child Component: PDF Page Renderer
-function PdfPageRenderer({ pdfDoc, pageNum, scale = 1.2, onRendered }) {
+function PdfPageRenderer({ pdfDoc, pageNum, scale = 1.25, onRendered }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -311,6 +311,18 @@ export default function SignPdf() {
 
   const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
+  // Fullscreen styling toggler
+  useEffect(() => {
+    if (file) {
+      document.body.classList.add('fullscreen-mode')
+    } else {
+      document.body.classList.remove('fullscreen-mode')
+    }
+    return () => {
+      document.body.classList.remove('fullscreen-mode')
+    }
+  }, [file])
+
   // Load PDF JS and structure pages
   useEffect(() => {
     if (!file) {
@@ -377,7 +389,7 @@ export default function SignPdf() {
 
     const newElement = {
       id: `el_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      type: activeTool.type,
+      type: newElementTypeName(activeTool.type),
       pageNum,
       x: xPercent,
       y: yPercent,
@@ -388,6 +400,11 @@ export default function SignPdf() {
       fontSize: activeTool.fontSize || 16,
       color: activeTool.color || '#000000',
       shapeType: activeTool.shapeType || ''
+    }
+
+    // Helper: standardizes elements naming
+    function newElementTypeName(type) {
+      return type
     }
 
     setElements(prev => [...prev, newElement])
@@ -691,6 +708,369 @@ export default function SignPdf() {
 
   const activeElement = elements.find(el => el.id === activeElementId)
 
+  // RENDER INTERACTION EDITOR IF FILE ACTIVE
+  if (file) {
+    return (
+      <div className="w-screen h-screen flex flex-col bg-white dark:bg-gray-900 overflow-hidden text-gray-900 dark:text-gray-100 font-sans select-none z-40 fixed inset-0">
+        <SeoHead
+          title="Sign PDF Online – Add Signature, Text and Stamps to PDF"
+          description="Sign PDF documents online for free. Draw or type signatures, add stamps, place custom texts, or upload logos and place them on PDF pages."
+          keywords="sign pdf online, draw signature on pdf, fill and sign pdf, add text to pdf, rubber stamp pdf online"
+          canonical="/tools/sign-pdf"
+        />
+        {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
+        <SignatureModal
+          isOpen={isSigModalOpen}
+          onClose={() => setIsSigModalOpen(false)}
+          onSave={handleSignatureSaved}
+        />
+
+        {/* Top Header Bar */}
+        <header className="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 bg-white dark:bg-gray-900 shrink-0 z-30 shadow-sm">
+          {/* Left: Back / Title */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setFile(null)}
+              className="p-2 rounded-xl text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-semibold flex items-center gap-1 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+            >
+              ← <span className="hidden sm:inline">Close</span>
+            </button>
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-xl">✍️</span>
+              <span className="font-bold text-sm tracking-wide truncate max-w-[200px]">{file.name}</span>
+            </div>
+          </div>
+
+          {/* Center: Tools */}
+          <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-inner">
+            {/* Signature */}
+            <button
+              onClick={() => setIsSigModalOpen(true)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                activeTool?.type === 'signature'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              ✍️ Signature
+            </button>
+
+            {/* Stamp */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowStampsDropdown(!showStampsDropdown); setShowShapesDropdown(false); }}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                  activeTool?.type === 'stamp'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                🎴 Stamp <span className="text-[9px]">▼</span>
+              </button>
+              {showStampsDropdown && (
+                <div className="absolute top-10 left-0 z-50 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-2 space-y-1">
+                  {[
+                    { text: 'APPROVED', color: '#10b981' },
+                    { text: 'REJECTED', color: '#ef4444' },
+                    { text: 'SIGN HERE', color: '#3b82f6' },
+                    { text: 'CONFIDENTIAL', color: '#f97316' },
+                    { text: 'COPY', color: '#6b7280' }
+                  ].map(st => (
+                    <button
+                      key={st.text}
+                      onClick={() => selectStamp(st.text, st.color)}
+                      className="w-full text-left px-2.5 py-1 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      style={{ color: st.color }}
+                    >
+                      {st.text}
+                    </button>
+                  ))}
+                  <label className="block w-full text-left px-2.5 py-1 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700 mt-1">
+                    🖼️ Custom...
+                    <input type="file" accept="image/*" onChange={handleCustomStampUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Text */}
+            <button
+              onClick={() =>
+                setActiveTool({
+                  type: 'text',
+                  text: '',
+                  fontSize: 16,
+                  color: '#000000',
+                  width: 160,
+                  height: 50
+                })
+              }
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                activeTool?.type === 'text'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              💬 Text
+            </button>
+
+            {/* Image */}
+            <label
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTool?.type === 'image'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              🖼️ Image
+              <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
+            </label>
+
+            {/* Shapes */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowShapesDropdown(!showShapesDropdown); setShowStampsDropdown(false); }}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                  activeTool?.type === 'shape'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                ✏️ Shapes <span className="text-[9px]">▼</span>
+              </button>
+              {showShapesDropdown && (
+                <div className="absolute top-10 left-0 z-50 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-2 space-y-1">
+                  {[
+                    { type: 'check', label: '✓ Check' },
+                    { type: 'cross', label: '✗ Cross' },
+                    { type: 'circle', label: '○ Circle' },
+                    { type: 'rectangle', label: '□ Box' },
+                    { type: 'line', label: '— Line' }
+                  ].map(sh => (
+                    <button
+                      key={sh.type}
+                      onClick={() => selectShape(sh.type)}
+                      className="w-full text-left px-2.5 py-1 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                    >
+                      {sh.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Save PDF */}
+          <button
+            onClick={handleSavePdf}
+            disabled={loading || elements.length === 0}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '⏳ Saving…' : 'Save PDF'}
+          </button>
+        </header>
+
+        {/* Floating properties toolbar (if element selected) */}
+        {activeElement && (
+          <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex flex-wrap items-center gap-4 text-xs shrink-0 select-none">
+            <span className="font-bold text-blue-600">Selected: {activeElement.type.toUpperCase()}</span>
+            
+            {/* Width scale */}
+            <div className="flex items-center gap-1.5">
+              <span>Size:</span>
+              <input
+                type="range"
+                min="20"
+                max="500"
+                value={activeElement.width}
+                onChange={(e) => resizeElement(activeElement.id, parseInt(e.target.value))}
+                className="w-28 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            {/* Text options */}
+            {activeElement.type === 'text' && (
+              <>
+                <div className="flex items-center gap-1">
+                  <span>Color:</span>
+                  {['#000000', '#0000ff', '#ef4444', '#10b981'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => updateElementProps(activeElement.id, { color })}
+                      className={`w-3.5 h-3.5 rounded-full border ${activeElement.color === color ? 'ring-1 ring-offset-1 ring-blue-500' : ''}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>Font:</span>
+                  <select
+                    value={activeElement.fontSize}
+                    onChange={(e) => updateElementProps(activeElement.id, { fontSize: parseInt(e.target.value) })}
+                    className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded p-0.5 text-[10px]"
+                  >
+                    {[12, 14, 16, 20, 24, 32].map(sz => (
+                      <option key={sz} value={sz}>{sz}px</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Shape color options */}
+            {activeElement.type === 'shape' && (
+              <div className="flex items-center gap-1">
+                <span>Color:</span>
+                {['#ef4444', '#10b981', '#3b82f6', '#000000'].map(color => (
+                  <button
+                    key={color}
+                    onClick={() => updateElementProps(activeElement.id, { color })}
+                    className={`w-3.5 h-3.5 rounded-full border ${activeElement.color === color ? 'ring-1 ring-offset-1 ring-blue-500' : ''}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => deleteElement(activeElement.id)}
+              className="ml-auto text-red-500 hover:text-red-600 font-semibold"
+            >
+              Delete Element
+            </button>
+          </div>
+        )}
+
+        {/* Main Work Area */}
+        <div className="flex flex-1 h-[calc(100vh-64px)] overflow-hidden bg-gray-50 dark:bg-gray-950">
+          {/* Thumbnails Sidebar */}
+          <div className="w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 overflow-y-auto hidden md:block shrink-0">
+            <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-2 uppercase">Page Thumbnails</p>
+            {pdfPages.map(page => (
+              <ThumbnailRenderer
+                key={page.pageNum}
+                pdfDoc={pdfDoc}
+                pageNum={page.pageNum}
+                onClick={() => handleThumbnailClick(page.pageNum)}
+              />
+            ))}
+          </div>
+
+          {/* Central PDF Viewer Grid */}
+          <div className="flex-1 overflow-auto p-8 flex flex-col items-center gap-8 relative">
+            {activeTool && (
+              <div className="fixed top-20 z-40 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/40 text-yellow-800 dark:text-yellow-400 text-xs px-4 py-2 rounded-xl shadow flex items-center gap-3">
+                <span>⚡ <strong>Placement Mode:</strong> Click on a page to place your {activeTool.type}</span>
+                <button onClick={() => setActiveTool(null)} className="text-red-500 font-bold hover:underline">Cancel</button>
+              </div>
+            )}
+
+            {pdfPages.map(page => (
+              <div key={page.pageNum} className="flex flex-col items-center">
+                <span className="text-[10px] text-gray-400 mb-2 font-medium">Page {page.pageNum} of {pdfPages.length}</span>
+                <div
+                  id={`page-container-${page.pageNum}`}
+                  onClick={(e) => handlePageClick(e, page.pageNum)}
+                  className="relative bg-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                  style={{
+                    width: pageSizes[page.pageNum]?.w || 'auto',
+                    height: pageSizes[page.pageNum]?.h || 'auto'
+                  }}
+                >
+                  <PdfPageRenderer
+                    pdfDoc={pdfDoc}
+                    pageNum={page.pageNum}
+                    scale={1.35}
+                    onRendered={(w, h) => handlePageRendered(page.pageNum, w, h)}
+                  />
+
+                  {/* Absolute Placed Elements Container */}
+                  <div className="absolute inset-0 z-10 pointer-events-auto">
+                    {elements
+                      .filter(el => el.pageNum === page.pageNum)
+                      .map(el => {
+                        const isSelected = el.id === activeElementId
+                        return (
+                          <div
+                            key={el.id}
+                            onMouseDown={(e) => dragStart(e, el.id)}
+                            onTouchStart={(e) => dragStartTouch(e, el.id)}
+                            className={`absolute ${
+                              isSelected
+                                ? 'border-2 border-blue-500 ring-2 ring-blue-500/20'
+                                : 'border border-dashed border-gray-400 hover:border-blue-400'
+                            } p-1`}
+                            style={{
+                              left: `${el.x}%`,
+                              top: `${el.y}%`,
+                              width: `${el.width}px`,
+                              height: `${el.height}px`,
+                              touchAction: 'none'
+                            }}
+                          >
+                            {isSelected && (
+                              <button
+                                onMouseDown={(e) => { e.stopPropagation(); deleteElement(el.id); }}
+                                onTouchStart={(e) => { e.stopPropagation(); deleteElement(el.id); }}
+                                className="absolute -top-7 right-0 bg-red-500 text-white rounded p-1 shadow hover:bg-red-600 transition-colors z-20 animate-fade-in"
+                              >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+
+                            {el.type === 'text' && (
+                              <textarea
+                                value={el.text}
+                                onChange={(e) => updateElementText(el.id, e.target.value)}
+                                onFocus={() => setActiveElementId(el.id)}
+                                className="w-full h-full bg-transparent border-0 outline-none resize-none overflow-hidden font-sans select-text leading-tight p-0"
+                                style={{ fontSize: `${el.fontSize}px`, color: el.color }}
+                                placeholder="Type here..."
+                              />
+                            )}
+
+                            {(el.type === 'signature' || el.type === 'stamp' || el.type === 'image') && (
+                              <img
+                                src={el.data}
+                                alt={el.type}
+                                className="w-full h-full object-contain pointer-events-none"
+                              />
+                            )}
+
+                            {el.type === 'shape' && (
+                              <div
+                                className="w-full h-full flex items-center justify-center font-sans font-bold select-none pointer-events-none"
+                                style={{ color: el.color, fontSize: `${Math.min(el.width, el.height) * 0.8}px` }}
+                              >
+                                {el.shapeType === 'check' && '✓'}
+                                {el.shapeType === 'cross' && '✗'}
+                                {el.shapeType === 'circle' && (
+                                  <div className="w-[85%] h-[85%] rounded-full border-[3px]" style={{ borderColor: el.color }} />
+                                )}
+                                {el.shapeType === 'rectangle' && (
+                                  <div className="w-[85%] h-[85%] border-[3px]" style={{ borderColor: el.color }} />
+                                )}
+                                {el.shapeType === 'line' && (
+                                  <div className="w-[90%] h-0.5" style={{ backgroundColor: el.color }} />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // DEFAULT FILE-UPLOAD LANDING LAYOUT
   return (
     <>
       <SeoHead
@@ -699,359 +1079,9 @@ export default function SignPdf() {
         keywords="sign pdf online, draw signature on pdf, fill and sign pdf, add text to pdf, rubber stamp pdf online"
         canonical="/tools/sign-pdf"
       />
-      
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
-      
-      <SignatureModal
-        isOpen={isSigModalOpen}
-        onClose={() => setIsSigModalOpen(false)}
-        onSave={handleSignatureSaved}
-      />
-
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />
-        
-        {file && (
-          <div className="mt-8 space-y-6">
-            {/* ── TOP EDITING TOOLBAR ────────────────────────────────────── */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-800/80 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* ✍️ Signature Tool Button */}
-                <button
-                  onClick={() => setIsSigModalOpen(true)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm ${
-                    activeTool?.type === 'signature'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  ✍️ Signature
-                </button>
-
-                {/* 🎴 Stamp Tool Selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => { setShowStampsDropdown(!showStampsDropdown); setShowShapesDropdown(false); }}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm ${
-                      activeTool?.type === 'stamp'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    🎴 Stamp <span className="text-[10px]">▼</span>
-                  </button>
-                  {showStampsDropdown && (
-                    <div className="absolute top-11 left-0 z-50 w-48 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl p-2 space-y-1">
-                      {[
-                        { text: 'APPROVED', color: '#10b981' },
-                        { text: 'REJECTED', color: '#ef4444' },
-                        { text: 'SIGN HERE', color: '#3b82f6' },
-                        { text: 'CONFIDENTIAL', color: '#f97316' },
-                        { text: 'COPY', color: '#6b7280' }
-                      ].map(st => (
-                        <button
-                          key={st.text}
-                          onClick={() => selectStamp(st.text, st.color)}
-                          className="w-full text-left px-3 py-1.5 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          style={{ color: st.color }}
-                        >
-                          Stamp: {st.text}
-                        </button>
-                      ))}
-                      <label className="block w-full text-left px-3 py-1.5 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700 mt-1">
-                        🖼️ Custom Stamp...
-                        <input type="file" accept="image/*" onChange={handleCustomStampUpload} className="hidden" />
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* 💬 Text Tool Button */}
-                <button
-                  onClick={() =>
-                    setActiveTool({
-                      type: 'text',
-                      text: '',
-                      fontSize: 16,
-                      color: '#000000',
-                      width: 160,
-                      height: 50
-                    })
-                  }
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm ${
-                    activeTool?.type === 'text'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  💬 Text Box
-                </button>
-
-                {/* 🖼️ Custom Image Uploader */}
-                <label
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer ${
-                    activeTool?.type === 'image'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  🖼️ Add Image
-                  <input type="file" accept="image/*" onChange={handleCustomImageUpload} className="hidden" />
-                </label>
-
-                {/* ✏️ Shapes Selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => { setShowShapesDropdown(!showShapesDropdown); setShowStampsDropdown(false); }}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition-all shadow-sm ${
-                      activeTool?.type === 'shape'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    ✏️ Shapes <span className="text-[10px]">▼</span>
-                  </button>
-                  {showShapesDropdown && (
-                    <div className="absolute top-11 left-0 z-50 w-44 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl p-2 space-y-1">
-                      {[
-                        { type: 'check', label: '✓ Checkmark' },
-                        { type: 'cross', label: '✗ Crossmark' },
-                        { type: 'circle', label: '○ Circle' },
-                        { type: 'rectangle', label: '□ Rectangle' },
-                        { type: 'line', label: '— Line' }
-                      ].map(sh => (
-                        <button
-                          key={sh.type}
-                          onClick={() => selectShape(sh.type)}
-                          className="w-full text-left px-3 py-1.5 text-xs font-semibold rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
-                        >
-                          {sh.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SAVE BUTTON */}
-              <button
-                onClick={handleSavePdf}
-                disabled={loading || elements.length === 0}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-95 text-white text-xs font-bold rounded-xl transition-all shadow-md disabled:opacity-50"
-              >
-                {loading ? '⏳ Generating…' : 'Save PDF'}
-              </button>
-            </div>
-
-            {/* ── PROPERTIES SUB-TOOLBAR (Visible when an element is selected) ── */}
-            {activeElement && (
-              <div className="flex flex-wrap items-center gap-6 p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-xl text-xs">
-                {/* Drag / Position indicators */}
-                <div className="text-gray-500 dark:text-gray-400">
-                  <span className="font-semibold text-blue-600">Selected:</span> {activeElement.type.toUpperCase()}{' '}
-                  {activeElement.shapeType && `(${activeElement.shapeType})`} · Page {activeElement.pageNum}
-                </div>
-
-                {/* Resize Slider */}
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500">Size (Width):</span>
-                  <input
-                    type="range"
-                    min="20"
-                    max="500"
-                    value={activeElement.width}
-                    onChange={(e) => resizeElement(activeElement.id, parseInt(e.target.value))}
-                    className="w-28 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                  />
-                  <span className="text-gray-400 font-semibold">{activeElement.width}px</span>
-                </div>
-
-                {/* Text specific controls */}
-                {activeElement.type === 'text' && (
-                  <>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-gray-500">Color:</span>
-                      {['#000000', '#0000ff', '#ef4444', '#10b981'].map(color => (
-                        <button
-                          key={color}
-                          onClick={() => updateElementProps(activeElement.id, { color })}
-                          className={`w-4 h-4 rounded-full border ${activeElement.color === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-gray-500">Font:</span>
-                      <select
-                        value={activeElement.fontSize}
-                        onChange={(e) => updateElementProps(activeElement.id, { fontSize: parseInt(e.target.value) })}
-                        className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded p-1"
-                      >
-                        {[12, 14, 16, 20, 24, 32].map(sz => (
-                          <option key={sz} value={sz}>{sz}px</option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {/* Shape specific controls */}
-                {activeElement.type === 'shape' && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500">Shape Color:</span>
-                    {['#ef4444', '#10b981', '#3b82f6', '#000000'].map(color => (
-                      <button
-                        key={color}
-                        onClick={() => updateElementProps(activeElement.id, { color })}
-                        className={`w-4 h-4 rounded-full border ${activeElement.color === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── PLACEMENT NOTIFICATION INDICATOR ──────────────────────────── */}
-            {activeTool && (
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/40 text-yellow-800 dark:text-yellow-400 text-xs rounded-xl flex items-center justify-between">
-                <span>
-                  👉 <strong>Placement Mode Active:</strong> Click anywhere on the PDF pages below to place your{' '}
-                  <span className="font-bold uppercase text-blue-600">{activeTool.type}</span>.
-                </span>
-                <button
-                  onClick={() => setActiveTool(null)}
-                  className="text-xs font-bold text-red-500 hover:underline"
-                >
-                  Cancel Mode
-                </button>
-              </div>
-            )}
-
-            {/* ── MAIN WORKSPACE CONTAINER ─────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-gray-100 dark:bg-gray-950 rounded-3xl p-6 border border-gray-200/60 dark:border-gray-800">
-              {/* LEFT SIDEBAR: Page Thumbnails */}
-              <div className="col-span-1 max-h-[70vh] overflow-y-auto space-y-4 pr-2 border-r border-gray-200 dark:border-gray-900 hidden md:block">
-                <p className="text-xs font-semibold text-gray-500 mb-3 sticky top-0 bg-gray-100 dark:bg-gray-950 py-1">THUMBNAILS</p>
-                {pdfPages.map(page => (
-                  <ThumbnailRenderer
-                    key={page.pageNum}
-                    pdfDoc={pdfDoc}
-                    pageNum={page.pageNum}
-                    onClick={() => handleThumbnailClick(page.pageNum)}
-                  />
-                ))}
-              </div>
-
-              {/* CENTER PANELS: PDF Viewer & Interaction Layer */}
-              <div className="col-span-3 max-h-[70vh] overflow-y-auto space-y-6 flex flex-col items-center p-2">
-                {pdfPages.map(page => (
-                  <div key={page.pageNum} className="flex flex-col items-center">
-                    <span className="text-xs text-gray-400 mb-2">Page {page.pageNum} of {pdfPages.length}</span>
-                    <div
-                      id={`page-container-${page.pageNum}`}
-                      onClick={(e) => handlePageClick(e, page.pageNum)}
-                      className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-md hover:shadow-lg transition-shadow cursor-pointer select-none"
-                      style={{
-                        width: pageSizes[page.pageNum]?.w || 'auto',
-                        height: pageSizes[page.pageNum]?.h || 'auto'
-                      }}
-                    >
-                      {/* PDF Page Canvas */}
-                      <PdfPageRenderer
-                        pdfDoc={pdfDoc}
-                        pageNum={page.pageNum}
-                        scale={1.25}
-                        onRendered={(w, h) => handlePageRendered(page.pageNum, w, h)}
-                      />
-
-                      {/* Element Overlay Layer */}
-                      <div className="absolute inset-0 z-10 pointer-events-auto">
-                        {elements
-                          .filter(el => el.pageNum === page.pageNum)
-                          .map(el => {
-                            const isSelected = el.id === activeElementId
-                            return (
-                              <div
-                                key={el.id}
-                                onMouseDown={(e) => dragStart(e, el.id)}
-                                onTouchStart={(e) => dragStartTouch(e, el.id)}
-                                className={`absolute ${
-                                  isSelected
-                                    ? 'border-2 border-blue-500 ring-2 ring-blue-500/20'
-                                    : 'border border-dashed border-gray-400 hover:border-blue-400'
-                                } p-1`}
-                                style={{
-                                  left: `${el.x}%`,
-                                  top: `${el.y}%`,
-                                  width: `${el.width}px`,
-                                  height: `${el.height}px`,
-                                  touchAction: 'none'
-                                }}
-                              >
-                                {/* Delete Button on hover/selection */}
-                                {isSelected && (
-                                  <button
-                                    onMouseDown={(e) => { e.stopPropagation(); deleteElement(el.id); }}
-                                    onTouchStart={(e) => { e.stopPropagation(); deleteElement(el.id); }}
-                                    className="absolute -top-7 right-0 bg-red-500 text-white rounded p-1 shadow-md hover:bg-red-600 transition-colors z-20"
-                                    title="Delete Element"
-                                  >
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                )}
-
-                                {/* RENDER CONTENT BY TYPE */}
-                                {el.type === 'text' && (
-                                  <textarea
-                                    value={el.text}
-                                    onChange={(e) => updateElementText(el.id, e.target.value)}
-                                    onFocus={() => setActiveElementId(el.id)}
-                                    className="w-full h-full bg-transparent border-0 outline-none resize-none overflow-hidden font-sans select-text leading-tight p-0"
-                                    style={{ fontSize: `${el.fontSize}px`, color: el.color }}
-                                    placeholder="Type here..."
-                                  />
-                                )}
-
-                                {(el.type === 'signature' || el.type === 'stamp' || el.type === 'image') && (
-                                  <img
-                                    src={el.data}
-                                    alt={el.type}
-                                    className="w-full h-full object-contain pointer-events-none"
-                                  />
-                                )}
-
-                                {el.type === 'shape' && (
-                                  <div
-                                    className="w-full h-full flex items-center justify-center font-sans font-bold select-none pointer-events-none"
-                                    style={{ color: el.color, fontSize: `${Math.min(el.width, el.height) * 0.8}px` }}
-                                  >
-                                    {el.shapeType === 'check' && '✓'}
-                                    {el.shapeType === 'cross' && '✗'}
-                                    {el.shapeType === 'circle' && (
-                                      <div className="w-[85%] h-[85%] rounded-full border-[3px]" style={{ borderColor: el.color }} />
-                                    )}
-                                    {el.shapeType === 'rectangle' && (
-                                      <div className="w-[85%] h-[85%] border-[3px]" style={{ borderColor: el.color }} />
-                                    )}
-                                    {el.shapeType === 'line' && (
-                                      <div className="w-[90%] h-0.5" style={{ backgroundColor: el.color }} />
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </ToolLayout>
     </>
   )
