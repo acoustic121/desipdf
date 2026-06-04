@@ -6,6 +6,7 @@ import { AuthProvider } from '../utils/useAuth'
 import { I18nProvider } from '../utils/i18n'
 import Layout from '../components/Layout'
 import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { GA_MEASUREMENT_ID, pageview } from '../utils/analytics'
 
 export default function App({ Component, pageProps }) {
@@ -52,6 +53,7 @@ export default function App({ Component, pageProps }) {
           )}
           <Component {...pageProps} />
           <Analytics />
+          <SpeedInsights />
         </Layout>
       </I18nProvider>
     </AuthProvider>
