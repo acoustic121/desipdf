@@ -23,6 +23,9 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault()
     if (!email || !password) return toast.error('Please fill in all fields')
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return toast.error('Only @gmail.com email addresses are allowed.')
+    }
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
@@ -86,7 +89,7 @@ export default function Login() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="label">Email address</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-field" required />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@gmail.com" className="input-field" required />
               </div>
               <div>
                 <label className="label">Password</label>

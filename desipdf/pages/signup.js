@@ -23,6 +23,9 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault()
     if (!name || !email || !password) return toast.error('Please fill in all fields')
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return toast.error('Only @gmail.com email addresses are allowed.')
+    }
     if (password.length < 6) return toast.error('Password must be at least 6 characters')
     setLoading(true)
 
@@ -101,7 +104,7 @@ export default function Signup() {
               </div>
               <div>
                 <label className="label">Email address</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-field" required />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@gmail.com" className="input-field" required />
               </div>
               <div>
                 <label className="label">Password</label>
