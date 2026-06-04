@@ -6,6 +6,52 @@ import { INDIAN_LANGUAGES, INTERNATIONAL_LANGUAGES } from '../utils/constants'
 import { useI18n } from '../utils/i18n'
 import { useAuth } from '../utils/useAuth'
 
+// ─── Tools Dropdown Data ───────────────────────────────────────────────────
+const organizeTools = [
+  { name: 'Merge PDF', href: '/tools/merge-pdf', icon: '🔗' },
+  { name: 'Split PDF', href: '/tools/split-pdf', icon: '✂️' },
+  { name: 'Reorder Pages', href: '/tools/reorder-pages', icon: '↕️' },
+  { name: 'Extract Pages', href: '/tools/extract-pages', icon: '📋' },
+  { name: 'Scan to PDF', href: '/tools/scan-to-pdf', icon: '📷' },
+]
+const optimizeTools = [
+  { name: 'Compress PDF', href: '/tools/compress-pdf', icon: '🗜️' },
+  { name: 'Repair PDF', href: '/tools/repair-pdf', icon: '🔧' },
+  { name: 'OCR PDF', href: '/tools/ocr-pdf', icon: '🔍' },
+]
+const convertToPdfTools = [
+  { name: 'JPG to PDF', href: '/tools/jpg-to-pdf', icon: '📄' },
+  { name: 'Word to PDF', href: '/tools/word-to-pdf', icon: '📝' },
+  { name: 'PPT to PDF', href: '/tools/pptx-to-pdf', icon: '📑' },
+  { name: 'Excel to PDF', href: '/tools/excel-to-pdf', icon: '📊' },
+  { name: 'HTML to PDF', href: '/tools/html-to-pdf', icon: '🌐' },
+]
+const convertFromPdfTools = [
+  { name: 'PDF to JPG', href: '/tools/pdf-to-jpg', icon: '🖼️' },
+  { name: 'PDF to Word', href: '/tools/pdf-to-word', icon: '✏️' },
+  { name: 'PDF to PPT', href: '/tools/pdf-to-pptx', icon: '🎞️' },
+  { name: 'PDF to Excel', href: '/tools/pdf-to-excel', icon: '📈' },
+]
+const editTools = [
+  { name: 'Rotate PDF', href: '/tools/rotate-pdf', icon: '🔄' },
+  { name: 'Page Numbers', href: '/tools/page-numbers', icon: '🔢' },
+  { name: 'Watermark PDF', href: '/tools/pdf-watermark', icon: '💧' },
+  { name: 'Crop PDF', href: '/tools/crop-pdf', icon: '✂️' },
+  { name: 'Redact PDF', href: '/tools/redact-pdf', icon: '🖤' },
+  { name: 'Edit PDF', href: '/tools/edit-pdf', icon: '🖊️' },
+  { name: 'PDF Forms', href: '/tools/pdf-forms', icon: '📋' },
+]
+const secureTools = [
+  { name: 'Protect PDF', href: '/tools/protect-pdf', icon: '🔒' },
+  { name: 'Unlock PDF', href: '/tools/unlock-pdf', icon: '🔓' },
+  { name: 'Sign PDF', href: '/tools/sign-pdf', icon: '✍️' },
+  { name: 'Compare PDF', href: '/tools/compare-pdf', icon: '⚖️' },
+]
+const aiTools = [
+  { name: 'AI Summarizer', href: '/tools/ai-summarizer', icon: '🤖' },
+  { name: 'Translate PDF', href: '/tools/translate-pdf', icon: '🌏' },
+]
+
 export default function Header() {
   const [dark, setDark] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -77,11 +123,139 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-400">
-            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.home')}</Link>
-            <Link href="/pricing" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Pricing</Link>
-            <Link href="/about" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.about')}</Link>
-            <Link href="/faq" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.faq')}</Link>
+          <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-bold text-slate-700 dark:text-slate-200">
+            <Link href="/tools/merge-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Merge PDF</Link>
+            <Link href="/tools/split-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Split PDF</Link>
+            <Link href="/tools/compress-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Compress PDF</Link>
+
+            {/* Convert PDF */}
+            <div className="relative group py-5">
+              <button className="flex items-center gap-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">
+                Convert PDF
+                <svg className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              <div className="absolute left-0 top-full w-[420px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl p-5 grid grid-cols-2 gap-6 z-50 transition-all duration-200 ease-in-out opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0">
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Convert to PDF</h3>
+                  <div className="space-y-1">
+                    {convertToPdfTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Convert from PDF</h3>
+                  <div className="space-y-1">
+                    {convertFromPdfTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All PDF Tools */}
+            <div className="relative group py-5">
+              <button className="flex items-center gap-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">
+                All PDF Tools
+                <svg className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              <div className="absolute left-1/2 -translate-x-[45%] top-full w-[95vw] max-w-6xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl p-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-5 lg:gap-6 z-50 transition-all duration-200 ease-in-out opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0">
+                
+                {/* Organize */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Organize PDF</h3>
+                  <div className="space-y-1">
+                    {organizeTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Optimize */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Optimize PDF</h3>
+                  <div className="space-y-1">
+                    {optimizeTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Convert to */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Convert to PDF</h3>
+                  <div className="space-y-1">
+                    {convertToPdfTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Convert from */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Convert from PDF</h3>
+                  <div className="space-y-1">
+                    {convertFromPdfTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Edit */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">Edit PDF</h3>
+                  <div className="space-y-1">
+                    {editTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Security */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">PDF Security</h3>
+                  <div className="space-y-1">
+                    {secureTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Intelligence */}
+                <div>
+                  <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase mb-3 border-b border-gray-100 dark:border-gray-800 pb-1">PDF Intelligence</h3>
+                  <div className="space-y-1">
+                    {aiTools.map(t => (
+                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg hover:text-blue-600 transition-all">
+                        <span>{t.icon}</span> {t.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </nav>
 
           {/* Right Controls */}
@@ -190,6 +364,17 @@ export default function Header() {
             <Link href="/pricing" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.about')}</Link>
             <Link href="/faq" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.faq')}</Link>
+
+            <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Popular Tools</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/tools/merge-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🔗 Merge PDF</Link>
+                <Link href="/tools/split-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✂️ Split PDF</Link>
+                <Link href="/tools/compress-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🗜️ Compress PDF</Link>
+                <Link href="/tools/sign-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✍️ Sign PDF</Link>
+              </div>
+            </div>
+
             {!user && (
               <div className="flex gap-2 pt-2">
                 <Link href="/login" className="flex-1 text-center py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300" onClick={() => setMenuOpen(false)}>Log in</Link>
