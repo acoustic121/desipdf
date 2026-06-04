@@ -27,25 +27,12 @@ export default function PdfToJpg() {
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise
       const totalPages = pdf.numPages
 
-      // Check premium status to determine page limits
-      let isPremium = false
-      try {
-        const flag = localStorage.getItem('pdfchampion_premium')
-        if (flag === 'true') isPremium = true
-      } catch {}
-
-      const FREE_PAGE_LIMIT = 10
-      const PREMIUM_PAGE_LIMIT = 200
-      const pageLimit = isPremium ? PREMIUM_PAGE_LIMIT : FREE_PAGE_LIMIT
-      const pageCount = Math.min(totalPages, pageLimit)
-
       const requestedDpi = parseInt(dpi || '150')
-      const cappedDpi = isPremium ? Math.min(requestedDpi, 300) : Math.min(requestedDpi, 150)
-      const scale = cappedDpi / 72
+      const scale = requestedDpi / 72
 
       const zip = new JSZip()
 
-      for (let i = 0; i < pageCount; i++) {
+      for (let i = 0; i < totalPages; i++) {
         const page = await pdf.getPage(i + 1)
         const viewport = page.getViewport({ scale })
         const canvas = document.createElement('canvas')
@@ -61,11 +48,6 @@ export default function PdfToJpg() {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' })
-
-      if (totalPages > pageCount) {
-        toast.success(`Done! Converted ${pageCount} of ${totalPages} pages. Upgrade to Premium for all pages.`, { duration: 6000 })
-      }
-
       return zipBlob
     }, file.name.replace('.pdf', '-pages.zip'))
   }
@@ -90,9 +72,6 @@ export default function PdfToJpg() {
                 <option value="150">150 DPI – Medium (recommended)</option>
                 <option value="300">300 DPI – Print quality (slowest)</option>
               </select>
-            </div>
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
-              ⚡ Free plan converts up to <strong>10 pages</strong>. Upgrade to Premium for up to 200 pages.
             </div>
             <button onClick={handleConvert} disabled={loading} className="btn-primary w-full justify-center py-3.5">
               {loading ? '⏳ Converting…' : '🖼️ Convert to JPG'}

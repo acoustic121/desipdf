@@ -11,9 +11,6 @@ export const config = {
   maxDuration: 120, // 2 minutes for large PDFs
 }
 
-const FREE_PAGE_LIMIT = 10  // free users: max 10 pages
-const PREMIUM_PAGE_LIMIT = 200  // premium: up to 200 pages
-
 export default withRateLimit(async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -37,12 +34,11 @@ export default withRateLimit(async function handler(req, res) {
     const fileBuffer = fs.readFileSync(file.filepath)
     const pdfDoc = await PDFDocument.load(fileBuffer)
     const totalPages = pdfDoc.getPageCount()
-    const pageLimit = isPremium ? PREMIUM_PAGE_LIMIT : FREE_PAGE_LIMIT
-    const pageCount = Math.min(totalPages, pageLimit)
+    const pageCount = totalPages
 
     const dpi = parseInt(fields.dpi?.[0] || '150')
-    // Cap DPI for performance: free max 150, premium max 300
-    const cappedDpi = isPremium ? Math.min(dpi, 300) : Math.min(dpi, 150)
+    // Cap DPI at 300 max to prevent server process memory exhaustion
+    const cappedDpi = Math.min(dpi, 300)
     const scale = cappedDpi / 72
 
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfchampion-jpg-'))
