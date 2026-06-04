@@ -213,7 +213,7 @@ export default function Home() {
       <section className="bg-gradient-to-r from-cyan-500 to-blue-600 py-16 text-white text-center">
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-3xl font-bold mb-4">Start Converting for Free</h2>
-          <p className="text-blue-100 mb-8">10 free conversions per day. Unlimited with Premium. No credit card required to start.</p>
+          <p className="text-blue-100 mb-8">15 free conversions per day. Unlimited with Premium. No credit card required to start.</p>
           <a href="#tools" className="inline-flex items-center gap-2 bg-white text-blue-600 font-bold px-8 py-3.5 rounded-xl hover:bg-blue-50 shadow-lg transition-all">
             Browse All Tools ↑
           </a>
