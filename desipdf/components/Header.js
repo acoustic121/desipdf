@@ -125,7 +125,7 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-bold text-slate-700 dark:text-slate-200">
             <Link href="/tools/merge-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Merge PDF</Link>
-            <Link href="/tools/split-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Split PDF</Link>
+            <Link href="/tools/sign-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Sign PDF</Link>
             <Link href="/tools/compress-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Compress PDF</Link>
 
             {/* Convert PDF */}
