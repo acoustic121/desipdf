@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pdfchampion.vercel.app/sitemap.xml
+Sitemap: https://desipdf.vercel.app/sitemap.xml
