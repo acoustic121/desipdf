@@ -94,7 +94,7 @@ export default function Home() {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
             {t('hero.headline')}<br />
             <span className="bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent">
-              {TOOLS.filter(t => t.status === 'live').length} Free PDF Tools
+              {TOOLS.length} Free PDF Tools
             </span>
           </h1>
 
@@ -114,7 +114,7 @@ export default function Home() {
           {/* Stats */}
           <div className="mt-16 grid grid-cols-2 gap-4 max-w-sm mx-auto">
             {[
-              { value: `${TOOLS.filter(t => t.status === 'live').length}+`, label: 'Live Tools' },
+              { value: `${TOOLS.length}+`, label: 'PDF Tools' },
               { value: `${INDIAN_LANGUAGES.length} Indian`, label: `+ ${INTERNATIONAL_LANGUAGES.length} International` },
             ].map((s) => (
               <div key={s.label} className="bg-white/10 rounded-2xl p-4">
