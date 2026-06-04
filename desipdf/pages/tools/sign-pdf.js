@@ -31,43 +31,42 @@ function hexToRgb(hex) {
 
 function generateStampDataUrl(text, color = '#10b981') {
   if (typeof window === 'undefined') return ''
-  const canvas = document.createElement('canvas')
-  canvas.width = 320
-  canvas.height = 110
-  const ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, 320, 110)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = 320
+    canvas.height = 110
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, 320, 110)
 
-  // outer border
-  ctx.strokeStyle = color
-  ctx.lineWidth = 5
-  ctx.beginPath()
-  ctx.roundRect(6, 6, 308, 98, 6)
-  ctx.stroke()
+    // outer border (no roundRect — use strokeRect for max browser compat)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 5
+    ctx.strokeRect(6, 6, 308, 98)
 
-  // fill
-  ctx.fillStyle = color + '18'
-  ctx.beginPath()
-  ctx.roundRect(6, 6, 308, 98, 6)
-  ctx.fill()
+    // background fill
+    ctx.fillStyle = color + '18'
+    ctx.fillRect(6, 6, 308, 98)
 
-  // inner border
-  ctx.strokeStyle = color
-  ctx.lineWidth = 1.5
-  ctx.beginPath()
-  ctx.roundRect(12, 12, 296, 86, 4)
-  ctx.stroke()
+    // inner border
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(12, 12, 296, 86)
 
-  // text
-  ctx.fillStyle = color
-  ctx.font = 'bold 32px Arial, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.save()
-  ctx.translate(160, 55)
-  ctx.rotate(-0.035)
-  ctx.fillText(text, 0, 0)
-  ctx.restore()
-  return canvas.toDataURL('image/png')
+    // text
+    ctx.fillStyle = color
+    ctx.font = 'bold 32px Arial, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.save()
+    ctx.translate(160, 55)
+    ctx.rotate(-0.035)
+    ctx.fillText(text, 0, 0)
+    ctx.restore()
+    return canvas.toDataURL('image/png')
+  } catch (err) {
+    console.error('generateStampDataUrl failed:', err)
+    return ''
+  }
 }
 
 // ─── PDF Page Renderer ───────────────────────────────────────────────────────
@@ -387,11 +386,13 @@ export default function SignPdf() {
   }
 
   // ── Click to place element ─────────────────────────────────────────────────
-  // onClick is on the OVERLAY div (absolute inset-0), so clicks on empty space
-  // land directly on that div and e.target === e.currentTarget passes.
+  // The overlay div (absolute inset-0) receives placement clicks.
+  // Child elements (placed annotations) call e.stopPropagation() so they
+  // never bubble here — no need for the e.target check.
   const handleOverlayClick = (e, pageNum) => {
     if (!activeTool) return
-    if (e.target !== e.currentTarget) return // clicked a child element
+    // Do NOT check e.target === e.currentTarget — child element clicks are
+    // already blocked by stopPropagation on each element div.
 
     const rect = e.currentTarget.getBoundingClientRect()
     const xPct = ((e.clientX - rect.left) / rect.width) * 100
