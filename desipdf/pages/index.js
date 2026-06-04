@@ -7,7 +7,7 @@ import { useAuth } from '../utils/useAuth'
 
 
 const FAQ_ITEMS = [
-  { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹51/month or ₹499/year.' },
+  { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹49/month or ₹499/year.' },
   { q: 'Are my files safe?', a: 'Yes. Files are processed entirely inside your local browser on your device and are never uploaded to any server. Your sensitive data never leaves your device.' },
   { q: 'What is the maximum file size?', a: 'There is no file size limit! Since all processing is performed locally in your browser, you can convert files of any size.' },
   { q: 'Does it work on mobile?', a: 'Yes! PDFChampion is fully responsive and works on all Android and iPhone browsers.' },

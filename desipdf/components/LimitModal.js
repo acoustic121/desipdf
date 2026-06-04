@@ -42,7 +42,7 @@ export default function LimitModal({ onClose }) {
         {/* Pricing teaser */}
         <div className="mb-6">
           <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            ₹51<span className="text-base font-normal text-gray-400">/month</span>
+            ₹49<span className="text-base font-normal text-gray-400">/month</span>
           </div>
           <p className="text-xs text-gray-400 mt-1">or ₹499/year (save 18%) · Cancel anytime</p>
         </div>
