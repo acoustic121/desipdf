@@ -7,7 +7,16 @@ import { TOOLS } from '../../utils/constants'
 import { useConvert } from '../../utils/useConvert'
 import toast from 'react-hot-toast'
 
-const tool = TOOLS.find((t) => t.id === 'sign-pdf')
+const tool = TOOLS.find((t) => t.id === 'sign-pdf') || {
+  id: 'sign-pdf',
+  name: 'Sign PDF',
+  description: 'Draw or type your signature and embed it into any PDF.',
+  icon: '✍️',
+  color: 'from-indigo-400 to-blue-600',
+  accepts: '.pdf',
+  category: 'secure',
+  status: 'live',
+}
 
 // Helper: Converts hex color to { r, g, b } normalized values
 function hexToRgb(hex) {
@@ -159,9 +168,11 @@ function SignatureModal({ isOpen, onClose, onSave }) {
   const getPos = (e, canvas) => {
     const rect = canvas.getBoundingClientRect()
     const src = e.touches?.[0] || e
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
     return {
-      x: src.clientX - rect.left,
-      y: src.clientY - rect.top
+      x: (src.clientX - rect.left) * scaleX,
+      y: (src.clientY - rect.top) * scaleY
     }
   }
 
@@ -389,22 +400,17 @@ export default function SignPdf() {
 
     const newElement = {
       id: `el_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      type: newElementTypeName(activeTool.type),
+      type: activeTool.type,
       pageNum,
       x: xPercent,
       y: yPercent,
-      width: activeTool.width,
-      height: activeTool.height,
+      wPercent: activeTool.wPercent,
+      hPercent: activeTool.hPercent,
       data: activeTool.data || '',
       text: activeTool.text || '',
       fontSize: activeTool.fontSize || 16,
       color: activeTool.color || '#000000',
       shapeType: activeTool.shapeType || ''
-    }
-
-    // Helper: standardizes elements naming
-    function newElementTypeName(type) {
-      return type
     }
 
     setElements(prev => [...prev, newElement])
@@ -438,8 +444,8 @@ export default function SignPdf() {
         if (el.id === elId) {
           return {
             ...el,
-            x: Math.max(0, Math.min(100 - (el.width / rect.width) * 100, startXPercent + deltaXPercent)),
-            y: Math.max(0, Math.min(100 - (el.height / rect.height) * 100, startYPercent + deltaYPercent))
+            x: Math.max(0, Math.min(100 - el.wPercent, startXPercent + deltaXPercent)),
+            y: Math.max(0, Math.min(100 - el.hPercent, startYPercent + deltaYPercent))
           }
         }
         return el
@@ -455,7 +461,7 @@ export default function SignPdf() {
     window.addEventListener('mouseup', handleMouseUp)
   }
 
-  // Touch Dragging (Mobile)
+  // Touch Dragging (Mobile with passive override)
   const dragStartTouch = (e, elId) => {
     e.stopPropagation()
     setActiveElementId(elId)
@@ -468,6 +474,10 @@ export default function SignPdf() {
     const startYPercent = element.y
 
     const handleTouchMove = (moveEvent) => {
+      if (moveEvent.cancelable) {
+        moveEvent.preventDefault() // prevent browser scrolling while dragging element
+      }
+      
       const pageEl = document.getElementById(`page-container-${element.pageNum}`)
       if (!pageEl) return
       const rect = pageEl.getBoundingClientRect()
@@ -482,8 +492,8 @@ export default function SignPdf() {
         if (el.id === elId) {
           return {
             ...el,
-            x: Math.max(0, Math.min(100 - (el.width / rect.width) * 100, startXPercent + deltaXPercent)),
-            y: Math.max(0, Math.min(100 - (el.height / rect.height) * 100, startYPercent + deltaYPercent))
+            x: Math.max(0, Math.min(100 - el.wPercent, startXPercent + deltaXPercent)),
+            y: Math.max(0, Math.min(100 - el.hPercent, startYPercent + deltaYPercent))
           }
         }
         return el
@@ -491,11 +501,11 @@ export default function SignPdf() {
     }
 
     const handleTouchEnd = () => {
-      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchmove', handleTouchMove, { passive: false })
       window.removeEventListener('touchend', handleTouchEnd)
     }
 
-    window.addEventListener('touchmove', handleTouchMove)
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
     window.addEventListener('touchend', handleTouchEnd)
   }
 
@@ -511,17 +521,12 @@ export default function SignPdf() {
   }
 
   // Resize Element (keeps aspect ratios for images/stamps)
-  const resizeElement = (id, newWidth) => {
+  const resizeElement = (id, newWPercent) => {
     setElements(prev => prev.map(el => {
       if (el.id === id) {
-        let newHeight = el.height
-        if (el.type === 'signature' || el.type === 'stamp' || el.type === 'image') {
-          const ratio = el.height / el.width
-          newHeight = Math.round(newWidth * ratio)
-        } else if (el.type === 'shape' && (el.shapeType === 'circle' || el.shapeType === 'rectangle')) {
-          newHeight = newWidth
-        }
-        return { ...el, width: newWidth, height: newHeight }
+        const ratio = el.hPercent / el.wPercent
+        const newHPercent = newWPercent * ratio
+        return { ...el, wPercent: newWPercent, hPercent: newHPercent }
       }
       return el
     }))
@@ -537,8 +542,8 @@ export default function SignPdf() {
     setActiveTool({
       type: 'signature',
       data: sigDataUrl,
-      width: 150,
-      height: 60
+      wPercent: 20,
+      hPercent: 8
     })
   }
 
@@ -547,8 +552,8 @@ export default function SignPdf() {
     setActiveTool({
       type: 'stamp',
       data: stampDataUrl,
-      width: 160,
-      height: 54
+      wPercent: 22,
+      hPercent: 7.4
     })
     setShowStampsDropdown(false)
   }
@@ -558,12 +563,17 @@ export default function SignPdf() {
     if (!fileUploaded) return
     const reader = new FileReader()
     reader.onload = (event) => {
-      setActiveTool({
-        type: 'stamp',
-        data: event.target.result,
-        width: 150,
-        height: 80
-      })
+      const img = new Image()
+      img.onload = () => {
+        const ratio = img.height / img.width
+        setActiveTool({
+          type: 'stamp',
+          data: event.target.result,
+          wPercent: 20,
+          hPercent: 20 * ratio
+        })
+      }
+      img.src = event.target.result
     }
     reader.readAsDataURL(fileUploaded)
     setShowStampsDropdown(false)
@@ -574,8 +584,8 @@ export default function SignPdf() {
       type: 'shape',
       shapeType,
       color: '#ef4444',
-      width: shapeType === 'line' ? 120 : 40,
-      height: shapeType === 'line' ? 10 : 40
+      wPercent: shapeType === 'line' ? 20 : 6,
+      hPercent: shapeType === 'line' ? 1.5 : 6
     })
     setShowShapesDropdown(false)
   }
@@ -585,12 +595,17 @@ export default function SignPdf() {
     if (!imgFile) return
     const reader = new FileReader()
     reader.onload = (event) => {
-      setActiveTool({
-        type: 'image',
-        data: event.target.result,
-        width: 120,
-        height: 120
-      })
+      const img = new Image()
+      img.onload = () => {
+        const ratio = img.height / img.width
+        setActiveTool({
+          type: 'image',
+          data: event.target.result,
+          wPercent: 20,
+          hPercent: 20 * ratio
+        })
+      }
+      img.src = event.target.result
     }
     reader.readAsDataURL(imgFile)
   }
@@ -610,12 +625,9 @@ export default function SignPdf() {
         const page = pagesList[pageIndex]
         const { width: pageW, height: pageH } = page.getSize()
 
-        // Get container dimensions for proportion mapping
-        const containerSize = pageSizes[el.pageNum] || { w: pageW, h: pageH }
-
         // Compute proportional values
-        const pdfWidth = (el.width / containerSize.w) * pageW
-        const pdfHeight = (el.height / containerSize.h) * pageH
+        const pdfWidth = (el.wPercent / 100) * pageW
+        const pdfHeight = (el.hPercent / 100) * pageH
         const pdfX = (el.x / 100) * pageW
         // In PDF coordinates, Y starts from bottom, whereas in browser overlay it starts from top
         const pdfY = pageH - ((el.y / 100) * pageH) - pdfHeight
@@ -642,17 +654,17 @@ export default function SignPdf() {
           
           // Render multiple lines of text
           const lines = el.text.split('\n')
-          let lineY = pdfY + pdfHeight - (el.fontSize * (pageH / containerSize.h))
+          let lineY = pdfY + pdfHeight - el.fontSize
 
           for (const line of lines) {
             page.drawText(line, {
               x: pdfX,
               y: lineY,
-              size: el.fontSize * (pageH / containerSize.h) * 0.9,
+              size: el.fontSize,
               font: helveticaFont,
               color: rgb(colorRgb.r, colorRgb.g, colorRgb.b)
             })
-            lineY -= (el.fontSize * (pageH / containerSize.h)) * 1.2 // line height spacing
+            lineY -= el.fontSize * 1.2 // line height spacing
           }
         } else if (el.type === 'shape') {
           const colorRgb = hexToRgb(el.color)
@@ -711,7 +723,7 @@ export default function SignPdf() {
   // RENDER INTERACTION EDITOR IF FILE ACTIVE
   if (file) {
     return (
-      <div className="w-screen h-screen flex flex-col bg-white dark:bg-gray-900 overflow-hidden text-gray-900 dark:text-gray-100 font-sans select-none z-40 fixed inset-0">
+      <div className="fixed inset-0 flex flex-col bg-white dark:bg-gray-900 overflow-hidden text-gray-900 dark:text-gray-100 font-sans select-none z-[100]">
         <SeoHead
           title="Sign PDF Online – Add Signature, Text and Stamps to PDF"
           description="Sign PDF documents online for free. Draw or type signatures, add stamps, place custom texts, or upload logos and place them on PDF pages."
@@ -726,40 +738,40 @@ export default function SignPdf() {
         />
 
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 bg-white dark:bg-gray-900 shrink-0 z-30 shadow-sm">
+        <div className="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-2 sm:px-4 bg-white dark:bg-gray-900 shrink-0 z-30 shadow-sm gap-2">
           {/* Left: Back / Title */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setFile(null)}
-              className="p-2 rounded-xl text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-semibold flex items-center gap-1 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+              className="px-2.5 py-1.5 rounded-xl text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-semibold flex items-center gap-1 text-xs sm:text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
             >
               ← <span className="hidden sm:inline">Close</span>
             </button>
             <div className="hidden md:flex items-center gap-2">
               <span className="text-xl">✍️</span>
-              <span className="font-bold text-sm tracking-wide truncate max-w-[200px]">{file.name}</span>
+              <span className="font-bold text-sm tracking-wide truncate max-w-[150px]">{file.name}</span>
             </div>
           </div>
 
-          {/* Center: Tools */}
-          <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800/60 shadow-inner">
+          {/* Center: Tools (Scrollable on small screens to fit tablets & phones) */}
+          <div className="flex-1 flex items-center justify-start sm:justify-center gap-1 bg-gray-50 dark:bg-gray-800/80 p-1 rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-x-auto flex-nowrap no-scrollbar mx-1 sm:mx-4">
             {/* Signature */}
             <button
               onClick={() => setIsSigModalOpen(true)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-xl transition-all flex-shrink-0 ${
                 activeTool?.type === 'signature'
                   ? 'bg-blue-600 text-white shadow'
                   : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              ✍️ Signature
+              ✍️ Sign
             </button>
 
             {/* Stamp */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => { setShowStampsDropdown(!showStampsDropdown); setShowShapesDropdown(false); }}
-                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-xl transition-all ${
                   activeTool?.type === 'stamp'
                     ? 'bg-blue-600 text-white shadow'
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -801,11 +813,11 @@ export default function SignPdf() {
                   text: '',
                   fontSize: 16,
                   color: '#000000',
-                  width: 160,
-                  height: 50
+                  wPercent: 25,
+                  hPercent: 6
                 })
               }
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-xl transition-all flex-shrink-0 ${
                 activeTool?.type === 'text'
                   ? 'bg-blue-600 text-white shadow'
                   : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -816,7 +828,7 @@ export default function SignPdf() {
 
             {/* Image */}
             <label
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0 ${
                 activeTool?.type === 'image'
                   ? 'bg-blue-600 text-white shadow'
                   : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -827,16 +839,16 @@ export default function SignPdf() {
             </label>
 
             {/* Shapes */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => { setShowShapesDropdown(!showShapesDropdown); setShowStampsDropdown(false); }}
-                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-xl transition-all ${
                   activeTool?.type === 'shape'
                     ? 'bg-blue-600 text-white shadow'
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                ✏️ Shapes <span className="text-[9px]">▼</span>
+                ✏️ Shape <span className="text-[9px]">▼</span>
               </button>
               {showShapesDropdown && (
                 <div className="absolute top-10 left-0 z-50 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-2 space-y-1">
@@ -864,25 +876,25 @@ export default function SignPdf() {
           <button
             onClick={handleSavePdf}
             disabled={loading || elements.length === 0}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 sm:px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-bold rounded-xl transition-all shadow disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             {loading ? '⏳ Saving…' : 'Save PDF'}
           </button>
-        </header>
+        </div>
 
         {/* Floating properties toolbar (if element selected) */}
         {activeElement && (
-          <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex flex-wrap items-center gap-4 text-xs shrink-0 select-none">
-            <span className="font-bold text-blue-600">Selected: {activeElement.type.toUpperCase()}</span>
+          <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 px-4 py-2.5 flex items-center justify-between gap-4 text-xs shrink-0 select-none overflow-x-auto no-scrollbar flex-nowrap">
+            <span className="font-bold text-blue-600 shrink-0">Selected: {activeElement.type.toUpperCase()}</span>
             
             {/* Width scale */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span>Size:</span>
               <input
                 type="range"
-                min="20"
-                max="500"
-                value={activeElement.width}
+                min="5"
+                max="80"
+                value={activeElement.wPercent || 20}
                 onChange={(e) => resizeElement(activeElement.id, parseInt(e.target.value))}
                 className="w-28 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
@@ -891,7 +903,7 @@ export default function SignPdf() {
             {/* Text options */}
             {activeElement.type === 'text' && (
               <>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <span>Color:</span>
                   {['#000000', '#0000ff', '#ef4444', '#10b981'].map(color => (
                     <button
@@ -902,7 +914,7 @@ export default function SignPdf() {
                     />
                   ))}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <span>Font:</span>
                   <select
                     value={activeElement.fontSize}
@@ -919,7 +931,7 @@ export default function SignPdf() {
 
             {/* Shape color options */}
             {activeElement.type === 'shape' && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <span>Color:</span>
                 {['#ef4444', '#10b981', '#3b82f6', '#000000'].map(color => (
                   <button
@@ -934,15 +946,15 @@ export default function SignPdf() {
 
             <button
               onClick={() => deleteElement(activeElement.id)}
-              className="ml-auto text-red-500 hover:text-red-600 font-semibold"
+              className="ml-auto text-red-500 hover:text-red-600 font-semibold shrink-0"
             >
-              Delete Element
+              🗑️ <span className="hidden sm:inline">Delete</span>
             </button>
           </div>
         )}
 
         {/* Main Work Area */}
-        <div className="flex flex-1 h-[calc(100vh-64px)] overflow-hidden bg-gray-50 dark:bg-gray-950">
+        <div className="flex flex-1 overflow-hidden bg-gray-50 dark:bg-gray-950">
           {/* Thumbnails Sidebar */}
           <div className="w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 overflow-y-auto hidden md:block shrink-0">
             <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-2 uppercase">Page Thumbnails</p>
@@ -957,7 +969,7 @@ export default function SignPdf() {
           </div>
 
           {/* Central PDF Viewer Grid */}
-          <div className="flex-1 overflow-auto p-8 flex flex-col items-center gap-8 relative">
+          <div className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center gap-8 relative">
             {activeTool && (
               <div className="fixed top-20 z-40 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/40 text-yellow-800 dark:text-yellow-400 text-xs px-4 py-2 rounded-xl shadow flex items-center gap-3">
                 <span>⚡ <strong>Placement Mode:</strong> Click on a page to place your {activeTool.type}</span>
@@ -971,10 +983,12 @@ export default function SignPdf() {
                 <div
                   id={`page-container-${page.pageNum}`}
                   onClick={(e) => handlePageClick(e, page.pageNum)}
-                  className="relative bg-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                  className="relative bg-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-shadow cursor-pointer max-w-full"
                   style={{
-                    width: pageSizes[page.pageNum]?.w || 'auto',
-                    height: pageSizes[page.pageNum]?.h || 'auto'
+                    width: '100%',
+                    maxWidth: `${page.width * 1.35}px`,
+                    aspectRatio: `${page.width} / ${page.height}`,
+                    containerType: 'inline-size'
                   }}
                 >
                   <PdfPageRenderer
@@ -1003,16 +1017,17 @@ export default function SignPdf() {
                             style={{
                               left: `${el.x}%`,
                               top: `${el.y}%`,
-                              width: `${el.width}px`,
-                              height: `${el.height}px`,
-                              touchAction: 'none'
+                              width: `${el.wPercent}%`,
+                              height: `${el.hPercent}%`,
+                              touchAction: 'none',
+                              containerType: 'size'
                             }}
                           >
                             {isSelected && (
                               <button
                                 onMouseDown={(e) => { e.stopPropagation(); deleteElement(el.id); }}
                                 onTouchStart={(e) => { e.stopPropagation(); deleteElement(el.id); }}
-                                className="absolute -top-7 right-0 bg-red-500 text-white rounded p-1 shadow hover:bg-red-600 transition-colors z-20 animate-fade-in"
+                                className="absolute -top-7 right-0 bg-red-500 text-white rounded p-1 shadow hover:bg-red-600 transition-colors z-20"
                               >
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1026,7 +1041,7 @@ export default function SignPdf() {
                                 onChange={(e) => updateElementText(el.id, e.target.value)}
                                 onFocus={() => setActiveElementId(el.id)}
                                 className="w-full h-full bg-transparent border-0 outline-none resize-none overflow-hidden font-sans select-text leading-tight p-0"
-                                style={{ fontSize: `${el.fontSize}px`, color: el.color }}
+                                style={{ fontSize: `${el.fontSize / 8}cqw`, color: el.color }}
                                 placeholder="Type here..."
                               />
                             )}
@@ -1042,7 +1057,7 @@ export default function SignPdf() {
                             {el.type === 'shape' && (
                               <div
                                 className="w-full h-full flex items-center justify-center font-sans font-bold select-none pointer-events-none"
-                                style={{ color: el.color, fontSize: `${Math.min(el.width, el.height) * 0.8}px` }}
+                                style={{ color: el.color, fontSize: '80cqh' }}
                               >
                                 {el.shapeType === 'check' && '✓'}
                                 {el.shapeType === 'cross' && '✗'}
