@@ -276,6 +276,24 @@ function DrawingElement({ element, selected, onSelect }) {
   )
 }
 
+function ResizeHandle({ element, onResizeStart }) {
+  if (!Number.isFinite(element.w)) return null
+
+  const left = element.type === 'line' ? element.x + element.w : element.x + element.w
+  const top = element.type === 'line' ? element.y : element.y + (Number.isFinite(element.h) ? element.h : 0)
+
+  return (
+    <button
+      type="button"
+      onMouseDown={(event) => onResizeStart(event, element.id)}
+      onTouchStart={(event) => onResizeStart(event, element.id)}
+      style={{ left: `${left}%`, top: `${top}%` }}
+      className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize rounded-full border-2 border-white bg-blue-600 shadow-md ring-1 ring-blue-700"
+      aria-label="Resize selected object"
+    />
+  )
+}
+
 export default function EditPdf() {
   const [file, setFile] = useState(null)
   const [pdfDoc, setPdfDoc] = useState(null)
@@ -292,6 +310,7 @@ export default function EditPdf() {
   const [selectedId, setSelectedId] = useState(null)
   const [imageTool, setImageTool] = useState(null)
   const drawingRef = useRef(null)
+  const resizeRef = useRef(null)
   const pageRef = useRef(null)
   const imageInputRef = useRef(null)
   const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
@@ -302,6 +321,48 @@ export default function EditPdf() {
     setSelectedId(null)
     if (nextMode !== 'image') setImageTool(null)
   }
+
+  useEffect(() => {
+    const resizeMove = (event) => {
+      if (!resizeRef.current || !pageRef.current) return
+      event.preventDefault()
+      const point = getPointerPercent(event, pageRef.current)
+      const { id, startX, startY, startW, startH, type } = resizeRef.current
+      const deltaX = point.x - startX
+      const deltaY = point.y - startY
+
+      setElements((current) => current.map((element) => {
+        if (element.id !== id) return element
+        if (type === 'line') {
+          return { ...element, w: Math.max(4, Math.min(95 - element.x, startW + deltaX)) }
+        }
+        if (type === 'circle') {
+          const nextSize = Math.max(4, Math.min(95 - element.x, 95 - element.y, startW + Math.max(deltaX, deltaY)))
+          return { ...element, w: nextSize, h: nextSize }
+        }
+        return {
+          ...element,
+          w: Math.max(4, Math.min(95 - element.x, startW + deltaX)),
+          h: Math.max(3, Math.min(95 - element.y, startH + deltaY)),
+        }
+      }))
+    }
+
+    const resizeEnd = () => {
+      resizeRef.current = null
+    }
+
+    window.addEventListener('mousemove', resizeMove)
+    window.addEventListener('mouseup', resizeEnd)
+    window.addEventListener('touchmove', resizeMove, { passive: false })
+    window.addEventListener('touchend', resizeEnd)
+    return () => {
+      window.removeEventListener('mousemove', resizeMove)
+      window.removeEventListener('mouseup', resizeEnd)
+      window.removeEventListener('touchmove', resizeMove)
+      window.removeEventListener('touchend', resizeEnd)
+    }
+  }, [])
 
   useEffect(() => {
     if (!file) return
@@ -349,6 +410,24 @@ export default function EditPdf() {
       })
       setSelectedId(null)
       return
+    }
+    setSelectedId(id)
+  }
+
+  const startResize = (event, id) => {
+    if (!pageRef.current) return
+    event.stopPropagation()
+    event.preventDefault()
+    const element = elements.find((item) => item.id === id)
+    if (!element) return
+    const point = getPointerPercent(event, pageRef.current)
+    resizeRef.current = {
+      id,
+      type: element.type,
+      startX: point.x,
+      startY: point.y,
+      startW: Number.isFinite(element.w) ? element.w : 0,
+      startH: Number.isFinite(element.h) ? element.h : 0,
     }
     setSelectedId(id)
   }
@@ -610,7 +689,6 @@ export default function EditPdf() {
         <ToolbarButton title="Eraser" active={mode === 'eraser'} onActivate={() => activateTool('eraser')}><span className="text-2xl">⌫</span><span>Eraser</span></ToolbarButton>
         <ToolbarButton title="Highlight" active={mode === 'highlight'} onActivate={() => activateTool('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
         <ToolbarButton title="Text highlight" active={mode === 'textHighlight'} onActivate={() => activateTool('textHighlight')}><span className="text-2xl">▣</span><span>Text highlight</span></ToolbarButton>
-        <ToolbarButton title="Shape" active={mode === 'shape'} onActivate={() => activateTool('shape')}><span className="text-2xl">{SHAPES.find((shape) => shape.id === shapeType)?.icon}</span><span>Shape</span></ToolbarButton>
         <ToolbarButton title="Image" active={mode === 'image'} onActivate={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
         <ToolbarButton title="Stamp" active={mode === 'stamp'} onActivate={() => activateTool('stamp')}><span className="text-2xl">♟</span><span>Stamp</span></ToolbarButton>
         <ToolbarButton title="Link" active={mode === 'link'} onActivate={() => activateTool('link')}><span className="text-2xl">↔</span><span>Link</span></ToolbarButton>
@@ -619,19 +697,30 @@ export default function EditPdf() {
 
         <div className="ml-2 h-10 w-px bg-gray-200" />
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-500">Shape</span>
-          <select
-            value={shapeType}
-            onChange={(event) => {
-              setShapeType(event.target.value)
-              activateTool('shape')
-            }}
-            className="h-9 rounded-lg border border-gray-200 px-2 text-sm"
-          >
-            {SHAPES.map((shape) => (
-              <option key={shape.id} value={shape.id}>{shape.label}</option>
-            ))}
-          </select>
+          {SHAPES.map((shape) => (
+            <button
+              key={shape.id}
+              type="button"
+              onMouseDown={(event) => {
+                event.preventDefault()
+                setShapeType(shape.id)
+                activateTool('shape')
+              }}
+              onTouchStart={(event) => {
+                event.preventDefault()
+                setShapeType(shape.id)
+                activateTool('shape')
+              }}
+              className={`flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors ${
+                mode === 'shape' && shapeType === shape.id
+                  ? 'border-red-200 bg-red-50 text-red-600'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-xl leading-none">{shape.icon}</span>
+              <span>{shape.label}</span>
+            </button>
+          ))}
         </div>
         <div className="h-10 w-px bg-gray-200" />
         <div className="flex items-center gap-2">
@@ -731,18 +820,38 @@ export default function EditPdf() {
               <div className="absolute inset-0">
                 {visibleElements.map((element) => {
                   if (element.type === 'text') {
-                    return <TextElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
+                    return (
+                      <div key={element.id}>
+                        <TextElement element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
+                        {selectedId === element.id && <ResizeHandle element={element} onResizeStart={startResize} />}
+                      </div>
+                    )
                   }
                   if (element.type === 'stamp' || element.type === 'note' || element.type === 'link') {
-                    return <LabelElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
+                    return (
+                      <div key={element.id}>
+                        <LabelElement element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
+                        {selectedId === element.id && <ResizeHandle element={element} onResizeStart={startResize} />}
+                      </div>
+                    )
                   }
                   if (element.type === 'image') {
-                    return <ImageElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
+                    return (
+                      <div key={element.id}>
+                        <ImageElement element={element} selected={selectedId === element.id} onSelect={selectElement} />
+                        {selectedId === element.id && <ResizeHandle element={element} onResizeStart={startResize} />}
+                      </div>
+                    )
                   }
                   if (element.type === 'drawing') {
                     return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
                   }
-                  return <ShapeElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
+                  return (
+                    <div key={element.id}>
+                      <ShapeElement element={element} selected={selectedId === element.id} onSelect={selectElement} />
+                      {selectedId === element.id && <ResizeHandle element={element} onResizeStart={startResize} />}
+                    </div>
+                  )
                 })}
               </div>
             </div>
