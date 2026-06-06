@@ -362,7 +362,6 @@ export default function Header() {
               {menuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
             </button>
           </div>
-          </div>
         </div>
 
         {/* Mobile Menu */}
