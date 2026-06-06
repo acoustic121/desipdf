@@ -9,37 +9,16 @@ import { useConvert } from '../../utils/useConvert'
 
 const tool = TOOLS.find((t) => t.id === 'html-to-pdf')
 
-const SAMPLE_HTML = `<!doctype html>
+const HTML_PLACEHOLDER = `Paste your HTML here, for example:
+
+<!doctype html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>Invoice</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 0; color: #172033; }
-      .page { padding: 48px; }
-      .brand { color: #2563eb; font-size: 28px; font-weight: 700; }
-      .muted { color: #64748b; }
-      table { width: 100%; border-collapse: collapse; margin-top: 28px; }
-      th, td { border-bottom: 1px solid #e2e8f0; padding: 12px; text-align: left; }
-      th { background: #f8fafc; }
-      .total { font-size: 22px; font-weight: 700; text-align: right; margin-top: 24px; }
-    </style>
+    <title>My Document</title>
   </head>
   <body>
-    <main class="page">
-      <div class="brand">PDFChampion</div>
-      <p class="muted">HTML to PDF sample document</p>
-      <h1>Invoice #1048</h1>
-      <p>Convert styled HTML, invoices, reports, receipts, and simple web pages into a PDF.</p>
-      <table>
-        <thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead>
-        <tbody>
-          <tr><td>Document conversion</td><td>1</td><td>₹49</td></tr>
-          <tr><td>Priority processing</td><td>1</td><td>₹0</td></tr>
-        </tbody>
-      </table>
-      <div class="total">Total: ₹49</div>
-    </main>
+    <h1>Hello PDFChampion</h1>
+    <p>This content will be converted to PDF.</p>
   </body>
 </html>`
 
@@ -82,7 +61,7 @@ function getDefaultFilename(mode, url) {
 
 export default function HtmlToPdf() {
   const [mode, setMode] = useState('html')
-  const [html, setHtml] = useState(SAMPLE_HTML)
+  const [html, setHtml] = useState('')
   const [url, setUrl] = useState('')
   const [pageSize, setPageSize] = useState('a4')
   const [orientation, setOrientation] = useState('portrait')
@@ -257,7 +236,7 @@ export default function HtmlToPdf() {
                 <input type="file" accept=".html,.htm,.txt" onChange={handleFile} className="hidden" />
               </label>
             </div>
-            <textarea value={html} onChange={(e) => setHtml(e.target.value)} className="input-field min-h-64 font-mono text-xs leading-5" spellCheck={false} />
+            <textarea value={html} onChange={(e) => setHtml(e.target.value)} placeholder={HTML_PLACEHOLDER} className="input-field min-h-64 font-mono text-xs leading-5" spellCheck={false} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
