@@ -129,6 +129,7 @@ export default function Header() {
             <Link href="/tools/merge-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Merge PDF</Link>
             <Link href="/tools/sign-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Sign PDF</Link>
             <Link href="/tools/compress-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Compress PDF</Link>
+            <Link href="/tools/scan-to-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase whitespace-nowrap">Scan to PDF</Link>
             <Link
               href="/tools/bank-statement-converter"
               className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase whitespace-nowrap"
