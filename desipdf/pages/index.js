@@ -48,10 +48,17 @@ function ToolCard({ tool }) {
 export default function Home() {
   const { t } = useI18n()
   const [activeCategory, setActiveCategory] = useState('all')
+  const [toolSearch, setToolSearch] = useState('')
 
-  const filtered = activeCategory === 'all'
+  const categoryFiltered = activeCategory === 'all'
     ? TOOLS
     : TOOLS.filter((t) => t.category === activeCategory)
+  const searchQuery = toolSearch.trim().toLowerCase()
+  const filtered = searchQuery
+    ? categoryFiltered.filter((tool) => (
+      `${tool.name} ${tool.description} ${tool.category}`.toLowerCase().includes(searchQuery)
+    ))
+    : categoryFiltered
 
   const liveCounts = CATEGORIES.map((c) => ({
     ...c,
@@ -128,6 +135,26 @@ export default function Home() {
         {/* Section header */}
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">All PDF Tools</h2>
+          <div className="relative mx-auto mt-6 max-w-2xl">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-gray-400">⌕</span>
+            <input
+              type="search"
+              value={toolSearch}
+              onChange={(event) => setToolSearch(event.target.value)}
+              placeholder="Search tools, e.g. merge, compress, bank statement..."
+              className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-12 pr-12 text-base font-medium text-gray-900 shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-blue-950"
+            />
+            {toolSearch && (
+              <button
+                type="button"
+                onClick={() => setToolSearch('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full px-2 text-2xl font-bold text-gray-400 hover:text-blue-600"
+                aria-label="Clear tool search"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             Pick a category or browse everything
           </p>
@@ -160,6 +187,11 @@ export default function Home() {
             <ToolCard key={tool.id} tool={tool} />
           ))}
         </div>
+        {!filtered.length && (
+          <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            No tools found for “{toolSearch}”.
+          </div>
+        )}
       </section>
 
       {/* ── WHY PDFCHAMPION ──────────────────────────────────────────────────── */}
