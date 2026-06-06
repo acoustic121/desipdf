@@ -248,16 +248,6 @@ export const TOOLS = [
     category: 'edit',
     status: 'live',
   },
-  {
-    id: 'pdf-forms',
-    name: 'PDF Forms',
-    description: 'Detect form fields and create interactive fillable PDFs.',
-    icon: '📋',
-    color: 'from-blue-400 to-indigo-600',
-    accepts: '.pdf',
-    category: 'edit',
-    status: 'coming-soon',
-  },
 
   // ── SECURE ────────────────────────────────────────────────────────────────
   {

@@ -39,7 +39,6 @@ const editTools = [
   { name: 'Crop PDF', href: '/tools/crop-pdf', icon: '✂️' },
   { name: 'Redact PDF', href: '/tools/redact-pdf', icon: '🖤' },
   { name: 'Edit PDF', href: '/tools/edit-pdf', icon: '🖊️' },
-  { name: 'PDF Forms', href: '/tools/pdf-forms', icon: '📋' },
 ]
 const secureTools = [
   { name: 'Protect PDF', href: '/tools/protect-pdf', icon: '🔒' },

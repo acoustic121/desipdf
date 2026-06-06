@@ -114,11 +114,6 @@ export const TOOL_SEO = {
     description: 'Edit PDF files online for free. Add text, shapes, images, and annotations with no signup, no watermarks, and privacy-first processing.',
     keywords: 'edit pdf free, add text to pdf, annotate pdf online, pdf editor',
   },
-  'pdf-forms': {
-    title: 'PDF Forms Online Free - Fill and Create Forms',
-    description: 'Work with PDF forms online for free. Fill, detect, and create form fields with no signup, no watermarks, and privacy-first processing.',
-    keywords: 'pdf forms free, fill pdf forms online, create fillable pdf',
-  },
   'protect-pdf': {
     title: 'Protect PDF Online Free - Add PDF Password',
     description: 'Protect PDF files online for free. Add password security and encryption with unlimited use, no signup, no watermarks, and privacy-first processing.',
