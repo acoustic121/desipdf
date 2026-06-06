@@ -24,6 +24,35 @@ export function useConvert(isPremiumOverride = false) {
     return false
   }
 
+  const beginConversion = () => {
+    const premium = checkPremium()
+
+    if (!premium && hasReachedLimit()) {
+      setShowLimitModal(true)
+      return false
+    }
+
+    return true
+  }
+
+  const finishConversion = (toastId) => {
+    const premium = checkPremium()
+
+    if (!premium) {
+      incrementUsage()
+      const remaining = getRemainingUses()
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('pdfchampion-usage-updated'))
+      }
+      const msg = remaining === 0
+        ? 'Done! ⚠️ That was your last free conversion today.'
+        : `Done! ${remaining} free use${remaining !== 1 ? 's' : ''} remaining today.`
+      toast.success(msg, { id: toastId, duration: 5000 })
+    } else {
+      toast.success('Done!', { id: toastId })
+    }
+  }
+
   const convert = async (apiPath, formData, downloadFilename) => {
     const premium = checkPremium()
 
@@ -146,7 +175,6 @@ export function useConvert(isPremiumOverride = false) {
     }
   }
 
-  return { convert, runClientSide, loading, showLimitModal, setShowLimitModal }
+  return { convert, runClientSide, loading, setLoading, showLimitModal, setShowLimitModal, beginConversion, finishConversion }
 }
-
 

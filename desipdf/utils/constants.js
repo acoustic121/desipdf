@@ -169,12 +169,12 @@ export const TOOLS = [
   {
     id: 'html-to-pdf',
     name: 'HTML to PDF',
-    description: 'Convert any webpage or HTML URL into a PDF document.',
+    description: 'Convert HTML code, uploaded HTML files, or webpages into PDF documents.',
     icon: '🌐',
     color: 'from-violet-400 to-purple-600',
     accepts: null,
     category: 'convert',
-    status: 'coming-soon',
+    status: 'live',
   },
   {
     id: 'pdf-to-pptx',
@@ -368,4 +368,3 @@ export const LANGUAGES = [...INDIAN_LANGUAGES, ...INTERNATIONAL_LANGUAGES]
 
 export const MAX_FILE_SIZE_MB    = 4000
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
-

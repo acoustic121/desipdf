@@ -26,6 +26,9 @@
     },
     "pages/api/convert/pdf-to-excel.js": {
       "maxDuration": 300
+    },
+    "pages/api/convert/html-to-pdf-fetch.js": {
+      "maxDuration": 30
     }
   }
 }

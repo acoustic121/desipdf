@@ -96,5 +96,22 @@ export const SEO_GUIDES = {
       { q: 'Can I unlock a PDF if I do not know the open password?', a: 'No, you must provide the open password once to decrypt the file. PDFChampion does not support hacking user-password protected files, but it strips all printing, editing, and copying restrictions instantly without a password.' },
       { q: 'Is my PDF password secure?', a: 'Yes. Since decryption runs locally in your browser, your password is never sent to any server or database.' }
     ]
+  },
+  'html-to-pdf': {
+    steps: [
+      'Paste your HTML code, upload an .html file, or load a public webpage URL.',
+      'Review the live preview and choose page size, orientation, margin, and render quality.',
+      'Click "Convert HTML to PDF" to render and download a PDF document.'
+    ],
+    benefits: [
+      { title: 'Code, Files, or URLs', desc: 'Convert pasted HTML, uploaded HTML files, and public webpages from one tool.' },
+      { title: 'Custom Page Setup', desc: 'Choose A4, Letter, or Legal pages with portrait or landscape orientation.' },
+      { title: 'Browser PDF Rendering', desc: 'The final PDF is generated in your browser after the HTML preview loads.' }
+    ],
+    faqs: [
+      { q: 'Can I convert a webpage URL to PDF?', a: 'Yes. Enter a public http or https URL and load it into the preview. Some websites block automated fetching or external images, so paste the HTML directly if a site cannot be loaded.' },
+      { q: 'Does CSS styling work?', a: 'Yes. Inline styles and many linked stylesheets are rendered in the preview before PDF generation. Cross-origin assets may be skipped if the source website blocks them.' },
+      { q: 'Can I upload an HTML file?', a: 'Yes. Upload .html, .htm, or .txt files, review the preview, and download the PDF.' }
+    ]
   }
 }
