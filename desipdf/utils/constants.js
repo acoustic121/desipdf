@@ -246,7 +246,7 @@ export const TOOLS = [
     color: 'from-violet-500 to-purple-700',
     accepts: '.pdf',
     category: 'edit',
-    status: 'coming-soon',
+    status: 'live',
   },
   {
     id: 'pdf-forms',

@@ -1,12 +1,565 @@
 import ToolSeoHead from '../../components/ToolSeoHead'
-import ComingSoon from '../../components/ComingSoon'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import toast from 'react-hot-toast'
+import ToolLayout from '../../components/ToolLayout'
+import FileUpload from '../../components/FileUpload'
+import LimitModal from '../../components/LimitModal'
 import { TOOLS } from '../../utils/constants'
+import { useConvert } from '../../utils/useConvert'
+
 const tool = TOOLS.find((t) => t.id === 'edit-pdf')
-export default function Page() {
+
+const COLORS = ['#111827', '#dc2626', '#2563eb', '#16a34a', '#f59e0b', '#7c3aed']
+
+function hexToRgb(hex) {
+  const clean = hex.replace('#', '')
+  return {
+    r: parseInt(clean.slice(0, 2), 16) / 255,
+    g: parseInt(clean.slice(2, 4), 16) / 255,
+    b: parseInt(clean.slice(4, 6), 16) / 255,
+  }
+}
+
+function dataUrlToBytes(dataUrl) {
+  const base64 = dataUrl.split(',')[1]
+  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
+}
+
+function getPointerPercent(event, container) {
+  const rect = container.getBoundingClientRect()
+  const source = event.touches?.[0] || event
+  return {
+    x: Math.max(0, Math.min(100, ((source.clientX - rect.left) / rect.width) * 100)),
+    y: Math.max(0, Math.min(100, ((source.clientY - rect.top) / rect.height) * 100)),
+  }
+}
+
+function PdfPageCanvas({ pdfDoc, pageNumber, zoom, onSize }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!pdfDoc) return
+    let renderTask = null
+    let cancelled = false
+
+    const render = async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: zoom })
+        const canvas = canvasRef.current
+        if (!canvas || cancelled) return
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport })
+        await renderTask.promise
+        onSize({ width: viewport.width, height: viewport.height })
+      } catch (err) {
+        if (err?.name !== 'RenderingCancelledException') console.error(err)
+      }
+    }
+
+    render()
+    return () => {
+      cancelled = true
+      if (renderTask) renderTask.cancel()
+    }
+  }, [pdfDoc, pageNumber, zoom, onSize])
+
+  return <canvas ref={canvasRef} className="block w-full h-auto bg-white shadow-lg" />
+}
+
+function Thumbnail({ pdfDoc, pageNumber, active, onClick }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!pdfDoc) return
+    let renderTask = null
+
+    const render = async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: 0.2 })
+        const canvas = canvasRef.current
+        if (!canvas) return
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport })
+        await renderTask.promise
+      } catch (err) {
+        if (err?.name !== 'RenderingCancelledException') console.error(err)
+      }
+    }
+
+    render()
+    return () => { if (renderTask) renderTask.cancel() }
+  }, [pdfDoc, pageNumber])
+
   return (
-    <>
+    <button
+      onClick={onClick}
+      className={`block w-full rounded-lg p-2 transition-all ${active ? 'bg-blue-50 ring-2 ring-blue-500' : 'bg-white hover:bg-gray-50 ring-1 ring-gray-200'}`}
+    >
+      <canvas ref={canvasRef} className="block w-full h-auto bg-white" />
+      <span className="mt-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-100 px-2 text-xs font-bold text-gray-600">
+        {pageNumber}
+      </span>
+    </button>
+  )
+}
+
+function ToolbarButton({ active, onClick, children, title }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`flex min-w-[74px] flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+        active ? 'bg-red-50 text-red-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function TextElement({ element, selected, onChange, onSelect }) {
+  return (
+    <textarea
+      value={element.text}
+      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      onTouchStart={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      onChange={(event) => onChange(element.id, { text: event.target.value })}
+      style={{
+        left: `${element.x}%`,
+        top: `${element.y}%`,
+        width: `${element.w}%`,
+        minHeight: `${element.h}%`,
+        color: element.color,
+        fontSize: `${element.fontSize}px`,
+        borderColor: selected ? '#2563eb' : 'transparent',
+      }}
+      className="absolute resize-none rounded border-2 bg-white/80 p-1 font-sans leading-tight outline-none"
+    />
+  )
+}
+
+function ShapeElement({ element, selected, onSelect }) {
+  const common = {
+    left: `${element.x}%`,
+    top: `${element.y}%`,
+    width: `${element.w}%`,
+    height: `${element.h}%`,
+    borderColor: element.color,
+    backgroundColor: element.type === 'highlight' ? `${element.color}55` : 'transparent',
+  }
+
+  if (element.type === 'line') {
+    return (
+      <button
+        type="button"
+        onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+        style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, borderTopColor: element.color }}
+        className={`absolute border-t-4 ${selected ? 'ring-2 ring-blue-500' : ''}`}
+        aria-label="Select line"
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      style={common}
+      className={`absolute rounded border-4 ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      aria-label="Select shape"
+    />
+  )
+}
+
+function ImageElement({ element, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, height: `${element.h}%` }}
+      className={`absolute overflow-hidden border-2 ${selected ? 'border-blue-500' : 'border-transparent'}`}
+      aria-label="Select image"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={element.data} alt="" className="h-full w-full object-contain" />
+    </button>
+  )
+}
+
+function DrawingElement({ element, selected, onSelect }) {
+  const points = element.points.map((point) => `${point.x},${point.y}`).join(' ')
+  return (
+    <svg
+      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className={`absolute inset-0 h-full w-full ${selected ? 'ring-2 ring-blue-500' : ''}`}
+    >
+      <polyline points={points} fill="none" stroke={element.color} strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export default function EditPdf() {
+  const [file, setFile] = useState(null)
+  const [pdfDoc, setPdfDoc] = useState(null)
+  const [pageCount, setPageCount] = useState(0)
+  const [pageNumber, setPageNumber] = useState(1)
+  const [pageSize, setPageSize] = useState({ width: 1, height: 1 })
+  const [zoom, setZoom] = useState(1.25)
+  const [mode, setMode] = useState('text')
+  const [color, setColor] = useState('#111827')
+  const [fontSize, setFontSize] = useState(18)
+  const [elements, setElements] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const [imageTool, setImageTool] = useState(null)
+  const drawingRef = useRef(null)
+  const pageRef = useRef(null)
+  const imageInputRef = useRef(null)
+  const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
+
+  useEffect(() => {
+    if (!file) return
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const { loadPdfJs } = await import('../../utils/clientLoader')
+        const pdfjs = await loadPdfJs()
+        const loaded = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise
+        if (cancelled) return
+        setPdfDoc(loaded)
+        setPageCount(loaded.numPages)
+        setPageNumber(1)
+        setElements([])
+        setSelectedId(null)
+      } catch (err) {
+        toast.error(err.message || 'Unable to open PDF')
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [file])
+
+  const updateElement = (id, patch) => {
+    setElements((current) => current.map((element) => (
+      element.id === id ? { ...element, ...patch } : element
+    )))
+  }
+
+  const addElement = (element) => {
+    setElements((current) => [...current, element])
+    setSelectedId(element.id)
+  }
+
+  const handlePagePointerDown = (event) => {
+    if (!pageRef.current) return
+
+    const point = getPointerPercent(event, pageRef.current)
+    const base = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      pageNumber,
+      x: point.x,
+      y: point.y,
+      color,
+    }
+
+    if (mode === 'text') {
+      addElement({ ...base, type: 'text', text: 'Type here', w: 24, h: 7, fontSize })
+    } else if (mode === 'highlight') {
+      addElement({ ...base, type: 'highlight', w: 24, h: 4 })
+    } else if (mode === 'rectangle') {
+      addElement({ ...base, type: 'rectangle', w: 22, h: 12 })
+    } else if (mode === 'line') {
+      addElement({ ...base, type: 'line', w: 24, h: 1 })
+    } else if (mode === 'image' && imageTool) {
+      addElement({ ...base, type: 'image', data: imageTool.data, w: imageTool.w, h: imageTool.h })
+    } else if (mode === 'draw') {
+      drawingRef.current = { ...base, type: 'drawing', points: [point] }
+      setElements((current) => [...current, drawingRef.current])
+    }
+  }
+
+  const handlePagePointerMove = (event) => {
+    if (!drawingRef.current || !pageRef.current) return
+    event.preventDefault()
+    const point = getPointerPercent(event, pageRef.current)
+    drawingRef.current = {
+      ...drawingRef.current,
+      points: [...drawingRef.current.points, point],
+    }
+    setElements((current) => current.map((element) => (
+      element.id === drawingRef.current.id ? drawingRef.current : element
+    )))
+  }
+
+  const stopDrawing = () => {
+    if (drawingRef.current) setSelectedId(drawingRef.current.id)
+    drawingRef.current = null
+  }
+
+  const visibleElements = elements.filter((element) => element.pageNumber === pageNumber)
+  const selected = elements.find((element) => element.id === selectedId)
+
+  const handleImageSelect = (event) => {
+    const selectedFile = event.target.files?.[0]
+    if (!selectedFile) return
+
+    const reader = new FileReader()
+    reader.onload = (readerEvent) => {
+      const img = new Image()
+      img.onload = () => {
+        const width = 24
+        setImageTool({
+          data: readerEvent.target.result,
+          w: width,
+          h: Math.max(8, width * (img.height / img.width)),
+        })
+        setMode('image')
+        toast.success('Image ready. Click the PDF page to place it.')
+      }
+      img.src = readerEvent.target.result
+    }
+    reader.readAsDataURL(selectedFile)
+  }
+
+  const undo = () => {
+    setElements((current) => current.slice(0, -1))
+    setSelectedId(null)
+  }
+
+  const deleteSelected = () => {
+    if (!selectedId) return
+    setElements((current) => current.filter((element) => element.id !== selectedId))
+    setSelectedId(null)
+  }
+
+  const savePdf = async () => {
+    if (!file) return
+
+    await runClientSide(async () => {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+      const pdf = await PDFDocument.load(await file.arrayBuffer())
+      const pages = pdf.getPages()
+      const font = await pdf.embedFont(StandardFonts.Helvetica)
+
+      for (const element of elements) {
+        const page = pages[element.pageNumber - 1]
+        if (!page) continue
+
+        const { width, height } = page.getSize()
+        const x = (element.x / 100) * width
+        const y = height - (element.y / 100) * height
+        const w = (element.w / 100) * width
+        const h = (element.h / 100) * height
+        const c = hexToRgb(element.color)
+        const pdfColor = rgb(c.r, c.g, c.b)
+
+        if (element.type === 'text' && element.text.trim()) {
+          const lines = element.text.split('\n')
+          lines.forEach((line, index) => {
+            page.drawText(line, {
+              x,
+              y: y - element.fontSize - index * element.fontSize * 1.25,
+              size: element.fontSize,
+              font,
+              color: pdfColor,
+            })
+          })
+        } else if (element.type === 'highlight') {
+          page.drawRectangle({ x, y: y - h, width: w, height: h, color: pdfColor, opacity: 0.28 })
+        } else if (element.type === 'rectangle') {
+          page.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: pdfColor, borderWidth: 2 })
+        } else if (element.type === 'line') {
+          page.drawLine({ start: { x, y }, end: { x: x + w, y }, thickness: 2.5, color: pdfColor })
+        } else if (element.type === 'image') {
+          const bytes = dataUrlToBytes(element.data)
+          const image = element.data.startsWith('data:image/jpeg')
+            ? await pdf.embedJpg(bytes)
+            : await pdf.embedPng(bytes)
+          page.drawImage(image, { x, y: y - h, width: w, height: h })
+        } else if (element.type === 'drawing' && element.points.length > 1) {
+          for (let index = 1; index < element.points.length; index += 1) {
+            const previous = element.points[index - 1]
+            const next = element.points[index]
+            page.drawLine({
+              start: { x: (previous.x / 100) * width, y: height - (previous.y / 100) * height },
+              end: { x: (next.x / 100) * width, y: height - (next.y / 100) * height },
+              thickness: 2,
+              color: pdfColor,
+            })
+          }
+        }
+      }
+
+      return pdf.save()
+    }, file.name.replace(/\.pdf$/i, '-edited.pdf'))
+  }
+
+  const onPageSize = useCallback((size) => setPageSize(size), [])
+
+  if (!file) {
+    return (
+      <>
+        <ToolSeoHead tool={tool} />
+        {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
+        <ToolLayout tool={tool}>
+          <FileUpload onFilesSelect={setFile} accept=".pdf" label="Drop your PDF file here" sublabel="Add text, drawings, highlights, images, and shapes" />
+        </ToolLayout>
+      </>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-gray-100 text-gray-900">
       <ToolSeoHead tool={tool} />
-      <ComingSoon tool={tool} />
-    </>
+      {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
+
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setFile(null)} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100">Back</button>
+          <div>
+            <p className="text-base font-bold text-gray-900">PDFChampion</p>
+            <p className="max-w-[240px] truncate text-xs text-gray-500">{file.name}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={undo} disabled={!elements.length} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40">Undo</button>
+          <button onClick={deleteSelected} disabled={!selectedId} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40">Delete</button>
+          <button onClick={savePdf} disabled={loading} className="rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-600 disabled:opacity-60">
+            {loading ? 'Saving...' : 'Done'}
+          </button>
+        </div>
+      </header>
+
+      <div className="flex h-[74px] shrink-0 items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-4">
+        <ToolbarButton title="Add text" active={mode === 'text'} onClick={() => setMode('text')}><span className="text-2xl">T</span><span>Add text</span></ToolbarButton>
+        <ToolbarButton title="Draw" active={mode === 'draw'} onClick={() => setMode('draw')}><span className="text-2xl">✎</span><span>Draw</span></ToolbarButton>
+        <ToolbarButton title="Highlight" active={mode === 'highlight'} onClick={() => setMode('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
+        <ToolbarButton title="Line" active={mode === 'line'} onClick={() => setMode('line')}><span className="text-2xl">╱</span><span>Line</span></ToolbarButton>
+        <ToolbarButton title="Rectangle" active={mode === 'rectangle'} onClick={() => setMode('rectangle')}><span className="text-2xl">▢</span><span>Shape</span></ToolbarButton>
+        <ToolbarButton title="Image" active={mode === 'image'} onClick={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
+        <input ref={imageInputRef} type="file" accept="image/png,image/jpeg" onChange={handleImageSelect} className="hidden" />
+
+        <div className="ml-2 h-10 w-px bg-gray-200" />
+        <div className="flex items-center gap-2">
+          {COLORS.map((swatch) => (
+            <button
+              key={swatch}
+              onClick={() => {
+                setColor(swatch)
+                if (selected) updateElement(selected.id, { color: swatch })
+              }}
+              style={{ backgroundColor: swatch }}
+              className={`h-6 w-6 rounded-full border-2 ${color === swatch ? 'border-gray-900' : 'border-white'} shadow`}
+              aria-label={`Use color ${swatch}`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pl-2">
+          <span className="text-sm font-semibold text-gray-500">Size</span>
+          <input
+            type="number"
+            min="8"
+            max="72"
+            value={fontSize}
+            onChange={(event) => {
+              const value = Number(event.target.value)
+              setFontSize(value)
+              if (selected?.type === 'text') updateElement(selected.id, { fontSize: value })
+            }}
+            className="h-9 w-16 rounded-lg border border-gray-200 px-2 text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-2 pl-2">
+          <span className="text-sm font-semibold text-gray-500">Zoom</span>
+          <select value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-9 rounded-lg border border-gray-200 px-2 text-sm">
+            <option value={0.8}>80%</option>
+            <option value={1}>100%</option>
+            <option value={1.25}>125%</option>
+            <option value={1.5}>150%</option>
+          </select>
+        </div>
+        {selected && (
+          <>
+            <div className="ml-2 h-10 w-px bg-gray-200" />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-500">W</span>
+              <input
+                type="number"
+                min="3"
+                max="95"
+                value={Math.round(selected.w)}
+                onChange={(event) => updateElement(selected.id, { w: Number(event.target.value) })}
+                className="h-9 w-16 rounded-lg border border-gray-200 px-2 text-sm"
+              />
+              {selected.type !== 'line' && (
+                <>
+                  <span className="text-sm font-semibold text-gray-500">H</span>
+                  <input
+                    type="number"
+                    min="2"
+                    max="95"
+                    value={Math.round(selected.h)}
+                    onChange={(event) => updateElement(selected.id, { h: Number(event.target.value) })}
+                    className="h-9 w-16 rounded-lg border border-gray-200 px-2 text-sm"
+                  />
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <main className="grid min-h-0 flex-1 grid-cols-[170px_minmax(0,1fr)]">
+        <aside className="min-h-0 overflow-y-auto border-r border-gray-200 bg-white p-3">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-400">Thumbnails</p>
+          <div className="space-y-3">
+            {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
+              <Thumbnail key={page} pdfDoc={pdfDoc} pageNumber={page} active={page === pageNumber} onClick={() => setPageNumber(page)} />
+            ))}
+          </div>
+        </aside>
+
+        <section className="min-h-0 overflow-auto bg-gray-200 p-6">
+          <div className="mx-auto w-fit">
+            <div
+              ref={pageRef}
+              onMouseDown={handlePagePointerDown}
+              onMouseMove={handlePagePointerMove}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={handlePagePointerDown}
+              onTouchMove={handlePagePointerMove}
+              onTouchEnd={stopDrawing}
+              className="relative bg-white"
+              style={{ width: pageSize.width, minHeight: pageSize.height }}
+            >
+              {pdfDoc && <PdfPageCanvas pdfDoc={pdfDoc} pageNumber={pageNumber} zoom={zoom} onSize={onPageSize} />}
+              <div className="absolute inset-0">
+                {visibleElements.map((element) => {
+                  if (element.type === 'text') {
+                    return <TextElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={setSelectedId} />
+                  }
+                  if (element.type === 'image') {
+                    return <ImageElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                  }
+                  if (element.type === 'drawing') {
+                    return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                  }
+                  return <ShapeElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }
