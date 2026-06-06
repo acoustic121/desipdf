@@ -8,19 +8,6 @@ import { downloadBlob } from '../../utils/helpers'
 
 const tool = TOOLS.find((t) => t.id === 'scan-to-pdf')
 
-function timestampFilename() {
-  const now = new Date()
-  const pad = (value) => String(value).padStart(2, '0')
-  return [
-    now.getFullYear(),
-    pad(now.getMonth() + 1),
-    pad(now.getDate()),
-    pad(now.getHours()),
-    pad(now.getMinutes()),
-    pad(now.getSeconds()),
-  ].join('-')
-}
-
 export default function ScanToPdf() {
   const [captures, setCaptures] = useState([])
   const [streaming, setStreaming] = useState(false)
@@ -87,7 +74,7 @@ export default function ScanToPdf() {
 
       const pdfBytes = await pdfDoc.save()
       const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
-      downloadBlob(pdfBlob, `scanned-document-${timestampFilename()}.pdf`)
+      downloadBlob(pdfBlob, 'scanned-document.pdf')
       toast.success('PDF created!', { id: toastId })
       stopCamera()
       setCaptures([])

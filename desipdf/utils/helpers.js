@@ -10,11 +10,35 @@ export function getFileExtension(filename) {
   return filename.split('.').pop().toLowerCase()
 }
 
+export function timestampFilename(filename) {
+  const now = new Date()
+  const pad = (value) => String(value).padStart(2, '0')
+  const timestamp = [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds()),
+    String(now.getMilliseconds()).padStart(3, '0'),
+  ].join('-')
+
+  const safeFilename = filename || 'download'
+  const lastSlash = Math.max(safeFilename.lastIndexOf('/'), safeFilename.lastIndexOf('\\'))
+  const path = lastSlash >= 0 ? safeFilename.slice(0, lastSlash + 1) : ''
+  const basename = lastSlash >= 0 ? safeFilename.slice(lastSlash + 1) : safeFilename
+  const dotIndex = basename.lastIndexOf('.')
+
+  if (dotIndex <= 0) return `${safeFilename}-${timestamp}`
+
+  return `${path}${basename.slice(0, dotIndex)}-${timestamp}${basename.slice(dotIndex)}`
+}
+
 export function downloadBlob(blob, filename) {
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = filename
+  a.download = timestampFilename(filename)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

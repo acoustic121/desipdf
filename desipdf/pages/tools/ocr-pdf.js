@@ -5,6 +5,7 @@ import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
 import { TOOLS } from '../../utils/constants'
 import Link from 'next/link'
+import { downloadBlob } from '../../utils/helpers'
 
 const tool = TOOLS.find((t) => t.id === 'ocr-pdf')
 
@@ -56,12 +57,7 @@ export default function OcrPdf() {
 
   const downloadTxt = () => {
     const blob = new Blob([result], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'ocr-result.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, 'ocr-result.txt')
   }
 
   return (

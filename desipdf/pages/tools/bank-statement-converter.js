@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
 import { TOOLS } from '../../utils/constants'
+import { timestampFilename } from '../../utils/helpers'
 
 const tool = TOOLS.find((t) => t.id === 'bank-statement-converter')
 
@@ -37,7 +38,7 @@ function downloadBlob(content, filename, type) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = filename
+  link.download = timestampFilename(filename)
   link.click()
   URL.revokeObjectURL(url)
 }

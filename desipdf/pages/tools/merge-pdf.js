@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { DocumentIcon, XMarkIcon, ArrowsUpDownIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import { downloadBlob } from '../../utils/helpers'
 
 const tool = TOOLS.find((t) => t.id === 'merge-pdf')
 
@@ -131,12 +132,7 @@ export default function MergePdf() {
 
       // Trigger download directly in the browser — no server needed!
       const blob = new Blob([mergedBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'merged.pdf'
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadBlob(blob, 'merged.pdf')
 
       toast.success(`✅ Merged ${files.length} PDFs successfully!`, { id: toastId, duration: 4000 })
       setProgress('')
