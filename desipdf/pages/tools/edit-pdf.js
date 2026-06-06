@@ -15,6 +15,20 @@ const SHAPES = [
   { id: 'circle', label: 'Circle', icon: '○' },
   { id: 'arrow', label: 'Arrow', icon: '➜' },
 ]
+const PLACEMENT_LABELS = {
+  text: 'text box',
+  sign: 'signature',
+  line: 'line',
+  draw: 'freehand drawing',
+  eraser: 'eraser',
+  highlight: 'highlight',
+  textHighlight: 'text highlight',
+  shape: 'shape',
+  image: 'image',
+  stamp: 'stamp',
+  link: 'link',
+  note: 'note',
+}
 
 function hexToRgb(hex) {
   const clean = hex.replace('#', '')
@@ -300,7 +314,7 @@ export default function EditPdf() {
   const [pageNumber, setPageNumber] = useState(1)
   const [pageSize, setPageSize] = useState({ width: 1, height: 1 })
   const [zoom, setZoom] = useState(1.25)
-  const [mode, setMode] = useState('text')
+  const [mode, setMode] = useState('select')
   const [shapeType, setShapeType] = useState('rectangle')
   const [color, setColor] = useState('#111827')
   const [fontSize, setFontSize] = useState(18)
@@ -319,6 +333,12 @@ export default function EditPdf() {
     setMode(nextMode)
     setSelectedId(null)
     if (nextMode !== 'image') setImageTool(null)
+  }
+
+  const cancelPlacement = () => {
+    drawingRef.current = null
+    setMode('select')
+    setImageTool(null)
   }
 
   useEffect(() => {
@@ -443,10 +463,10 @@ export default function EditPdf() {
       color,
     }
 
-    if (mode === 'text') {
-      addElement({ ...base, type: 'text', text: 'Type here', w: 24, h: 7, fontSize })
-    } else if (mode === 'editText') {
+    if (mode === 'select' || mode === 'editText') {
       setSelectedId(null)
+    } else if (mode === 'text') {
+      addElement({ ...base, type: 'text', text: 'Type here', w: 24, h: 7, fontSize })
     } else if (mode === 'sign') {
       addElement({ ...base, type: 'text', text: 'Signature', w: 24, h: 8, fontSize: 34, fontFamily: 'Georgia, serif', color })
     } else if (mode === 'highlight') {
@@ -497,6 +517,7 @@ export default function EditPdf() {
 
   const visibleElements = elements.filter((element) => element.pageNumber === pageNumber)
   const selected = elements.find((element) => element.id === selectedId)
+  const placementLabel = PLACEMENT_LABELS[mode]
 
   const handleImageSelect = (event) => {
     const selectedFile = event.target.files?.[0]
@@ -791,6 +812,23 @@ export default function EditPdf() {
         )}
       </div>
 
+      {placementLabel && (
+        <div className="shrink-0 border-b border-blue-200 bg-blue-50 px-4 py-2">
+          <div className="flex items-center justify-center gap-3 text-xs font-semibold text-blue-900">
+            <span>
+              ⚡ <strong>Placement Mode:</strong> {mode === 'eraser' ? 'Click an item on the PDF to remove it' : `Click anywhere on the PDF to place your ${placementLabel}`}
+            </span>
+            <button
+              type="button"
+              onClick={cancelPlacement}
+              className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-0.5 font-bold text-red-600 hover:bg-red-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="grid min-h-0 flex-1 grid-cols-[170px_minmax(0,1fr)]">
         <aside className="min-h-0 overflow-y-auto border-r border-gray-200 bg-white p-3">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-400">Thumbnails</p>
@@ -812,7 +850,9 @@ export default function EditPdf() {
               onTouchStart={handlePagePointerDown}
               onTouchMove={handlePagePointerMove}
               onTouchEnd={stopDrawing}
-              className={`relative bg-white ${mode === 'eraser' ? 'cursor-not-allowed' : mode === 'editText' ? 'cursor-text' : 'cursor-crosshair'}`}
+              className={`relative bg-white ${
+                mode === 'select' ? 'cursor-default' : mode === 'eraser' ? 'cursor-not-allowed' : mode === 'editText' ? 'cursor-text' : 'cursor-crosshair'
+              }`}
               style={{ width: pageSize.width, minHeight: pageSize.height }}
             >
               {pdfDoc && <PdfPageCanvas pdfDoc={pdfDoc} pageNumber={pageNumber} zoom={zoom} onSize={onPageSize} />}
