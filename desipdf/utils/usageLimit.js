@@ -1,8 +1,9 @@
 // ─── CLIENT-SIDE USAGE TRACKING (localStorage) ────────────────────────────────
-// Tracks daily conversions per browser. Resets at midnight automatically.
+// Historical usage tracking. Limits are currently disabled so all visitors get
+// unlimited conversions, while older components can keep importing these helpers.
 
-export const FREE_LIMIT_PER_DAY = 15
-export const FREE_FILES_PER_MERGE = 10  // max files in a single merge/batch operation
+export const FREE_LIMIT_PER_DAY = Infinity
+export const FREE_FILES_PER_MERGE = Infinity
 
 const STORAGE_KEY = 'pdfchampion_usage'
 
@@ -37,12 +38,11 @@ export function incrementUsage() {
 }
 
 export function getRemainingUses() {
-  const { count } = getUsageData()
-  return Math.max(0, FREE_LIMIT_PER_DAY - count)
+  return Infinity
 }
 
 export function hasReachedLimit() {
-  return getUsageData().count >= FREE_LIMIT_PER_DAY
+  return false
 }
 
 export function resetUsage() {
@@ -57,7 +57,8 @@ export function resetUsage() {
 
 const ipStore = new Map() // { ip: { count, date } }
 
-export function checkIpLimit(ip, limit = 15, timezone = 'UTC') {
+export function checkIpLimit(ip, limit = Infinity, timezone = 'UTC') {
+  if (!Number.isFinite(limit)) return { allowed: true, remaining: Infinity }
   let today
   try {
     const d = new Date()

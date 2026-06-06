@@ -366,5 +366,5 @@ export const INTERNATIONAL_LANGUAGES = [
 // All languages combined
 export const LANGUAGES = [...INDIAN_LANGUAGES, ...INTERNATIONAL_LANGUAGES]
 
-export const MAX_FILE_SIZE_MB    = 4000
-export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+export const MAX_FILE_SIZE_MB    = Infinity
+export const MAX_FILE_SIZE_BYTES = Number.MAX_SAFE_INTEGER

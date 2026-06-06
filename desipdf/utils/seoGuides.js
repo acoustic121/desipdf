@@ -14,7 +14,7 @@ export const SEO_GUIDES = {
     faqs: [
       { q: 'Is it safe to merge confidential documents on PDFChampion?', a: 'Yes. Unlike other websites that upload your files to their cloud servers, PDFChampion combines PDFs directly in your web browser. Your sensitive files never leave your device.' },
       { q: 'Does merging PDFs reduce the quality of pages?', a: 'No, our merging engine links pages without altering text, layouts, fonts, or images, ensuring 100% original quality is preserved.' },
-      { q: 'How many PDF files can I combine?', a: 'Free users can combine up to 10 files in a single merge, up to 15 times a day. Premium users get unlimited files per merge.' }
+      { q: 'How many PDF files can I combine?', a: 'You can combine as many PDFs as your browser and device memory can comfortably handle. There is no daily conversion cap.' }
     ]
   },
   'compress-pdf': {

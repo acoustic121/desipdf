@@ -1,6 +1,5 @@
 import Header from './Header'
 import Footer from './Footer'
-import UsageBanner from './UsageBanner'
 import { Toaster } from 'react-hot-toast'
 
 export default function Layout({ children }) {
@@ -21,8 +20,6 @@ export default function Layout({ children }) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
-      {/* Floating usage counter — appears after first conversion */}
-      <UsageBanner />
     </div>
   )
 }

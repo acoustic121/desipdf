@@ -1,8 +1,6 @@
 import SeoHead from '../../components/SeoHead'
 import ToolLayout from '../../components/ToolLayout'
-import LimitModal from '../../components/LimitModal'
 import { TOOLS } from '../../utils/constants'
-import { hasReachedLimit, incrementUsage } from '../../utils/usageLimit'
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { DocumentIcon, XMarkIcon, ArrowsUpDownIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'
@@ -65,7 +63,6 @@ export default function MergePdf() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState('')
-  const [showLimitModal, setShowLimitModal] = useState(false)
 
   // ── Dropzone ────────────────────────────────────────────────────────────────
   const onDrop = useCallback((accepted, rejected) => {
@@ -110,12 +107,6 @@ export default function MergePdf() {
       return
     }
 
-    // Check daily usage limit
-    if (hasReachedLimit()) {
-      setShowLimitModal(true)
-      return
-    }
-
     setLoading(true)
     const toastId = toast.loading('Merging PDFs in your browser…')
 
@@ -147,9 +138,6 @@ export default function MergePdf() {
       a.click()
       URL.revokeObjectURL(url)
 
-      // Record usage
-      incrementUsage()
-
       toast.success(`✅ Merged ${files.length} PDFs successfully!`, { id: toastId, duration: 4000 })
       setProgress('')
     } catch (err) {
@@ -171,8 +159,6 @@ export default function MergePdf() {
         keywords="merge pdf, combine pdf, join pdf files, merge pdf online free, combine multiple pdf"
         canonical="/tools/merge-pdf"
       />
-      {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
-
       <ToolLayout tool={tool}>
         {/* Drop zone */}
         <div

@@ -3,13 +3,12 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { TOOLS, CATEGORIES, INDIAN_LANGUAGES, INTERNATIONAL_LANGUAGES } from '../utils/constants'
 import { useI18n } from '../utils/i18n'
-import { useAuth } from '../utils/useAuth'
 
 
 const FAQ_ITEMS = [
-  { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹49/month or ₹499/year.' },
-  { q: 'Are my files safe?', a: 'Yes. Most tools process files directly in your browser. When a tool needs server processing, files are used only for that request and cleaned up automatically.' },
-  { q: 'What is the maximum file size?', a: 'Free users can process files up to 50 MB on server-assisted tools. Premium supports larger files up to 4 GB, while browser-only tools depend on your device memory.' },
+  { q: 'Is PDFChampion completely free?', a: 'Yes. PDFChampion is free forever with unlimited daily conversions, no signup requirement, and no watermarks.' },
+  { q: 'Are my files safe?', a: 'Yes. Most tools process files directly in your browser. When a tool needs serverless processing, files are used only for that request and cleaned up automatically.' },
+  { q: 'What is the maximum file size?', a: 'There is no artificial file-size limit. Browser-only tools are limited mainly by your device memory, and serverless tools are limited only by platform processing capacity.' },
   { q: 'Does it work on mobile?', a: 'Yes! PDFChampion is fully responsive and works on all Android and iPhone browsers.' },
   { q: 'Do I need to install anything?', a: 'No installation needed. Everything runs directly in your browser.' },
   { q: 'Which languages are supported?', a: 'PDFChampion supports 29 languages — including English, Hindi, Spanish, French, German, Japanese, and more.' },
@@ -48,7 +47,6 @@ function ToolCard({ tool }) {
 
 export default function Home() {
   const { t } = useI18n()
-  const { isPremium } = useAuth()
   const [activeCategory, setActiveCategory] = useState('all')
 
   const filtered = activeCategory === 'all'
@@ -64,7 +62,7 @@ export default function Home() {
     <>
       <SeoHead
         title="Free PDF Tools – Convert, Merge, Compress PDFs Online"
-        description="PDFChampion is a free online PDF tool. Merge, split, compress, convert, rotate, watermark, and protect PDF files. 15 free uses per day. Works in 29 languages."
+        description="PDFChampion is a free online PDF tool. Merge, split, compress, convert, rotate, watermark, and protect PDF files with unlimited daily use, no signup, and no watermarks."
         keywords="pdf tools, merge pdf, compress pdf, pdf to word, word to pdf, jpg to pdf, pdf converter online free"
         canonical="/"
       />
@@ -81,15 +79,9 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           {/* Badges */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
-            {!isPremium ? (
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium">
-                ⚡ 15 Free/Day &nbsp;·&nbsp; <Link href="/pricing" className="underline underline-offset-2 hover:text-cyan-200 transition-colors">Upgrade for Unlimited</Link>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium">
-                ⭐ Unlimited Premium Member Plan
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium">
+              ⚡ Free forever · No file limit · No signup required · No watermarks
+            </div>
             <div className="inline-flex items-center gap-1.5 bg-orange-500/20 backdrop-blur border border-orange-500/30 rounded-full px-4 py-1.5 text-sm font-semibold text-orange-200">
               🇮🇳 Made in India
             </div>
@@ -179,9 +171,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: '🆓', title: 'Free Daily Tools', desc: 'Use PDFChampion free every day with clear limits. Upgrade only if you need unlimited access.' },
-              { icon: '🔒', title: 'Private & Secure', desc: 'Most tools run locally in your browser. Server-assisted tools process files only for the requested conversion.' },
-              { icon: '⚡', title: 'Fast Processing', desc: 'Browser-first tools avoid upload delays, and server-assisted tools are optimized for quick downloads.' },
+              { icon: '🆓', title: 'Free Forever', desc: 'Unlimited daily conversions, no signup requirement, no watermarks, and no hidden caps.' },
+              { icon: '🔒', title: 'Private & Secure', desc: 'Most tools run locally in your browser. Serverless tools process files only for the requested conversion.' },
+              { icon: '⚡', title: 'Fast Processing', desc: 'Browser-first tools avoid upload delays, and serverless tools are optimized for quick downloads.' },
               { icon: '📱', title: 'Works on Any Device', desc: 'Phone, tablet, laptop — PDFChampion works perfectly on every screen and browser.' },
               { icon: '🌍', title: 'Supports 29 Languages', desc: 'Use PDFChampion in English, Spanish, French, German, Japanese, Hindi, Tamil, Telugu, and more.' },
               { icon: '🚫', title: 'Zero Watermarks', desc: 'Your output files are clean. No stamps, no logos, no "made with" text — ever.' },
@@ -218,7 +210,7 @@ export default function Home() {
       <section className="bg-gradient-to-r from-cyan-500 to-blue-600 py-16 text-white text-center">
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-3xl font-bold mb-4">Start Converting for Free</h2>
-          <p className="text-blue-100 mb-8">15 free conversions per day. Unlimited with Premium. No credit card required to start.</p>
+          <p className="text-blue-100 mb-8">Unlimited conversions. No signup required. No watermarks. No credit card needed.</p>
           <a href="#tools" className="inline-flex items-center gap-2 bg-white text-blue-600 font-bold px-8 py-3.5 rounded-xl hover:bg-blue-50 shadow-lg transition-all">
             Browse All Tools ↑
           </a>

@@ -26,9 +26,9 @@ const REGIONAL_PRICES = {
 }
 
 const FREE_FEATURES = [
-  { label: 'All PDF Tools', free: '15/day', premium: 'Unlimited' },
-  { label: 'File size limit', free: '50 MB', premium: '4 GB' },
-  { label: 'Files per merge/batch', free: '10 files', premium: 'Unlimited' },
+  { label: 'All PDF Tools', free: 'Unlimited', premium: 'Future premium perks' },
+  { label: 'File size limit', free: 'No artificial limit', premium: 'No artificial limit' },
+  { label: 'Files per merge/batch', free: 'Unlimited', premium: 'Unlimited' },
   { label: 'Merge PDF', free: '✓', premium: '✓' },
   { label: 'Split PDF', free: '✓', premium: '✓' },
   { label: 'Compress PDF', free: '✓', premium: '✓' },
@@ -44,11 +44,11 @@ const FREE_FEATURES = [
   { label: 'Sign PDF', free: '✓', premium: '✓' },
   { label: 'Protect / Unlock PDF', free: '✓', premium: '✓' },
   { label: 'OCR PDF', free: '✓', premium: '✓' },
-  { label: 'AI Summarizer', free: '–', premium: '✓ (Coming soon)' },
-  { label: 'Translate PDF', free: '–', premium: '✓ (Coming soon)' },
-  { label: 'Priority processing', free: '–', premium: '✓' },
-  { label: 'Ad-free experience', free: '–', premium: '✓' },
-  { label: 'Email support', free: '–', premium: '✓' },
+  { label: 'AI Summarizer', free: 'Coming soon', premium: 'Future perk' },
+  { label: 'Translate PDF', free: 'Coming soon', premium: 'Future perk' },
+  { label: 'Priority processing', free: 'Standard', premium: 'Future perk' },
+  { label: 'Ad-free experience', free: 'Included today', premium: 'Future perk' },
+  { label: 'Email support', free: 'Community/basic', premium: 'Future perk' },
 ]
 
 const MONTHLY_PRICE = 49
@@ -215,14 +215,14 @@ export default function Pricing() {
     <>
       <Head>
         <title>Pricing – PDFChampion</title>
-        <meta name="description" content="PDFChampion free and premium plans. Get unlimited PDF conversions for ₹49/month." />
+        <meta name="description" content="PDFChampion is currently free forever with unlimited PDF conversions, no signup required, and no watermarks. Premium infrastructure is available for future features." />
       </Head>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">Simple, honest pricing</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-lg">Start free. Upgrade when you need more.</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">Free forever today</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-lg">Unlimited PDF tools, no signup required, no watermarks. Premium is reserved for future perks.</p>
         </div>
 
         {/* Billing toggle */}
@@ -248,7 +248,7 @@ export default function Pricing() {
               <span className="text-lg">📄</span>
               <span className="font-bold text-gray-900 dark:text-gray-100 text-lg">Basic</span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Best for occasional use</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Best for everyone using PDFChampion today</p>
             <div className="mb-6">
               <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">Free</span>
               <p className="text-sm text-gray-400 mt-1">Always free · No credit card</p>
@@ -258,9 +258,9 @@ export default function Pricing() {
             </Link>
             <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
               {[
-                '15 conversions per day',
-                'Files up to 50 MB',
-                'Up to 10 files per merge',
+              'Unlimited conversions every day',
+              'No artificial file-size limit',
+              'Unlimited files per merge',
                 'All PDF tools included',
                 'All 29 languages supported',
               ].map((f) => (
@@ -282,7 +282,7 @@ export default function Pricing() {
               <span className="text-lg">⚡</span>
               <span className="font-bold text-white text-lg">Premium</span>
             </div>
-            <p className="text-sm text-blue-200 mb-6">Best for regular use</p>
+            <p className="text-sm text-blue-200 mb-6">Available for future premium features</p>
             <div className="mb-2">
               <div className="flex items-end gap-2">
                 <span className="text-4xl font-bold text-white">{currencySymbol}{displayPerMonth}</span>
@@ -304,14 +304,14 @@ export default function Pricing() {
             </button>
             <div className="space-y-3 text-sm text-blue-100">
               {[
-                'Unlimited conversions per day',
-                'Files up to 4 GB',
+                'Future premium functionality ready',
+                'Razorpay subscription support',
                 'Unlimited files per merge',
                 'All PDF tools included',
-                'AI Summarizer & Translate (coming soon)',
-                'Priority processing',
-                'Ad-free experience',
-                'Email support',
+                'AI Summarizer & Translate potential',
+                'Priority processing potential',
+                'Ad-free experience potential',
+                'Email support potential',
               ].map((f) => (
                 <div key={f} className="flex items-center gap-2">
                   <span className="text-cyan-300">✓</span> {f}

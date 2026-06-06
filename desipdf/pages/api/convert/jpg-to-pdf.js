@@ -17,15 +17,11 @@ const PAGE_SIZES = {
 export default withRateLimit(async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const form = formidable({ maxFileSize: 4 * 1024 * 1024 * 1024, multiples: true, keepExtensions: true })
+  const form = formidable({ maxFileSize: Number.MAX_SAFE_INTEGER, multiples: true, keepExtensions: true })
   const [fields, files] = await form.parse(req)
   const fileList = Object.values(files).flat().filter(Boolean)
   const filesToClean = fileList.map((f) => f.filepath)
 
-  if (fileList.length > 10) {
-    filesToClean.forEach((p) => { try { fs.unlinkSync(p) } catch {} })
-    return res.status(400).json({ error: 'Free plan allows up to 10 images per conversion. Upgrade for unlimited.' })
-  }
   if (fileList.length === 0) {
     return res.status(400).json({ error: 'No files uploaded' })
   }

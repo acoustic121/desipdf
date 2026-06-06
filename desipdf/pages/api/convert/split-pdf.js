@@ -15,18 +15,12 @@ export const config = {
 export default withRateLimit(async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const form = formidable({ maxFileSize: 4 * 1024 * 1024 * 1024 })
+  const form = formidable({ maxFileSize: Number.MAX_SAFE_INTEGER })
   const [fields, files] = await form.parse(req)
   const file = files.file?.[0]
 
   if (!file) return res.status(400).json({ error: 'No file uploaded' })
   // File size limit: 50MB free, 500MB premium
-  const FREE_LIMIT = 50 * 1024 * 1024
-  if (file && file.size > FREE_LIMIT && req.headers['x-premium'] !== 'true') {
-    filesToClean?.forEach((p) => { try { require('fs').unlinkSync(p) } catch {} })
-    return res.status(413).json({ error: 'File exceeds 50 MB. Upgrade to Premium for files up to 4 GB.', upgradeUrl: '/pricing' })
-  }
-
 
   const filesToClean = [file.filepath]
   let tmpDir = null
