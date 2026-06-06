@@ -136,9 +136,37 @@ function TextElement({ element, selected, onChange, onSelect }) {
         minHeight: `${element.h}%`,
         color: element.color,
         fontSize: `${element.fontSize}px`,
+        fontFamily: element.fontFamily || 'Arial, sans-serif',
         borderColor: selected ? '#2563eb' : 'transparent',
       }}
       className="absolute resize-none rounded border-2 bg-white/80 p-1 font-sans leading-tight outline-none"
+    />
+  )
+}
+
+function LabelElement({ element, selected, onChange, onSelect }) {
+  const isStamp = element.type === 'stamp'
+  const isNote = element.type === 'note'
+  const isLink = element.type === 'link'
+
+  return (
+    <textarea
+      value={element.text}
+      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      onTouchStart={(event) => { event.stopPropagation(); onSelect(element.id) }}
+      onChange={(event) => onChange(element.id, { text: event.target.value })}
+      style={{
+        left: `${element.x}%`,
+        top: `${element.y}%`,
+        width: `${element.w}%`,
+        height: `${element.h}%`,
+        color: isNote ? '#854d0e' : element.color,
+        borderColor: selected ? '#2563eb' : element.color,
+        backgroundColor: isNote ? '#fef3c7' : isStamp ? `${element.color}18` : 'transparent',
+        textDecoration: isLink ? 'underline' : 'none',
+        fontSize: `${element.fontSize || 16}px`,
+      }}
+      className={`absolute resize-none rounded border-2 p-2 text-center font-bold leading-tight outline-none ${isStamp ? 'uppercase' : ''}`}
     />
   )
 }
@@ -150,7 +178,7 @@ function ShapeElement({ element, selected, onSelect }) {
     width: `${element.w}%`,
     height: `${element.h}%`,
     borderColor: element.color,
-    backgroundColor: element.type === 'highlight' ? `${element.color}55` : 'transparent',
+    backgroundColor: element.type === 'highlight' || element.type === 'textHighlight' ? `${element.color}55` : 'transparent',
   }
 
   if (element.type === 'line') {
@@ -216,6 +244,7 @@ export default function EditPdf() {
   const [color, setColor] = useState('#111827')
   const [fontSize, setFontSize] = useState(18)
   const [elements, setElements] = useState([])
+  const [redoStack, setRedoStack] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [imageTool, setImageTool] = useState(null)
   const drawingRef = useRef(null)
@@ -237,6 +266,7 @@ export default function EditPdf() {
         setPageCount(loaded.numPages)
         setPageNumber(1)
         setElements([])
+        setRedoStack([])
         setSelectedId(null)
       } catch (err) {
         toast.error(err.message || 'Unable to open PDF')
@@ -255,7 +285,21 @@ export default function EditPdf() {
 
   const addElement = (element) => {
     setElements((current) => [...current, element])
+    setRedoStack([])
     setSelectedId(element.id)
+  }
+
+  const selectElement = (id) => {
+    if (mode === 'eraser') {
+      setElements((current) => {
+        const removed = current.find((element) => element.id === id)
+        if (removed) setRedoStack((stack) => [...stack, removed])
+        return current.filter((element) => element.id !== id)
+      })
+      setSelectedId(null)
+      return
+    }
+    setSelectedId(id)
   }
 
   const handlePagePointerDown = (event) => {
@@ -272,12 +316,24 @@ export default function EditPdf() {
 
     if (mode === 'text') {
       addElement({ ...base, type: 'text', text: 'Type here', w: 24, h: 7, fontSize })
+    } else if (mode === 'editText') {
+      setSelectedId(null)
+    } else if (mode === 'sign') {
+      addElement({ ...base, type: 'text', text: 'Signature', w: 24, h: 8, fontSize: 34, fontFamily: 'Georgia, serif', color })
     } else if (mode === 'highlight') {
       addElement({ ...base, type: 'highlight', w: 24, h: 4 })
+    } else if (mode === 'textHighlight') {
+      addElement({ ...base, type: 'textHighlight', w: 24, h: 4 })
     } else if (mode === 'rectangle') {
       addElement({ ...base, type: 'rectangle', w: 22, h: 12 })
     } else if (mode === 'line') {
       addElement({ ...base, type: 'line', w: 24, h: 1 })
+    } else if (mode === 'stamp') {
+      addElement({ ...base, type: 'stamp', text: 'APPROVED', w: 20, h: 7, fontSize: 18 })
+    } else if (mode === 'link') {
+      addElement({ ...base, type: 'link', text: 'https://example.com', w: 28, h: 5, fontSize: 14, color: '#2563eb' })
+    } else if (mode === 'note') {
+      addElement({ ...base, type: 'note', text: 'Note', w: 22, h: 10, fontSize: 14, color: '#f59e0b' })
     } else if (mode === 'image' && imageTool) {
       addElement({ ...base, type: 'image', data: imageTool.data, w: imageTool.w, h: imageTool.h })
     } else if (mode === 'draw') {
@@ -330,13 +386,29 @@ export default function EditPdf() {
   }
 
   const undo = () => {
-    setElements((current) => current.slice(0, -1))
+    setElements((current) => {
+      const removed = current.at(-1)
+      if (removed) setRedoStack((stack) => [...stack, removed])
+      return current.slice(0, -1)
+    })
     setSelectedId(null)
+  }
+
+  const redo = () => {
+    setRedoStack((current) => {
+      const restored = current.at(-1)
+      if (restored) setElements((items) => [...items, restored])
+      return current.slice(0, -1)
+    })
   }
 
   const deleteSelected = () => {
     if (!selectedId) return
-    setElements((current) => current.filter((element) => element.id !== selectedId))
+    setElements((current) => {
+      const removed = current.find((element) => element.id === selectedId)
+      if (removed) setRedoStack((stack) => [...stack, removed])
+      return current.filter((element) => element.id !== selectedId)
+    })
     setSelectedId(null)
   }
 
@@ -348,6 +420,8 @@ export default function EditPdf() {
       const pdf = await PDFDocument.load(await file.arrayBuffer())
       const pages = pdf.getPages()
       const font = await pdf.embedFont(StandardFonts.Helvetica)
+      const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold)
+      const signatureFont = await pdf.embedFont(StandardFonts.TimesRomanItalic)
 
       for (const element of elements) {
         const page = pages[element.pageNumber - 1]
@@ -361,18 +435,41 @@ export default function EditPdf() {
         const c = hexToRgb(element.color)
         const pdfColor = rgb(c.r, c.g, c.b)
 
-        if (element.type === 'text' && element.text.trim()) {
+        if ((element.type === 'text' || element.type === 'link') && element.text.trim()) {
           const lines = element.text.split('\n')
+          const activeFont = element.fontFamily?.includes('Georgia') ? signatureFont : font
           lines.forEach((line, index) => {
             page.drawText(line, {
               x,
               y: y - element.fontSize - index * element.fontSize * 1.25,
               size: element.fontSize,
-              font,
+              font: activeFont,
               color: pdfColor,
             })
+            if (element.type === 'link') {
+              const underlineY = y - element.fontSize - index * element.fontSize * 1.25 - 2
+              page.drawLine({ start: { x, y: underlineY }, end: { x: x + Math.min(w, line.length * element.fontSize * 0.45), y: underlineY }, thickness: 1, color: pdfColor })
+            }
           })
-        } else if (element.type === 'highlight') {
+        } else if (element.type === 'stamp' && element.text.trim()) {
+          page.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: pdfColor, borderWidth: 2, color: pdfColor, opacity: 0.08 })
+          page.drawText(element.text.toUpperCase(), {
+            x: x + w * 0.08,
+            y: y - h * 0.62,
+            size: element.fontSize || 18,
+            font: boldFont,
+            color: pdfColor,
+          })
+        } else if (element.type === 'note' && element.text.trim()) {
+          page.drawRectangle({ x, y: y - h, width: w, height: h, color: rgb(1, 0.95, 0.55), borderColor: rgb(0.92, 0.67, 0.12), borderWidth: 1 })
+          page.drawText(element.text, {
+            x: x + 6,
+            y: y - Math.min(h - 8, element.fontSize + 6),
+            size: element.fontSize || 14,
+            font,
+            color: rgb(0.5, 0.29, 0.04),
+          })
+        } else if (element.type === 'highlight' || element.type === 'textHighlight') {
           page.drawRectangle({ x, y: y - h, width: w, height: h, color: pdfColor, opacity: 0.28 })
         } else if (element.type === 'rectangle') {
           page.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: pdfColor, borderWidth: 2 })
@@ -431,6 +528,7 @@ export default function EditPdf() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={undo} disabled={!elements.length} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40">Undo</button>
+          <button onClick={redo} disabled={!redoStack.length} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40">Redo</button>
           <button onClick={deleteSelected} disabled={!selectedId} className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-40">Delete</button>
           <button onClick={savePdf} disabled={loading} className="rounded-xl bg-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-600 disabled:opacity-60">
             {loading ? 'Saving...' : 'Done'}
@@ -440,11 +538,18 @@ export default function EditPdf() {
 
       <div className="flex h-[74px] shrink-0 items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-4">
         <ToolbarButton title="Add text" active={mode === 'text'} onClick={() => setMode('text')}><span className="text-2xl">T</span><span>Add text</span></ToolbarButton>
-        <ToolbarButton title="Draw" active={mode === 'draw'} onClick={() => setMode('draw')}><span className="text-2xl">✎</span><span>Draw</span></ToolbarButton>
-        <ToolbarButton title="Highlight" active={mode === 'highlight'} onClick={() => setMode('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
+        <ToolbarButton title="Edit text" active={mode === 'editText'} onClick={() => setMode('editText')}><span className="text-2xl">✐</span><span>Edit text</span></ToolbarButton>
+        <ToolbarButton title="Sign" active={mode === 'sign'} onClick={() => setMode('sign')}><span className="text-2xl">✍</span><span>Sign</span></ToolbarButton>
         <ToolbarButton title="Line" active={mode === 'line'} onClick={() => setMode('line')}><span className="text-2xl">╱</span><span>Line</span></ToolbarButton>
+        <ToolbarButton title="Draw" active={mode === 'draw'} onClick={() => setMode('draw')}><span className="text-2xl">✎</span><span>Draw</span></ToolbarButton>
+        <ToolbarButton title="Eraser" active={mode === 'eraser'} onClick={() => setMode('eraser')}><span className="text-2xl">⌫</span><span>Eraser</span></ToolbarButton>
+        <ToolbarButton title="Highlight" active={mode === 'highlight'} onClick={() => setMode('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
+        <ToolbarButton title="Text highlight" active={mode === 'textHighlight'} onClick={() => setMode('textHighlight')}><span className="text-2xl">▣</span><span>Text highlight</span></ToolbarButton>
         <ToolbarButton title="Rectangle" active={mode === 'rectangle'} onClick={() => setMode('rectangle')}><span className="text-2xl">▢</span><span>Shape</span></ToolbarButton>
         <ToolbarButton title="Image" active={mode === 'image'} onClick={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
+        <ToolbarButton title="Stamp" active={mode === 'stamp'} onClick={() => setMode('stamp')}><span className="text-2xl">♟</span><span>Stamp</span></ToolbarButton>
+        <ToolbarButton title="Link" active={mode === 'link'} onClick={() => setMode('link')}><span className="text-2xl">↔</span><span>Link</span></ToolbarButton>
+        <ToolbarButton title="Note" active={mode === 'note'} onClick={() => setMode('note')}><span className="text-2xl">⌖</span><span>Note</span></ToolbarButton>
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg" onChange={handleImageSelect} className="hidden" />
 
         <div className="ml-2 h-10 w-px bg-gray-200" />
@@ -486,7 +591,7 @@ export default function EditPdf() {
             <option value={1.5}>150%</option>
           </select>
         </div>
-        {selected && (
+        {selected && Number.isFinite(selected.w) && (
           <>
             <div className="ml-2 h-10 w-px bg-gray-200" />
             <div className="flex items-center gap-2">
@@ -499,7 +604,7 @@ export default function EditPdf() {
                 onChange={(event) => updateElement(selected.id, { w: Number(event.target.value) })}
                 className="h-9 w-16 rounded-lg border border-gray-200 px-2 text-sm"
               />
-              {selected.type !== 'line' && (
+              {selected.type !== 'line' && Number.isFinite(selected.h) && (
                 <>
                   <span className="text-sm font-semibold text-gray-500">H</span>
                   <input
@@ -545,15 +650,18 @@ export default function EditPdf() {
               <div className="absolute inset-0">
                 {visibleElements.map((element) => {
                   if (element.type === 'text') {
-                    return <TextElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={setSelectedId} />
+                    return <TextElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
+                  }
+                  if (element.type === 'stamp' || element.type === 'note' || element.type === 'link') {
+                    return <LabelElement key={element.id} element={element} selected={selectedId === element.id} onChange={updateElement} onSelect={selectElement} />
                   }
                   if (element.type === 'image') {
-                    return <ImageElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                    return <ImageElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
                   }
                   if (element.type === 'drawing') {
-                    return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                    return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
                   }
-                  return <ShapeElement key={element.id} element={element} selected={selectedId === element.id} onSelect={setSelectedId} />
+                  return <ShapeElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
                 })}
               </div>
             </div>
