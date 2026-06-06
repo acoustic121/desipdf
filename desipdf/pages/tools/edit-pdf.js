@@ -10,6 +10,11 @@ import { useConvert } from '../../utils/useConvert'
 const tool = TOOLS.find((t) => t.id === 'edit-pdf')
 
 const COLORS = ['#111827', '#dc2626', '#2563eb', '#16a34a', '#f59e0b', '#7c3aed']
+const SHAPES = [
+  { id: 'rectangle', label: 'Rectangle', icon: '▢' },
+  { id: 'circle', label: 'Circle', icon: '○' },
+  { id: 'arrow', label: 'Arrow', icon: '➜' },
+]
 
 function hexToRgb(hex) {
   const clean = hex.replace('#', '')
@@ -203,6 +208,34 @@ function ShapeElement({ element, selected, onSelect }) {
     )
   }
 
+  if (element.type === 'circle') {
+    return (
+      <button
+        type="button"
+        onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+        style={common}
+        className={`absolute rounded-full border-4 ${selected ? 'ring-2 ring-blue-500' : ''}`}
+        aria-label="Select circle"
+      />
+    )
+  }
+
+  if (element.type === 'arrow') {
+    return (
+      <svg
+        onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, height: `${element.h}%` }}
+        className={`absolute ${selected ? 'ring-2 ring-blue-500' : ''}`}
+        aria-label="Select arrow"
+      >
+        <line x1="8" y1="50" x2="86" y2="50" stroke={element.color} strokeWidth="6" strokeLinecap="round" />
+        <polyline points="70,30 88,50 70,70" fill="none" stroke={element.color} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
   return (
     <button
       type="button"
@@ -251,6 +284,7 @@ export default function EditPdf() {
   const [pageSize, setPageSize] = useState({ width: 1, height: 1 })
   const [zoom, setZoom] = useState(1.25)
   const [mode, setMode] = useState('text')
+  const [shapeType, setShapeType] = useState('rectangle')
   const [color, setColor] = useState('#111827')
   const [fontSize, setFontSize] = useState(18)
   const [elements, setElements] = useState([])
@@ -341,8 +375,14 @@ export default function EditPdf() {
       addElement({ ...base, type: 'highlight', w: 24, h: 4 })
     } else if (mode === 'textHighlight') {
       addElement({ ...base, type: 'textHighlight', w: 24, h: 4 })
-    } else if (mode === 'rectangle') {
-      addElement({ ...base, type: 'rectangle', w: 22, h: 12 })
+    } else if (mode === 'shape') {
+      if (shapeType === 'circle') {
+        addElement({ ...base, type: 'circle', w: 14, h: 14 })
+      } else if (shapeType === 'arrow') {
+        addElement({ ...base, type: 'arrow', w: 24, h: 8 })
+      } else {
+        addElement({ ...base, type: 'rectangle', w: 22, h: 12 })
+      }
     } else if (mode === 'line') {
       addElement({ ...base, type: 'line', w: 24, h: 1 })
     } else if (mode === 'stamp') {
@@ -490,6 +530,14 @@ export default function EditPdf() {
           page.drawRectangle({ x, y: y - h, width: w, height: h, color: pdfColor, opacity: 0.28 })
         } else if (element.type === 'rectangle') {
           page.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: pdfColor, borderWidth: 2 })
+        } else if (element.type === 'circle') {
+          page.drawEllipse({ x: x + w / 2, y: y - h / 2, xScale: w / 2, yScale: h / 2, borderColor: pdfColor, borderWidth: 2 })
+        } else if (element.type === 'arrow') {
+          const start = { x, y: y - h / 2 }
+          const end = { x: x + w, y: y - h / 2 }
+          page.drawLine({ start, end, thickness: 2.5, color: pdfColor })
+          page.drawLine({ start: end, end: { x: x + w * 0.82, y: y - h * 0.18 }, thickness: 2.5, color: pdfColor })
+          page.drawLine({ start: end, end: { x: x + w * 0.82, y: y - h * 0.82 }, thickness: 2.5, color: pdfColor })
         } else if (element.type === 'line') {
           page.drawLine({ start: { x, y }, end: { x: x + w, y }, thickness: 2.5, color: pdfColor })
         } else if (element.type === 'image') {
@@ -562,7 +610,7 @@ export default function EditPdf() {
         <ToolbarButton title="Eraser" active={mode === 'eraser'} onActivate={() => activateTool('eraser')}><span className="text-2xl">⌫</span><span>Eraser</span></ToolbarButton>
         <ToolbarButton title="Highlight" active={mode === 'highlight'} onActivate={() => activateTool('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
         <ToolbarButton title="Text highlight" active={mode === 'textHighlight'} onActivate={() => activateTool('textHighlight')}><span className="text-2xl">▣</span><span>Text highlight</span></ToolbarButton>
-        <ToolbarButton title="Rectangle" active={mode === 'rectangle'} onActivate={() => activateTool('rectangle')}><span className="text-2xl">▢</span><span>Shape</span></ToolbarButton>
+        <ToolbarButton title="Shape" active={mode === 'shape'} onActivate={() => activateTool('shape')}><span className="text-2xl">{SHAPES.find((shape) => shape.id === shapeType)?.icon}</span><span>Shape</span></ToolbarButton>
         <ToolbarButton title="Image" active={mode === 'image'} onActivate={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
         <ToolbarButton title="Stamp" active={mode === 'stamp'} onActivate={() => activateTool('stamp')}><span className="text-2xl">♟</span><span>Stamp</span></ToolbarButton>
         <ToolbarButton title="Link" active={mode === 'link'} onActivate={() => activateTool('link')}><span className="text-2xl">↔</span><span>Link</span></ToolbarButton>
@@ -570,6 +618,22 @@ export default function EditPdf() {
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg" onChange={handleImageSelect} className="hidden" />
 
         <div className="ml-2 h-10 w-px bg-gray-200" />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-500">Shape</span>
+          <select
+            value={shapeType}
+            onChange={(event) => {
+              setShapeType(event.target.value)
+              activateTool('shape')
+            }}
+            className="h-9 rounded-lg border border-gray-200 px-2 text-sm"
+          >
+            {SHAPES.map((shape) => (
+              <option key={shape.id} value={shape.id}>{shape.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="h-10 w-px bg-gray-200" />
         <div className="flex items-center gap-2">
           {COLORS.map((swatch) => (
             <button
