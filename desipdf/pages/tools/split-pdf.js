@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -53,7 +53,7 @@ export default function SplitPdf() {
 
   return (
     <>
-      <Head><title>Split PDF – PDFChampion</title></Head>
+      <ToolSeoHead tool={tool} />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />

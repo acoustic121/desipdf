@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import ToolLayout from '../../components/ToolLayout'
@@ -227,7 +227,7 @@ export default function HtmlToPdf() {
 
   return (
     <>
-      <Head><title>HTML to PDF – PDFChampion</title></Head>
+      <ToolSeoHead tool={tool} />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <div className="space-y-5">

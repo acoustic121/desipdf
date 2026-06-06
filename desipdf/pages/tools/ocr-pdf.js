@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import ToolLayout from '../../components/ToolLayout'
@@ -66,7 +66,7 @@ export default function OcrPdf() {
 
   return (
     <>
-      <Head><title>OCR PDF – PDFChampion</title></Head>
+      <ToolSeoHead tool={tool} />
       <ToolLayout tool={tool}>
         <div className="space-y-4">
 

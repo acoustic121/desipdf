@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import Image from 'next/image'
 import { useState, useRef } from 'react'
 import toast from 'react-hot-toast'
@@ -86,7 +86,7 @@ export default function ScanToPdf() {
 
   return (
     <>
-      <Head><title>Scan to PDF – PDFChampion</title></Head>
+      <ToolSeoHead tool={tool} />
       <ToolLayout tool={tool}>
         <div className="space-y-5">
           {/* Camera preview */}

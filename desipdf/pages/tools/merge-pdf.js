@@ -1,4 +1,4 @@
-import SeoHead from '../../components/SeoHead'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import ToolLayout from '../../components/ToolLayout'
 import { TOOLS } from '../../utils/constants'
 import { useState, useCallback } from 'react'
@@ -153,12 +153,7 @@ export default function MergePdf() {
 
   return (
     <>
-      <SeoHead
-        title="Merge PDF Files Online – Combine PDFs Free"
-        description="Merge multiple PDF files into one document online for free. No upload needed — files stay in your browser. Fast, secure, and easy to use."
-        keywords="merge pdf, combine pdf, join pdf files, merge pdf online free, combine multiple pdf"
-        canonical="/tools/merge-pdf"
-      />
+      <ToolSeoHead tool={tool} />
       <ToolLayout tool={tool}>
         {/* Drop zone */}
         <div

@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -66,7 +66,7 @@ export default function WordToPdf() {
     }, file.name.replace(/\.docx?$/, '.pdf'))
   }
   return (<>
-    <Head><title>Word to PDF – PDFChampion</title></Head>
+    <ToolSeoHead tool={tool} />
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFile} accept=".doc,.docx" label="Drop your Word document here" sublabel="Supports .doc and .docx files" />

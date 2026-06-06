@@ -1,4 +1,4 @@
-import SeoHead from '../../components/SeoHead'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import Image from 'next/image'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ToolLayout from '../../components/ToolLayout'
@@ -786,12 +786,7 @@ export default function SignPdf() {
     return (
       <div className="fixed inset-0 flex flex-col overflow-hidden z-[100]"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}>
-        <SeoHead
-          title="Sign PDF Online – Add Signature, Text and Stamps to PDF"
-          description="Sign PDF documents online for free. Draw or type signatures, add stamps, text, shapes and images directly on PDF pages."
-          keywords="sign pdf online, draw signature on pdf, fill and sign pdf, add text to pdf, rubber stamp pdf"
-          canonical="/tools/sign-pdf"
-        />
+        <ToolSeoHead tool={tool} />
         {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
         <SignatureModal isOpen={isSigModalOpen} onClose={() => setIsSigModalOpen(false)} onSave={handleSignatureSaved} />
         <StampModal isOpen={isStampModalOpen} onClose={() => setIsStampModalOpen(false)} onSelect={selectStamp} onCustomUpload={handleCustomStampUpload} />
@@ -1124,12 +1119,7 @@ export default function SignPdf() {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <>
-      <SeoHead
-        title="Sign PDF Online – Add Signature, Text and Stamps to PDF"
-        description="Sign PDF documents online for free. Draw or type signatures, add stamps, text, shapes and images directly on PDF pages."
-        keywords="sign pdf online, draw signature on pdf, fill and sign pdf, add text to pdf, rubber stamp pdf"
-        canonical="/tools/sign-pdf"
-      />
+      <ToolSeoHead tool={tool} />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />

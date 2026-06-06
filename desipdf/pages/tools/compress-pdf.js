@@ -1,4 +1,4 @@
-import SeoHead from '../../components/SeoHead'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -30,12 +30,7 @@ export default function CompressPdf() {
 
   return (
     <>
-      <SeoHead
-        title="Compress PDF Online – Reduce PDF File Size Free"
-        description="Compress PDF files online for free. Reduce PDF size without losing quality. Fast, secure, and no installation needed. Perfect for email and WhatsApp sharing."
-        keywords="compress pdf, reduce pdf size, shrink pdf, pdf compressor online free, reduce pdf file size"
-        canonical="/tools/compress-pdf"
-      />
+      <ToolSeoHead tool={tool} />
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
       <ToolLayout tool={tool}>
         <FileUpload onFilesSelect={setFile} accept=".pdf" />

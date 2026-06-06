@@ -1,4 +1,4 @@
-import SeoHead from '../../components/SeoHead'
+import ToolSeoHead from '../../components/ToolSeoHead'
 import { useState } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -52,12 +52,7 @@ export default function JpgToPdf() {
     }, 'converted.pdf')
   }
   return (<>
-    <SeoHead
-      title="JPG to PDF Online – Convert Images to PDF Free"
-      description="Convert JPG, PNG and other images to PDF online for free. Combine multiple images into one PDF document. No installation, works on mobile and desktop."
-      keywords="jpg to pdf, image to pdf, convert jpg to pdf online, png to pdf, photos to pdf free"
-      canonical="/tools/jpg-to-pdf"
-    />
+    <ToolSeoHead tool={tool} />
     {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
     <ToolLayout tool={tool}>
       <FileUpload onFilesSelect={setFiles} accept=".jpg,.jpeg,.png,.webp" multiple label="Drop images here" sublabel="Multiple images → placed in order" />
