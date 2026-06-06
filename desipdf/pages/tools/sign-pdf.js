@@ -1,5 +1,5 @@
 import ToolSeoHead from '../../components/ToolSeoHead'
-import Image from 'next/image'
+import NextImage from 'next/image'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -680,11 +680,16 @@ export default function SignPdf() {
     const f = e.target.files?.[0]; if (!f) return
     const reader = new FileReader()
     reader.onload = ev => {
-      const img = new Image()
-      img.onload = () => setActiveTool({ type: 'stamp', data: ev.target.result, wPercent: 20, hPercent: 20 * (img.height / img.width) })
+      const img = new window.Image()
+      img.onload = () => {
+        setActiveTool({ type: 'stamp', data: ev.target.result, wPercent: 20, hPercent: 20 * (img.height / img.width) })
+        toast.success('Stamp image ready. Click the PDF to place it.')
+      }
+      img.onerror = () => toast.error('Unable to load that image')
       img.src = ev.target.result
     }
     reader.readAsDataURL(f)
+    e.target.value = ''
   }
 
   const selectShape = (shapeType) => {
@@ -695,11 +700,16 @@ export default function SignPdf() {
     const f = e.target.files?.[0]; if (!f) return
     const reader = new FileReader()
     reader.onload = ev => {
-      const img = new Image()
-      img.onload = () => setActiveTool({ type: 'image', data: ev.target.result, wPercent: 22, hPercent: 22 * (img.height / img.width) })
+      const img = new window.Image()
+      img.onload = () => {
+        setActiveTool({ type: 'image', data: ev.target.result, wPercent: 22, hPercent: 22 * (img.height / img.width) })
+        toast.success('Image ready. Click the PDF to place it.')
+      }
+      img.onerror = () => toast.error('Unable to load that image')
       img.src = ev.target.result
     }
     reader.readAsDataURL(f)
+    e.target.value = ''
   }
 
   // ── Save PDF ─────────────────────────────────────────────────────────────
@@ -1079,7 +1089,7 @@ export default function SignPdf() {
                             )}
 
                             {(el.type === 'signature' || el.type === 'stamp' || el.type === 'image') && (
-                              <Image src={el.data} alt={el.type} fill sizes="100vw" unoptimized className="object-contain pointer-events-none select-none" draggable={false} />
+                              <NextImage src={el.data} alt={el.type} fill sizes="100vw" unoptimized className="object-contain pointer-events-none select-none" draggable={false} />
                             )}
 
                             {el.type === 'shape' && (
