@@ -293,12 +293,12 @@ export const TOOLS = [
   {
     id: 'compare-pdf',
     name: 'Compare PDF',
-    description: 'Side-by-side comparison of two PDFs to spot differences.',
+    description: 'Compare two PDFs side by side and highlight page differences.',
     icon: '⚖️',
     color: 'from-teal-500 to-cyan-700',
     accepts: '.pdf',
     category: 'secure',
-    status: 'coming-soon',
+    status: 'live',
   },
 
   // ── AI TOOLS ──────────────────────────────────────────────────────────────
