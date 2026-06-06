@@ -179,12 +179,12 @@ export const TOOLS = [
   {
     id: 'pdf-to-pptx',
     name: 'PDF to PPT',
-    description: 'Turn PDF files into editable PowerPoint presentations.',
+    description: 'Turn PDF pages into PowerPoint presentation slides.',
     icon: '🎞️',
     color: 'from-orange-500 to-red-600',
     accepts: '.pdf',
     category: 'convert',
-    status: 'coming-soon',
+    status: 'live',
   },
 
   // ── EDIT ──────────────────────────────────────────────────────────────────
