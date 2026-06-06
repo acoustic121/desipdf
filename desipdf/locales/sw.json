@@ -1,7 +1,7 @@
 {
   "site": {
     "name": "PDFChampion",
-    "tagline": "Zana za PDF bure kwa India"
+    "tagline": "Zana za PDF bure kwa World"
   },
   "nav": {
     "home": "Nyumbani",
@@ -9,7 +9,7 @@
     "faq": "Maswali"
   },
   "hero": {
-    "headline": "Zana za PDF zinazohitajika India",
+    "headline": "Zana za PDF zinazohitajika World",
     "sub": "Badilisha, bana, unganisha, gawanya PDF — bure kabisa. Hakuna usajili."
   },
   "tools": {

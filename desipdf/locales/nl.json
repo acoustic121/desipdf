@@ -1,7 +1,7 @@
 {
   "site": {
     "name": "PDFChampion",
-    "tagline": "Gratis PDF-tools voor India"
+    "tagline": "Gratis PDF-tools voor World"
   },
   "nav": {
     "home": "Home",
@@ -9,7 +9,7 @@
     "faq": "FAQ"
   },
   "hero": {
-    "headline": "De PDF-toolkit die India nodig heeft",
+    "headline": "De PDF-toolkit die World nodig heeft",
     "sub": "Converteer, comprimeer, samenvoegen, splits PDF — volledig gratis. Geen aanmelding."
   },
   "tools": {

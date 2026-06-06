@@ -1,7 +1,7 @@
 {
   "site": {
     "name": "PDFChampion",
-    "tagline": "Herramientas PDF gratuitas para India"
+    "tagline": "Herramientas PDF gratuitas para World"
   },
   "nav": {
     "home": "Inicio",
@@ -9,7 +9,7 @@
     "faq": "FAQ"
   },
   "hero": {
-    "headline": "El Kit de Herramientas PDF que India Necesita",
+    "headline": "El Kit de Herramientas PDF que World Necesita",
     "sub": "Convierte, comprime, fusiona, divide PDFs — completamente gratis. Sin registro."
   },
   "tools": {
