@@ -107,12 +107,22 @@ function Thumbnail({ pdfDoc, pageNumber, active, onClick }) {
   )
 }
 
-function ToolbarButton({ active, onClick, children, title }) {
+function ToolbarButton({ active, onActivate, children, title }) {
+  const activate = (event) => {
+    event.preventDefault()
+    onActivate()
+  }
+  const activateFromKeyboard = (event) => {
+    if (event.detail === 0) activate(event)
+  }
+
   return (
     <button
       type="button"
       title={title}
-      onClick={onClick}
+      aria-pressed={active}
+      onPointerDown={activate}
+      onClick={activateFromKeyboard}
       className={`flex min-w-[74px] flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
         active ? 'bg-red-50 text-red-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       }`}
@@ -252,6 +262,13 @@ export default function EditPdf() {
   const imageInputRef = useRef(null)
   const { runClientSide, loading, showLimitModal, setShowLimitModal } = useConvert()
 
+  const activateTool = (nextMode) => {
+    drawingRef.current = null
+    setMode(nextMode)
+    setSelectedId(null)
+    if (nextMode !== 'image') setImageTool(null)
+  }
+
   useEffect(() => {
     if (!file) return
     let cancelled = false
@@ -377,7 +394,7 @@ export default function EditPdf() {
           w: width,
           h: Math.max(8, width * (img.height / img.width)),
         })
-        setMode('image')
+        activateTool('image')
         toast.success('Image ready. Click the PDF page to place it.')
       }
       img.src = readerEvent.target.result
@@ -537,19 +554,19 @@ export default function EditPdf() {
       </header>
 
       <div className="flex h-[74px] shrink-0 items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-4">
-        <ToolbarButton title="Add text" active={mode === 'text'} onClick={() => setMode('text')}><span className="text-2xl">T</span><span>Add text</span></ToolbarButton>
-        <ToolbarButton title="Edit text" active={mode === 'editText'} onClick={() => setMode('editText')}><span className="text-2xl">✐</span><span>Edit text</span></ToolbarButton>
-        <ToolbarButton title="Sign" active={mode === 'sign'} onClick={() => setMode('sign')}><span className="text-2xl">✍</span><span>Sign</span></ToolbarButton>
-        <ToolbarButton title="Line" active={mode === 'line'} onClick={() => setMode('line')}><span className="text-2xl">╱</span><span>Line</span></ToolbarButton>
-        <ToolbarButton title="Draw" active={mode === 'draw'} onClick={() => setMode('draw')}><span className="text-2xl">✎</span><span>Draw</span></ToolbarButton>
-        <ToolbarButton title="Eraser" active={mode === 'eraser'} onClick={() => setMode('eraser')}><span className="text-2xl">⌫</span><span>Eraser</span></ToolbarButton>
-        <ToolbarButton title="Highlight" active={mode === 'highlight'} onClick={() => setMode('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
-        <ToolbarButton title="Text highlight" active={mode === 'textHighlight'} onClick={() => setMode('textHighlight')}><span className="text-2xl">▣</span><span>Text highlight</span></ToolbarButton>
-        <ToolbarButton title="Rectangle" active={mode === 'rectangle'} onClick={() => setMode('rectangle')}><span className="text-2xl">▢</span><span>Shape</span></ToolbarButton>
-        <ToolbarButton title="Image" active={mode === 'image'} onClick={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
-        <ToolbarButton title="Stamp" active={mode === 'stamp'} onClick={() => setMode('stamp')}><span className="text-2xl">♟</span><span>Stamp</span></ToolbarButton>
-        <ToolbarButton title="Link" active={mode === 'link'} onClick={() => setMode('link')}><span className="text-2xl">↔</span><span>Link</span></ToolbarButton>
-        <ToolbarButton title="Note" active={mode === 'note'} onClick={() => setMode('note')}><span className="text-2xl">⌖</span><span>Note</span></ToolbarButton>
+        <ToolbarButton title="Add text" active={mode === 'text'} onActivate={() => activateTool('text')}><span className="text-2xl">T</span><span>Add text</span></ToolbarButton>
+        <ToolbarButton title="Edit text" active={mode === 'editText'} onActivate={() => activateTool('editText')}><span className="text-2xl">✐</span><span>Edit text</span></ToolbarButton>
+        <ToolbarButton title="Sign" active={mode === 'sign'} onActivate={() => activateTool('sign')}><span className="text-2xl">✍</span><span>Sign</span></ToolbarButton>
+        <ToolbarButton title="Line" active={mode === 'line'} onActivate={() => activateTool('line')}><span className="text-2xl">╱</span><span>Line</span></ToolbarButton>
+        <ToolbarButton title="Draw" active={mode === 'draw'} onActivate={() => activateTool('draw')}><span className="text-2xl">✎</span><span>Draw</span></ToolbarButton>
+        <ToolbarButton title="Eraser" active={mode === 'eraser'} onActivate={() => activateTool('eraser')}><span className="text-2xl">⌫</span><span>Eraser</span></ToolbarButton>
+        <ToolbarButton title="Highlight" active={mode === 'highlight'} onActivate={() => activateTool('highlight')}><span className="text-2xl">▰</span><span>Highlight</span></ToolbarButton>
+        <ToolbarButton title="Text highlight" active={mode === 'textHighlight'} onActivate={() => activateTool('textHighlight')}><span className="text-2xl">▣</span><span>Text highlight</span></ToolbarButton>
+        <ToolbarButton title="Rectangle" active={mode === 'rectangle'} onActivate={() => activateTool('rectangle')}><span className="text-2xl">▢</span><span>Shape</span></ToolbarButton>
+        <ToolbarButton title="Image" active={mode === 'image'} onActivate={() => imageInputRef.current?.click()}><span className="text-2xl">☷</span><span>Image</span></ToolbarButton>
+        <ToolbarButton title="Stamp" active={mode === 'stamp'} onActivate={() => activateTool('stamp')}><span className="text-2xl">♟</span><span>Stamp</span></ToolbarButton>
+        <ToolbarButton title="Link" active={mode === 'link'} onActivate={() => activateTool('link')}><span className="text-2xl">↔</span><span>Link</span></ToolbarButton>
+        <ToolbarButton title="Note" active={mode === 'note'} onActivate={() => activateTool('note')}><span className="text-2xl">⌖</span><span>Note</span></ToolbarButton>
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg" onChange={handleImageSelect} className="hidden" />
 
         <div className="ml-2 h-10 w-px bg-gray-200" />
@@ -643,7 +660,7 @@ export default function EditPdf() {
               onTouchStart={handlePagePointerDown}
               onTouchMove={handlePagePointerMove}
               onTouchEnd={stopDrawing}
-              className="relative bg-white"
+              className={`relative bg-white ${mode === 'eraser' ? 'cursor-not-allowed' : mode === 'editText' ? 'cursor-text' : 'cursor-crosshair'}`}
               style={{ width: pageSize.width, minHeight: pageSize.height }}
             >
               {pdfDoc && <PdfPageCanvas pdfDoc={pdfDoc} pageNumber={pageNumber} zoom={zoom} onSize={onPageSize} />}
