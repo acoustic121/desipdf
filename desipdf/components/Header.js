@@ -127,6 +127,12 @@ export default function Header() {
             <Link href="/tools/merge-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Merge PDF</Link>
             <Link href="/tools/sign-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Sign PDF</Link>
             <Link href="/tools/compress-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Compress PDF</Link>
+            <Link
+              href="/tools/bank-statement-converter"
+              className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase whitespace-nowrap"
+            >
+              <span className="text-sm">🏦</span> Bank Statement
+            </Link>
 
             {/* Convert PDF */}
             <div className="relative group py-5">
@@ -372,6 +378,7 @@ export default function Header() {
                 <Link href="/tools/split-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✂️ Split PDF</Link>
                 <Link href="/tools/compress-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🗜️ Compress PDF</Link>
                 <Link href="/tools/sign-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✍️ Sign PDF</Link>
+                <Link href="/tools/bank-statement-converter" className="block p-2 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:text-blue-600 col-span-2" onClick={() => setMenuOpen(false)}>🏦 Bank Statement Converter</Link>
               </div>
             </div>
 
