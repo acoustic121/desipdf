@@ -112,15 +112,17 @@ export default function Header() {
         </div>
       )}
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-100 dark:border-gray-800">
-      <div className="max-w-7xl mx-auto pl-1 sm:pl-2 lg:pl-3 pr-4 sm:pr-6 lg:pr-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <span className="text-2xl">📄</span>
-            <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
-              {t('site.name')}
-            </span>
-          </Link>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center h-16">
+          {/* Logo - extreme left */}
+          <div className="flex-1 flex justify-start">
+            <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+              <span className="text-2xl">📄</span>
+              <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
+                {t('site.name')}
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-bold text-slate-700 dark:text-slate-200">
@@ -263,8 +265,8 @@ export default function Header() {
             </div>
           </nav>
 
-          {/* Right Controls */}
-          <div className="flex items-center gap-2">
+          {/* Right Controls - extreme right */}
+          <div className="flex-1 flex justify-end items-center gap-2">
             {/* Language Selector */}
             <select
               value={lang}
@@ -359,6 +361,7 @@ export default function Header() {
             >
               {menuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
             </button>
+          </div>
           </div>
         </div>
 
