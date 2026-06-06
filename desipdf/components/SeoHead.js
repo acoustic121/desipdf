@@ -15,9 +15,9 @@ export default function SeoHead({
   description,
   keywords = '',
   canonical,
-  ogImage = 'https://desipdf.vercel.app/og-image.png',
+  ogImage = 'https://pdfchampion.com/og-image.png',
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://desipdf.vercel.app'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pdfchampion.com'
   const fullTitle = title ? `${title} | PDFChampion` : 'PDFChampion – Free PDF Tools'
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
 
