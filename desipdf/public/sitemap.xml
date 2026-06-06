@@ -104,6 +104,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://pdfchampion.com/tools/bank-statement-converter</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://pdfchampion.com/tools/pptx-to-pdf</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

@@ -157,6 +157,16 @@ export const TOOLS = [
     status: 'live',
   },
   {
+    id: 'bank-statement-converter',
+    name: 'Bank Statement Converter',
+    description: 'Convert PDF bank statements into Excel or CSV transaction sheets.',
+    icon: '🏦',
+    color: 'from-emerald-500 to-teal-700',
+    accepts: '.pdf',
+    category: 'convert',
+    status: 'live',
+  },
+  {
     id: 'pptx-to-pdf',
     name: 'PPT to PDF',
     description: 'Convert PowerPoint presentations to PDF slides.',

@@ -69,6 +69,11 @@ export const TOOL_SEO = {
     description: 'Convert PDF to Excel online for free. Extract tables and export spreadsheet data with unlimited use, no signup, no watermarks, and privacy-first processing.',
     keywords: 'pdf to excel free, extract tables from pdf, pdf to xlsx online',
   },
+  'bank-statement-converter': {
+    title: 'Bank Statement Converter Free - PDF to Excel or CSV',
+    description: 'Convert PDF bank statements to Excel or CSV online for free. Extract transaction dates, descriptions, debits, credits, and balances with no signup and no watermarks.',
+    keywords: 'bank statement converter free, pdf bank statement to excel, bank statement to csv, convert bank statement pdf',
+  },
   'pptx-to-pdf': {
     title: 'PPT to PDF Online Free - Convert PowerPoint',
     description: 'Convert PowerPoint presentations to PDF online for free. Turn PPT and PPTX slides into PDFs with unlimited use, no signup, no watermarks, and privacy-first processing.',

@@ -113,5 +113,21 @@ export const SEO_GUIDES = {
       { q: 'Does CSS styling work?', a: 'Yes. Inline styles and many linked stylesheets are rendered in the preview before PDF generation. Cross-origin assets may be skipped if the source website blocks them.' },
       { q: 'Can I upload an HTML file?', a: 'Yes. Upload .html, .htm, or .txt files, review the preview, and download the PDF.' }
     ]
+  },
+  'bank-statement-converter': {
+    steps: [
+      'Upload a text-based PDF bank statement from your device.',
+      'Click convert to detect transaction rows, dates, descriptions, debits, credits, and balances.',
+      'Review the transaction preview and download the result as Excel or CSV.'
+    ],
+    benefits: [
+      { title: 'Transaction-Focused Output', desc: 'Exports clean columns for date, description, debit, credit, balance, page, and confidence.' },
+      { title: 'Browser Processing', desc: 'Text extraction runs in your browser, so your bank statement is not uploaded to PDFChampion servers.' },
+      { title: 'Excel or CSV', desc: 'Download a spreadsheet for accounting, budgeting, reconciliation, or personal finance tracking.' }
+    ],
+    faqs: [
+      { q: 'Does it work with scanned bank statements?', a: 'This first version works best with text-based PDFs. Scanned statements need OCR, which can be added later.' },
+      { q: 'Will every bank format be detected perfectly?', a: 'Bank statement layouts vary widely. The parser detects common date and amount patterns and shows a preview so you can verify the output.' }
+    ]
   }
 }

@@ -31,6 +31,7 @@ const convertFromPdfTools = [
   { name: 'PDF to Word', href: '/tools/pdf-to-word', icon: '✏️' },
   { name: 'PDF to PPT', href: '/tools/pdf-to-pptx', icon: '🎞️' },
   { name: 'PDF to Excel', href: '/tools/pdf-to-excel', icon: '📈' },
+  { name: 'Bank Statement Converter', href: '/tools/bank-statement-converter', icon: '🏦' },
 ]
 const editTools = [
   { name: 'Rotate PDF', href: '/tools/rotate-pdf', icon: '🔄' },
