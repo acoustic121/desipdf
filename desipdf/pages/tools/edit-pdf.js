@@ -262,14 +262,13 @@ function ImageElement({ element, selected, onSelect }) {
   )
 }
 
-function DrawingElement({ element, selected, onSelect }) {
+function DrawingElement({ element, selected }) {
   const points = element.points.map((point) => `${point.x},${point.y}`).join(' ')
   return (
     <svg
-      onMouseDown={(event) => { event.stopPropagation(); onSelect(element.id) }}
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
-      className={`absolute inset-0 h-full w-full ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`pointer-events-none absolute inset-0 h-full w-full ${selected ? 'ring-2 ring-blue-500' : ''}`}
     >
       <polyline points={points} fill="none" stroke={element.color} strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -844,7 +843,7 @@ export default function EditPdf() {
                     )
                   }
                   if (element.type === 'drawing') {
-                    return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} onSelect={selectElement} />
+                    return <DrawingElement key={element.id} element={element} selected={selectedId === element.id} />
                   }
                   return (
                     <div key={element.id}>
