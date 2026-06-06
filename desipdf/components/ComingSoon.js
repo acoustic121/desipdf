@@ -23,7 +23,7 @@ export default function ComingSoon({ tool }) {
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-8 mb-8">
           <h2 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Get notified when it launches</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">We're building this tool. Leave your email to be the first to know.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">We&apos;re building this tool. Leave your email to be the first to know.</p>
           <div className="flex gap-2">
             <input
               type="email"

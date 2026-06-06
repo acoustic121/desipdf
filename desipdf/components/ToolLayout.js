@@ -6,16 +6,16 @@ export default function ToolLayout({ tool, children }) {
   const guide = SEO_GUIDES[tool.id] || {
     steps: [
       `Select your file by clicking the upload box or dragging it in.`,
-      `The conversion processes automatically and securely inside your local browser tab.`,
+      `The conversion processes securely. Browser-first tools run locally; server-assisted tools handle only the requested conversion.`,
       `Click the download button to save the converted file to your device.`
     ],
     benefits: [
-      { title: '100% Privacy Safeguard', desc: 'No file uploads. Your sensitive information is processed locally on your device.' },
-      { title: 'Blazing Fast Speed', desc: 'No upload or download wait times. Conversions complete in the blink of an eye.' },
+      { title: 'Privacy Safeguard', desc: 'Browser-first tools keep files on your device. Server-assisted tools use temporary processing only.' },
+      { title: 'Fast Processing', desc: 'Tools are optimized to finish quickly whether they run locally or through a secure conversion endpoint.' },
       { title: 'Generous Free Limits', desc: 'Convert up to 15 files per day completely free, or go Premium for unlimited access.' }
     ],
     faqs: [
-      { q: 'Are my files sent to any servers?', a: 'No, PDFChampion processes files locally using modern browser technology. Your files are never uploaded or stored.' },
+      { q: 'Are my files sent to any servers?', a: 'Many PDFChampion tools run locally in your browser. If a tool uses server-assisted conversion, your file is processed only for that request and cleaned up automatically.' },
       { q: 'Does this tool work on mobile devices?', a: 'Yes. PDFChampion is fully responsive and optimized for Chrome, Safari, and other mobile browsers.' }
     ]
   }
@@ -45,8 +45,8 @@ export default function ToolLayout({ tool, children }) {
 
         {/* Trust badges */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-600">
-          <span>🔒 100% Private (Processed in browser)</span>
-          <span>🆓 100% Free</span>
+          <span>🔒 Privacy-first processing</span>
+          <span>🆓 15 free uses/day</span>
           <span>⚡ Fast processing</span>
           <span>📱 Works on mobile</span>
         </div>

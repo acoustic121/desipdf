@@ -8,8 +8,8 @@ import { useAuth } from '../utils/useAuth'
 
 const FAQ_ITEMS = [
   { q: 'Is PDFChampion completely free?', a: 'Yes! All tools are free to use with 15 conversions per day. For unlimited access, upgrade to Premium at just ₹49/month or ₹499/year.' },
-  { q: 'Are my files safe?', a: 'Yes. Files are processed entirely inside your local browser on your device and are never uploaded to any server. Your sensitive data never leaves your device.' },
-  { q: 'What is the maximum file size?', a: 'There is no file size limit! Since all processing is performed locally in your browser, you can convert files of any size.' },
+  { q: 'Are my files safe?', a: 'Yes. Most tools process files directly in your browser. When a tool needs server processing, files are used only for that request and cleaned up automatically.' },
+  { q: 'What is the maximum file size?', a: 'Free users can process files up to 50 MB on server-assisted tools. Premium supports larger files up to 4 GB, while browser-only tools depend on your device memory.' },
   { q: 'Does it work on mobile?', a: 'Yes! PDFChampion is fully responsive and works on all Android and iPhone browsers.' },
   { q: 'Do I need to install anything?', a: 'No installation needed. Everything runs directly in your browser.' },
   { q: 'Which languages are supported?', a: 'PDFChampion supports 29 languages — including English, Hindi, Spanish, French, German, Japanese, and more.' },
@@ -179,9 +179,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: '🆓', title: '100% Free Forever', desc: 'No hidden fees, no subscriptions, no premium tiers. Every tool, always free.' },
-              { icon: '🔒', title: 'Private & Secure', desc: 'Processed locally in your browser. Your files are never uploaded to any server and stay 100% private.' },
-              { icon: '⚡', title: 'Lightning Fast', desc: 'Processed directly in your browser on-device without any slow network upload delays.' },
+              { icon: '🆓', title: 'Free Daily Tools', desc: 'Use PDFChampion free every day with clear limits. Upgrade only if you need unlimited access.' },
+              { icon: '🔒', title: 'Private & Secure', desc: 'Most tools run locally in your browser. Server-assisted tools process files only for the requested conversion.' },
+              { icon: '⚡', title: 'Fast Processing', desc: 'Browser-first tools avoid upload delays, and server-assisted tools are optimized for quick downloads.' },
               { icon: '📱', title: 'Works on Any Device', desc: 'Phone, tablet, laptop — PDFChampion works perfectly on every screen and browser.' },
               { icon: '🌍', title: 'Supports 29 Languages', desc: 'Use PDFChampion in English, Spanish, French, German, Japanese, Hindi, Tamil, Telugu, and more.' },
               { icon: '🚫', title: 'Zero Watermarks', desc: 'Your output files are clean. No stamps, no logos, no "made with" text — ever.' },

@@ -12,7 +12,7 @@ export default function Footer() {
               <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">PDFChampion</span>
             </div>
             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-              Free online PDF tools. No signup, no watermarks, no limits. Process files in your browser.
+              Free online PDF tools. No signup required for daily use, no watermarks, and privacy-first processing.
             </p>
           </div>
 

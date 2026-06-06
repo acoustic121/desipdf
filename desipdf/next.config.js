@@ -4,11 +4,14 @@ const nextConfig = {
   images: {
     domains: [],
   },
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-    responseLimit: '50mb',
+  async redirects() {
+    return [
+      {
+        source: '/privacy',
+        destination: '/privacy-policy',
+        permanent: true,
+      },
+    ]
   },
 }
 

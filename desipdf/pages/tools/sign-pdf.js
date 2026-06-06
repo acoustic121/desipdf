@@ -1,4 +1,5 @@
 import SeoHead from '../../components/SeoHead'
+import Image from 'next/image'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ToolLayout from '../../components/ToolLayout'
 import FileUpload from '../../components/FileUpload'
@@ -87,14 +88,14 @@ function PdfPageRenderer({ pdfDoc, pageNum, scale = 1.4, onRendered }) {
         canvas.height = viewport.height
         renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport })
         await renderTask.promise
-        if (onRendered) onRendered(viewport.width, viewport.height)
+        if (onRendered) onRendered(pageNum, viewport.width, viewport.height)
       } catch (err) {
         if (err?.name !== 'RenderingCancelledException') console.error('Render error:', err)
       }
     }
     render()
     return () => { if (renderTask) renderTask.cancel() }
-  }, [pdfDoc, pageNum, scale])
+  }, [pdfDoc, pageNum, scale, onRendered])
 
   return <canvas ref={canvasRef} className="w-full h-auto block" />
 }
@@ -487,9 +488,9 @@ export default function SignPdf() {
     loadPdf()
   }, [file])
 
-  const handlePageRendered = (pageNum, w, h) => {
+  const handlePageRendered = useCallback((pageNum, w, h) => {
     setPageSizes(prev => ({ ...prev, [pageNum]: { w, h } }))
-  }
+  }, [])
 
   const handleThumbnailClick = (pageNum) => {
     setActivePage(pageNum)
@@ -1016,7 +1017,7 @@ export default function SignPdf() {
                     pdfDoc={pdfDoc}
                     pageNum={page.pageNum}
                     scale={1.4}
-                    onRendered={(w, h) => handlePageRendered(page.pageNum, w, h)}
+                    onRendered={handlePageRendered}
                   />
 
                   {/* Overlay – THIS div receives placement clicks */}
@@ -1083,7 +1084,7 @@ export default function SignPdf() {
                             )}
 
                             {(el.type === 'signature' || el.type === 'stamp' || el.type === 'image') && (
-                              <img src={el.data} alt={el.type} className="w-full h-full object-contain pointer-events-none select-none" draggable={false} />
+                              <Image src={el.data} alt={el.type} fill sizes="100vw" unoptimized className="object-contain pointer-events-none select-none" draggable={false} />
                             )}
 
                             {el.type === 'shape' && (

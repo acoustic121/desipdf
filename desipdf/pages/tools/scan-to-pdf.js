@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Image from 'next/image'
 import { useState, useRef } from 'react'
 import toast from 'react-hot-toast'
 import ToolLayout from '../../components/ToolLayout'
@@ -115,7 +116,7 @@ export default function ScanToPdf() {
               <div className="grid grid-cols-3 gap-2">
                 {captures.map((src, i) => (
                   <div key={i} className="relative group">
-                    <img src={src} alt={`Page ${i + 1}`} className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
+                    <Image src={src} alt={`Page ${i + 1}`} width={160} height={96} unoptimized className="w-full h-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
                     <button onClick={() => removeCapture(i)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       ×
@@ -135,7 +136,7 @@ export default function ScanToPdf() {
 
           <div className="text-center text-xs text-gray-400 dark:text-gray-600">
             <p>📱 Works best on mobile with your rear camera</p>
-            <p className="mt-1">Camera access stays in your browser — nothing is sent until you click "Create PDF"</p>
+            <p className="mt-1">Camera access stays in your browser — nothing is sent until you click &quot;Create PDF&quot;</p>
           </div>
         </div>
       </ToolLayout>
