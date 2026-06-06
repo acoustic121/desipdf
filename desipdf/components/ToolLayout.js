@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { SEO_GUIDES } from '../utils/seoGuides'
+import { getToolSeo } from '../utils/toolSeo'
 
 export default function ToolLayout({ tool, children }) {
+  const seo = getToolSeo(tool)
   const guide = SEO_GUIDES[tool.id] || {
     steps: [
       `Select your file by clicking the upload box or dragging it in.`,
@@ -35,7 +37,7 @@ export default function ToolLayout({ tool, children }) {
             {tool.icon}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{tool.name}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">{tool.description}</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">{seo.description}</p>
         </div>
 
         {/* Content */}

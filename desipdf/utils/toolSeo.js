@@ -71,7 +71,7 @@ export const TOOL_SEO = {
   },
   'bank-statement-converter': {
     title: 'Bank Statement Converter Free - PDF to Excel or CSV',
-    description: 'Convert PDF bank statements to Excel or CSV online for free. Extract transaction dates, descriptions, debits, credits, and balances with no signup and no watermarks.',
+    description: 'Free PDF bank statement converter for Excel or CSV. Extract transaction dates, descriptions, debits, credits, and balances online with no signup and no watermarks.',
     keywords: 'bank statement converter free, pdf bank statement to excel, bank statement to csv, convert bank statement pdf',
   },
   'pptx-to-pdf': {
