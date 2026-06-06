@@ -18,8 +18,27 @@ export default function SeoHead({
   ogImage = 'https://pdfchampion.com/og-image.png',
 }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pdfchampion.com'
-  const fullTitle = title ? `${title} | PDFChampion` : 'PDFChampion – Free PDF Tools'
+  const fullTitle = title ? `PDFChampion - ${title}` : 'PDFChampion - Free PDF Tools'
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        name: 'PDFChampion',
+        alternateName: 'PDF Champion',
+        url: siteUrl,
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${siteUrl}/#organization`,
+        name: 'PDFChampion',
+        url: siteUrl,
+        logo: `${siteUrl}/icon-192x192.png`,
+      },
+    ],
+  }
 
   return (
     <Head>
@@ -45,6 +64,11 @@ export default function SeoHead({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     </Head>
   )
 }
