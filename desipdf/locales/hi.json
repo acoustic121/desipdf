@@ -19,7 +19,8 @@
     "pdf-to-word": "PDF से Word",
     "excel-to-pdf": "Excel से PDF",
     "pdf-to-excel": "PDF से Excel",
-    "pptx-to-pdf": "PPT से PDF"
+    "pptx-to-pdf": "PPT से PDF",
+    "unlock-pdf-without-password": "बिना पासवर्ड के PDF अनलॉक करें"
   },
   "actions": {
     "convert": "कन्वर्ट करें",

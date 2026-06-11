@@ -281,6 +281,16 @@ export const TOOLS = [
     status: 'live',
   },
   {
+    id: 'unlock-pdf-without-password',
+    name: 'Unlock PDF without Password',
+    description: 'Unlock PDF, Word, or Excel files, removing edit restrictions and sheet protections without requiring a password.',
+    icon: '🔓🔑',
+    color: 'from-amber-400 to-rose-500',
+    accepts: '.pdf,.doc,.docx,.xls,.xlsx',
+    category: 'secure',
+    status: 'live',
+  },
+  {
     id: 'sign-pdf',
     name: 'Sign PDF',
     description: 'Draw or type your signature and embed it into any PDF.',

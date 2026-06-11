@@ -19,7 +19,8 @@
     "pdf-to-word": "PDF to Word",
     "excel-to-pdf": "Excel to PDF",
     "pdf-to-excel": "PDF to Excel",
-    "pptx-to-pdf": "PPT to PDF"
+    "pptx-to-pdf": "PPT to PDF",
+    "unlock-pdf-without-password": "Unlock PDF without Password"
   },
   "actions": {
     "convert": "Convert",

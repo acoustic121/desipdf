@@ -97,6 +97,23 @@ export const SEO_GUIDES = {
       { q: 'Is my PDF password secure?', a: 'Yes. Since decryption runs locally in your browser, your password is never sent to any server or database.' }
     ]
   },
+  'unlock-pdf-without-password': {
+    steps: [
+      'Select and upload the PDF, Word (.docx), or Excel (.xlsx) file you wish to unlock.',
+      'Our engine processes the file to remove editing restrictions, sheet protections, and owner password locks.',
+      'Once finished, your fully unlocked and editable file downloads automatically to your device.'
+    ],
+    benefits: [
+      { title: 'Remove Editing Restrictions', desc: 'Instantly remove print, copy, and edit locks from PDFs and Word documents.' },
+      { title: 'Unlock Sheet Protection', desc: 'Strip Excel sheet and workbook protections to edit columns and cells freely.' },
+      { title: 'Multi-Format Support', desc: 'Unlocks PDF, Word (.docx), and Excel (.xlsx) files instantly.' }
+    ],
+    faqs: [
+      { q: 'Do I need to enter a password to unlock the file?', a: 'No, this tool automatically strips owner restrictions, write protections, and sheet locks without requiring any password.' },
+      { q: 'Can this open files encrypted with a required open password?', a: 'No. If a document is encrypted with a strong user-open password (meaning you cannot even view it without entering a password), it is mathematically secure and cannot be bypassed. This tool is designed to strip permissions and editing restrictions from files you can open.' },
+      { q: 'Is it safe to upload my business files?', a: 'Absolutely. Files are processed securely, and all temporary assets are automatically deleted immediately after download.' }
+    ]
+  },
   'html-to-pdf': {
     steps: [
       'Paste your HTML code, upload an .html file, or load a public webpage URL.',

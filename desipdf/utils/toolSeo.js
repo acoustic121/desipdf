@@ -129,6 +129,11 @@ export const TOOL_SEO = {
     description: 'Unlock PDF files online for free. Remove PDF restrictions when you have permission with unlimited use, no signup, no watermarks, and privacy-first processing.',
     keywords: 'unlock pdf free, remove pdf password, decrypt pdf online',
   },
+  'unlock-pdf-without-password': {
+    title: 'Unlock PDF without Password Free - Remove Edit & Sheet Protections',
+    description: 'Unlock PDF, Word, and Excel files online for free without a password. Remove copy, edit, and sheet write-restrictions instantly with no registration.',
+    keywords: 'unlock pdf without password, unlock excel sheet online, remove word edit protection, free pdf restriction remover',
+  },
   'sign-pdf': {
     title: 'Sign PDF Online Free - Add Signature to PDF',
     description: 'Sign PDF documents online for free. Draw or type signatures, add text, stamps, shapes, and images with unlimited use, no signup, and no watermarks.',
