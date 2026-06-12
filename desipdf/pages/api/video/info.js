@@ -528,11 +528,7 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         '--socket-timeout', '8',
         '--retries', '1',
         '--force-ipv4',
-        // CRITICAL: Without -f, yt-dlp tries to select "best" (needs ffmpeg to merge).
-        // Vercel has no ffmpeg -> yt-dlp crashes BEFORE outputting any JSON.
-        // This cascading selector always picks a valid combined format.
-        // The full `formats` array with ALL qualities is still in the JSON output.
-        '-f', 'b[ext=mp4]/b/best[ext=mp4]/best',
+        '--no-check-formats',
         ...(proxy ? ['--proxy', proxy] : []),
         ...extraArgs,
         url,
