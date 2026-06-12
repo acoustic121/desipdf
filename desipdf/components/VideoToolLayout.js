@@ -91,7 +91,7 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading, coba
     setStatus('Preparing…')
 
     try {
-      if (platform === 'youtube' || platform === 'tiktok') {
+      if (platform === 'youtube') {
         setStatus('Connecting…')
         const cobaltUrl = cobaltInstance || 'https://cobaltapi.kittycat.boo'
         
@@ -486,8 +486,8 @@ export default function VideoToolLayout({ tool, children }) {
               </div>
 
               <div className="p-4 space-y-5">
-                {/* Download Server/Mirror Dropdown */}
-                {['youtube', 'tiktok'].includes(result.platform) && (
+                {/* YouTube Download Server/Mirror Dropdown */}
+                {result.platform === 'youtube' && (
                   <div className="p-3.5 bg-teal-50/50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
