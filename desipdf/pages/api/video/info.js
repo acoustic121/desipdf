@@ -293,7 +293,7 @@ async function fetchYouTube(url) {
     .slice(0, 4)
 
   if (!videoFormats.length && !audioFormats.length) {
-    // Innertube returned empty formats for all clients — fall back to yt-dlp, then Cobalt
+    // Innertube returned empty formats for all clients — fall back to yt-dlp, then Invidious
     console.warn('[YouTube] All Innertube clients returned empty formats — trying yt-dlp fallback…')
     const ytDlpPath = await getYtDlpPath()
     if (ytDlpPath) {
@@ -303,12 +303,12 @@ async function fetchYouTube(url) {
         console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
       }
     }
-    // Final fallback: Cobalt API (runs on non-AWS infrastructure, not blocked by YouTube)
-    console.warn('[YouTube] Trying Cobalt API as final fallback…')
+    // Final fallback: Invidious API
+    console.warn('[YouTube] Trying Invidious API as final fallback…')
     try {
-      return await fetchYouTubeViaCobalt(url, title, thumbnail)
-    } catch (cobaltErr) {
-      console.error('[YouTube] Cobalt fallback failed:', cobaltErr.message)
+      return await fetchYouTubeViaInvidious(videoId, title, thumbnail)
+    } catch (invErr) {
+      console.error('[YouTube] Invidious fallback failed:', invErr.message)
     }
     throw new Error('No downloadable formats found. The video may be private, age-restricted, or region-blocked.')
   }
@@ -317,86 +317,72 @@ async function fetchYouTube(url) {
 
 }
 
-// ── Cobalt API fallback (final YouTube fallback when Vercel IPs are blocked) ─────
-// cobalt.tools runs on its own infrastructure not flagged by YouTube.
-async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
+// ── Invidious API fallback (replaces Cobalt which now requires JWT auth) ────────
+// Invidious is an open-source YouTube frontend with public community instances.
+// Returns combined video+audio stream URLs that don't require merging.
+async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
   const t = infoTitle || 'YouTube Video'
 
-  // Manual timeout helper (AbortSignal.timeout not available in all Node versions)
-  function fetchWithTimeout(input, init, ms = 15000) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Cobalt request timed out')), ms)
-      fetch(input, init)
-        .then(r => { clearTimeout(timer); resolve(r) })
-        .catch(e => { clearTimeout(timer); reject(e) })
-    })
-  }
-
-  async function cobaltFetch(vQuality) {
-    const resp = await fetchWithTimeout('https://api.cobalt.tools/', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      body: JSON.stringify({ url, vQuality, downloadMode: 'auto', filenameStyle: 'basic' }),
-    }, 15000)
-
-    const text = await resp.text()
-    console.log(`[Cobalt] ${vQuality} HTTP ${resp.status}: ${text.slice(0, 120)}`)
-    if (!resp.ok) throw new Error(`Cobalt HTTP ${resp.status}: ${text.slice(0, 100)}`)
-    const data = JSON.parse(text)
-    if (!data.url || !['tunnel', 'redirect', 'stream'].includes(data.status)) {
-      throw new Error(`Cobalt status=${data.status} code=${data.error?.code || 'none'}`)
-    }
-    return data
-  }
-
-  // Try best quality first, then fallbacks sequentially
-  const qualityLevels = [
-    { q: 'max',  label: 'Best Available' },
-    { q: '1080', label: '1080p' },
-    { q: '720',  label: '720p' },
-    { q: '480',  label: '480p' },
-    { q: '360',  label: '360p' },
+  // Try multiple Invidious instances in order (community-maintained public servers)
+  const instances = [
+    'https://inv.nadeko.net',
+    'https://yewtu.be',
+    'https://invidious.privacydev.net',
+    'https://iv.melmac.space',
+    'https://invidious.jing.rocks',
   ]
 
-  const settledResults = await Promise.allSettled(
-    qualityLevels.map(async ({ q, label }) => {
-      const data = await cobaltFetch(q)
-      return { label, url: data.url, filename: data.filename }
-    })
-  )
+  for (const instance of instances) {
+    try {
+      console.log(`[Invidious] Trying ${instance}…`)
+      const resp = await fetch(
+        `${instance}/api/v1/videos/${videoId}?fields=title,videoThumbnails,formatStreams,adaptiveFormats`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+          },
+        }
+      )
+      if (!resp.ok) { console.warn(`[Invidious] ${instance} HTTP ${resp.status}`); continue }
+      const data = await resp.json()
 
-  // Deduplicate — Cobalt often returns the same tunnel for multiple quality requests
-  const seen = new Set()
-  const videoFormats = []
-  for (const r of settledResults) {
-    if (r.status !== 'fulfilled') {
-      console.warn('[Cobalt] A quality request failed:', r.reason?.message?.slice(0, 80))
-      continue
+      const title = data.title || t
+      const thumb = data.videoThumbnails?.find(t => t.quality === 'maxres')?.url
+        || data.videoThumbnails?.[0]?.url || infoThumb
+
+      // formatStreams = combined video+audio (no merge needed) — typically 360p/720p
+      const seenQ = new Set()
+      const videoFormats = (data.formatStreams || [])
+        .filter(f => f.type?.startsWith('video/mp4') && f.qualityLabel)
+        .sort((a, b) => (parseInt(b.qualityLabel) || 0) - (parseInt(a.qualityLabel) || 0))
+        .reduce((acc, f) => {
+          if (!seenQ.has(f.qualityLabel)) {
+            seenQ.add(f.qualityLabel)
+            acc.push({
+              quality: f.qualityLabel,
+              ext: 'mp4',
+              size: null,
+              downloadType: 'direct',
+              directUrl: f.url,  // Invidious proxy URL — stable for the session
+              filename: makeFilename(title, 'mp4'),
+            })
+          }
+          return acc
+        }, [])
+
+      if (!videoFormats.length) { console.warn(`[Invidious] ${instance} returned no video formats`); continue }
+
+      console.log(`[Invidious] Success via ${instance}: ${videoFormats.length} format(s)`)
+      return { title, thumbnail: thumb, platform: 'youtube', videoFormats, audioFormats: [] }
+    } catch (e) {
+      console.warn(`[Invidious] ${instance} failed:`, e.message.slice(0, 80))
     }
-    const { label, url: directUrl, filename } = r.value
-    if (seen.has(directUrl)) continue
-    seen.add(directUrl)
-    videoFormats.push({
-      quality: label,
-      ext: 'mp4',
-      size: null,
-      downloadType: 'direct',
-      directUrl,
-      filename: filename || makeFilename(t, 'mp4'),
-    })
   }
 
-  if (!videoFormats.length) {
-    throw new Error('Cobalt could not extract this video. It may be private or unavailable.')
-  }
-
-  console.log(`[YouTube/Cobalt] Got ${videoFormats.length} format(s)`)
-  return { title: t, thumbnail: infoThumb, platform: 'youtube', videoFormats, audioFormats: [] }
+  throw new Error('All Invidious instances failed. Please try again later or use a different video.')
 }
+
 
 
 
@@ -404,7 +390,6 @@ async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
 function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   return new Promise((resolve, reject) => {
     // Write YouTube cookies to /tmp if YOUTUBE_COOKIES env var is set.
-    // This bypasses YouTube's "Sign in to confirm you're not a bot" error on cloud IPs.
     const cookiePath = '/tmp/yt-cookies.txt'
     const cookieContent = process.env.YOUTUBE_COOKIES || ''
     if (cookieContent) {
@@ -412,16 +397,19 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     }
     const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
 
-    // ios client is most reliable in 2025 — doesn't require po_token
+    // When cookies are available: skip --extractor-args (they conflict with cookie auth)
+    // Without cookies: use ios client to bypass YouTube's bot detection on cloud IPs
     const args = [
       '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
-      '--extractor-args', 'youtube:player_client=ios,android_music,web',
       '--force-ipv4',
-      ...(hasCookies ? ['--cookies', cookiePath] : []),
+      ...(hasCookies
+        ? ['--cookies', cookiePath]  // cookies alone are sufficient
+        : ['--extractor-args', 'youtube:player_client=ios,android_music,web']
+      ),
       url
     ]
 
-    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES for authentication')
+    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES (no extractor-args override)')
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
     let stdout = '', stderr = ''
