@@ -391,7 +391,7 @@ export default function Header() {
           )}
 
           {/* Right Controls - extreme right */}
-          <div className="flex-1 flex justify-end items-center gap-2">
+          <div className="flex-[1.5] lg:flex-[2] flex justify-end items-center gap-2">
             {/* Language Selector */}
             <select
               value={lang}
