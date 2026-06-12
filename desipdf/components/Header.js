@@ -96,6 +96,7 @@ export default function Header() {
   const { lang, setLang, t } = useI18n()
   const { user, isPremium, premiumDaysRemaining, signOut } = useAuth()
   const router = useRouter()
+  const isVideoSection = router.pathname.startsWith('/tools/video')
   const userMenuRef = useRef(null)
 
   useEffect(() => {
