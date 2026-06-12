@@ -137,7 +137,6 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-bold text-slate-700 dark:text-slate-200">
             <Link href="/tools/merge-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Merge PDF</Link>
-            <Link href="/tools/sign-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Sign PDF</Link>
             <Link href="/tools/compress-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Compress PDF</Link>
             <Link href="/tools/scan-to-pdf" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase whitespace-nowrap">Scan to PDF</Link>
             <Link
@@ -279,7 +278,7 @@ export default function Header() {
             {/* Video Downloader */}
             <div className="relative group py-5">
               <Link href="/tools/video-downloader" className="flex items-center gap-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors uppercase">
-                🎬 Video
+                🎬 Social Media Downloader
                 <svg className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                 </svg>
@@ -403,7 +402,7 @@ export default function Header() {
             <Link href="/pricing" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.about')}</Link>
             <Link href="/faq" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.faq')}</Link>
-            <Link href="/tools/video-downloader" className="block text-teal-600 dark:text-teal-400 hover:text-teal-700 font-bold" onClick={() => setMenuOpen(false)}>🎬 Free Video Downloader</Link>
+            <Link href="/tools/video-downloader" className="block text-teal-600 dark:text-teal-400 hover:text-teal-700 font-bold" onClick={() => setMenuOpen(false)}>🎬 Social Media Downloader</Link>
 
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Popular Tools</p>
@@ -411,7 +410,7 @@ export default function Header() {
                 <Link href="/tools/merge-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🔗 Merge PDF</Link>
                 <Link href="/tools/split-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✂️ Split PDF</Link>
                 <Link href="/tools/compress-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🗜️ Compress PDF</Link>
-                <Link href="/tools/sign-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>✍️ Sign PDF</Link>
+                <Link href="/tools/protect-pdf" className="block p-2 text-xs font-semibold rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-blue-600" onClick={() => setMenuOpen(false)}>🛡️ Protect PDF</Link>
                 <Link href="/tools/bank-statement-converter" className="block p-2 text-xs font-semibold rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:text-blue-600 col-span-2" onClick={() => setMenuOpen(false)}>🏦 Bank Statement Converter</Link>
               </div>
             </div>
