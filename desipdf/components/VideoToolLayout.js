@@ -41,7 +41,39 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
     setStatus('Preparing…')
 
     try {
-      // All downloads go through our server API (yt-dlp handles HQ YouTube server-side)
+      if (platform === 'youtube' && format.downloadType === 'direct' && format.directUrl) {
+        // Option B: direct client-side download using browser/home IP
+        try {
+          const res = await fetch(format.directUrl)
+          if (res.ok) {
+            setStatus('Saving…')
+            const blob = await res.blob()
+            const objectUrl = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = objectUrl
+            a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+            return
+          }
+        } catch (corsErr) {
+          console.warn('[direct download] CORS block or fetch failed, falling back to new tab:', corsErr.message)
+        }
+        // Fallback: open direct URL in a new tab using user's home IP
+        const a = document.createElement('a')
+        a.href = format.directUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        return
+      }
+
+      // All other downloads go through our server API
       const res = await fetch(apiHref)
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

@@ -195,159 +195,13 @@ async function fetchYouTube(url) {
   const videoId = extractYouTubeId(url)
   if (!videoId) throw new Error('Invalid YouTube URL. Please paste a valid YouTube video link (e.g. youtube.com/watch?v=...)')
 
-  // Innertube uses YouTube's own internal API — much more reliable than ytdl-core
-  const { Innertube } = await initYoutubei()
-
-  const poToken = process.env.YOUTUBE_PO_TOKEN
-  const visitorData = process.env.YOUTUBE_VISITOR_DATA
-  const yt = await Innertube.create({
-    lang: 'en',
-    location: 'US',
-    retrieve_player: true,
-    generate_session_locally: true,
-    fetch: customFetch,
-    ...(poToken ? { po_token: poToken } : {}),
-    ...(visitorData ? { visitor_data: visitorData } : {}),
-  })
-
-  // Try multiple clients — Vercel IPs get blocked for some clients but not others
-  // IOS client is most reliable in 2025 (doesn't require po_token)
-  const clientsToTry = ['IOS', 'MWEB', 'TV_EMBEDDED']
-  let info = null
-  let lastClientErr = null
-
-  for (const client of clientsToTry) {
-    try {
-      const candidate = await yt.getInfo(videoId, { client })
-      if (candidate?.streaming_data?.formats?.length || candidate?.streaming_data?.adaptive_formats?.length) {
-        info = candidate
-        console.log(`[YouTube] Innertube client ${client} succeeded`)
-        break
-      }
-      console.warn(`[YouTube] Innertube client ${client} returned empty formats, trying next…`)
-    } catch (e) {
-      lastClientErr = e
-      console.warn(`[YouTube] Innertube client ${client} failed: ${e.message.slice(0, 80)}`)
-    }
+  console.log('[YouTube] Fetching metadata strictly via Invidious (Option B)')
+  try {
+    return await fetchYouTubeViaInvidious(videoId, null, null)
+  } catch (invErr) {
+    console.error('[YouTube] Invidious fetch failed:', invErr.message)
+    throw new Error('Could not load video info via Invidious. The video may be private, age-restricted, or unavailable. Please try a different video.')
   }
-
-  // If Innertube got basic_info but no formats from any client, still capture title/thumbnail
-  if (!info) {
-    try { info = await yt.getInfo(videoId, { client: 'MWEB' }) } catch {}
-  }
-
-  if (!info || !info.basic_info) {
-    // Innertube completely failed — jump straight to yt-dlp, then Invidious
-    console.warn('[YouTube] Innertube failed entirely, trying yt-dlp…')
-    const ytDlpPath = await getYtDlpPath()
-    if (ytDlpPath) {
-      try {
-        return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
-      } catch (ytErr) {
-        console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
-      }
-    }
-    // Final fallback: Invidious API
-    console.warn('[YouTube] Trying Invidious API as final fallback…')
-    try {
-      return await fetchYouTubeViaInvidious(videoId, null, null)
-    } catch (invErr) {
-      console.error('[YouTube] Invidious fallback failed:', invErr.message)
-    }
-    throw new Error('Could not load video info. The video may be private, deleted, or unavailable in your region.')
-  }
-
-  // ── All formats: combined (muxed) + adaptive video-only + audio-only ─────────
-  // Now that we use 1MB chunked downloading + ffmpeg merge, ALL qualities work.
-  const title = info.basic_info.title || 'YouTube Video'
-  const thumbnail = info.basic_info.thumbnail?.[0]?.url
-
-  const combinedFormats = info.streaming_data?.formats || []
-  const adaptiveFormats = info.streaming_data?.adaptive_formats || []
-
-  // For each quality level, pick ONE format to show — prefer mp4 container (AV1/H.264)
-  // since that's what the download endpoint selects when format:'mp4' is requested.
-  // This ensures the displayed file size matches the actual downloaded size.
-  const adaptiveVideoByQuality = {}
-  for (const f of adaptiveFormats.filter(f => f.has_video && !f.has_audio && f.quality_label)) {
-    const q = f.quality_label
-    const isMp4 = (f.mime_type || '').includes('mp4')
-    if (!adaptiveVideoByQuality[q] || isMp4) {
-      adaptiveVideoByQuality[q] = f
-    }
-  }
-
-  const allVideoFormats = [
-    ...combinedFormats.filter(f => f.quality_label),
-    ...Object.values(adaptiveVideoByQuality),
-  ]
-
-  const seenQ = new Set()
-  const videoFormats = allVideoFormats
-    .sort((a, b) => (parseInt(b.quality_label) || 0) - (parseInt(a.quality_label) || 0))
-    .reduce((acc, f) => {
-      if (!seenQ.has(f.quality_label)) {
-        seenQ.add(f.quality_label)
-        const isCombined = f.has_audio !== false
-        acc.push({
-          quality: f.quality_label,
-          ext: 'mp4',
-          size: formatBytes(f.content_length),
-          downloadType: isCombined ? 'video' : 'videoOnly',
-          downloadQuality: f.quality_label,
-          filename: makeFilename(title, 'mp4'),
-        })
-      }
-      return acc
-    }, [])
-    .slice(0, 8)
-
-
-  // Audio formats: adaptive audio-only streams (MP3 via 1MB chunk download)
-  const seenA = new Set()
-  const audioFormats = adaptiveFormats
-    .filter(f => f.has_audio && !f.has_video)
-    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
-    .reduce((acc, f) => {
-      const bitrate = Math.round((f.bitrate || f.average_bitrate || 0) / 1000)
-      if (bitrate > 0 && !seenA.has(bitrate)) {
-        seenA.add(bitrate)
-        acc.push({
-          quality: `${bitrate}kbps`,
-          ext: 'mp3',
-          size: formatBytes(f.content_length),
-          downloadType: 'audio',
-          downloadQuality: 'best',
-          filename: makeFilename(title, 'mp3'),
-        })
-      }
-      return acc
-    }, [])
-    .slice(0, 4)
-
-  if (!videoFormats.length && !audioFormats.length) {
-    // Innertube returned empty formats for all clients — fall back to yt-dlp, then Invidious
-    console.warn('[YouTube] All Innertube clients returned empty formats — trying yt-dlp fallback…')
-    const ytDlpPath = await getYtDlpPath()
-    if (ytDlpPath) {
-      try {
-        return await fetchYouTubeViaYtDlp(url, ytDlpPath, title, thumbnail)
-      } catch (ytErr) {
-        console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
-      }
-    }
-    // Final fallback: Invidious API
-    console.warn('[YouTube] Trying Invidious API as final fallback…')
-    try {
-      return await fetchYouTubeViaInvidious(videoId, title, thumbnail)
-    } catch (invErr) {
-      console.error('[YouTube] Invidious fallback failed:', invErr.message)
-    }
-    throw new Error('No downloadable formats found. The video may be private, age-restricted, or region-blocked.')
-  }
-
-  return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
-
 }
 
 // ── Invidious API fallback (replaces Cobalt which now requires JWT auth) ────────
@@ -431,8 +285,31 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
 
       if (!videoFormats.length) { console.warn(`[Invidious] ${instance} returned no video formats`); continue }
 
-      console.log(`[Invidious] Success via ${instance}: ${videoFormats.length} format(s)`)
-      return { title, thumbnail: thumb, platform: 'youtube', videoFormats, audioFormats: [] }
+      // adaptiveFormats has audio-only streams
+      const seenA = new Set()
+      const audioFormats = (data.adaptiveFormats || [])
+        .filter(f => f.type?.startsWith('audio/') && f.bitrate)
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
+        .reduce((acc, f) => {
+          const bitrate = Math.round((f.bitrate || 0) / 1000)
+          if (bitrate > 0 && !seenA.has(bitrate)) {
+            seenA.add(bitrate)
+            const ext = f.type?.includes('webm') ? 'webm' : 'm4a'
+            acc.push({
+              quality: `${bitrate}kbps`,
+              ext: ext,
+              size: null,
+              downloadType: 'direct',
+              directUrl: f.url,
+              filename: makeFilename(title, ext),
+            })
+          }
+          return acc
+        }, [])
+        .slice(0, 4)
+
+      console.log(`[Invidious] Success via ${instance}: ${videoFormats.length} video, ${audioFormats.length} audio formats`)
+      return { title, thumbnail: thumb, platform: 'youtube', videoFormats, audioFormats }
     } catch (e) {
       console.warn(`[Invidious] ${instance} failed:`, e.message.slice(0, 80))
     }
