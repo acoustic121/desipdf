@@ -11,9 +11,9 @@
  */
 
 import vm from 'node:vm'
-import { createWriteStream, unlink, existsSync } from 'node:fs'
+import { createWriteStream, createReadStream, unlink, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
 import ffmpegPath from 'ffmpeg-static'
 
@@ -63,8 +63,8 @@ function ytDlpDownload(videoId, quality, outputPath) {
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '--no-warnings',
-      // Use ffmpeg for merging
-      '--ffmpeg-location', ffmpegPath.replace('/ffmpeg', ''),
+      // Use ffmpeg for merging — pass the directory containing the ffmpeg binary
+      '--ffmpeg-location', dirname(ffmpegPath),
       // Quiet but show progress
       '--progress',
       '--newline',
@@ -73,15 +73,17 @@ function ytDlpDownload(videoId, quality, outputPath) {
     console.log(`[yt-dlp] Starting: ${YT_DLP_PATH} (quality: ${quality})`)
     const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
+    const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
-    proc.stderr.on('data', d => process.stderr.write(`[yt-dlp] ${d}`))
+    proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderrLines.push(String(d)) })
 
     proc.on('close', code => {
       if (code === 0) {
         console.log(`[yt-dlp] ✅ Done → ${outputPath}`)
         resolve()
       } else {
-        reject(new Error(`yt-dlp exited with code ${code}`))
+        const errMsg = stderrLines.join('').slice(-500) || `exit code ${code}`
+        reject(new Error(`yt-dlp failed: ${errMsg}`))
       }
     })
     proc.on('error', reject)
@@ -233,7 +235,6 @@ function mergeWithFfmpeg(videoFile, audioFile, res, req) {
 // ── Pipe /tmp file to HTTP response ──────────────────────────────────────────
 function pipeFileToResponse(filePath, res, req) {
   return new Promise((resolve, reject) => {
-    const { createReadStream } = require('node:fs')
     const stream = createReadStream(filePath)
     stream.pipe(res, { end: false })
     req.on('close', () => { try { stream.destroy() } catch {} })
