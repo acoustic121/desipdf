@@ -147,17 +147,17 @@ export default function VideoToolLayout({ tool, children }) {
   }
 
   const hoursSteps = [
-    `Copy the video link from ${tool.platformLabel || tool.name.replace(' Downloader', '')} — tap Share and "Copy link".`,
+    `Copy the link from ${tool.platformLabel || tool.name.replace(' Downloader', '')} — tap Share and "Copy link".`,
     `Paste the URL into the input box above.`,
-    `Click the Download button and wait for the format list to appear.`,
-    `Choose your preferred quality (HD, MP4, MP3) and click Download next to it.`,
+    `Click the Download button and wait for the options to appear.`,
+    `Choose your preferred format or quality and click Download next to it.`,
     `The file saves automatically to your device's Downloads folder.`,
   ]
 
   const faqs = tool.faqs || [
     { q: `Is this ${tool.name} free?`, a: `Yes. This tool is completely free with no signup required and no limits.` },
     { q: 'Are my downloads private?', a: 'Yes. No links or files are stored. Processing is stateless and ephemeral.' },
-    { q: 'What quality can I download?', a: 'You can choose from all available qualities — from 360p to 1080p for video, and 48kbps to 256kbps for audio.' },
+    { q: 'What quality can I download?', a: 'You can choose from all available qualities provided by the platform, including high-resolution video, high-quality audio, and original-size photos.' },
     { q: 'Does it work on mobile?', a: 'Yes. The tool works on all devices including iPhone, Android, tablet, and desktop.' },
     { q: 'Can I download private videos?', a: 'No. Only publicly accessible content can be downloaded.' },
   ]
@@ -349,7 +349,7 @@ export default function VideoToolLayout({ tool, children }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 { title: 'No Registration', desc: 'Download instantly without creating an account or providing personal information.' },
-                { title: 'Multiple Formats', desc: 'Choose from various quality levels from 360p to 1080p, plus MP3 audio extraction.' },
+                { title: 'Multiple Formats', desc: 'Choose from various available formats including MP4, MP3, JPG, and the highest quality resolutions.' },
                 { title: 'Works Everywhere', desc: 'Works seamlessly on iPhone, Android, Windows, Mac, and all modern browsers.' },
               ].map((b, i) => (
                 <div key={i} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800/80 bg-white/50 dark:bg-gray-900/50">
