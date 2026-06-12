@@ -60,6 +60,18 @@ const getYtDlpPath = () => _ytDlpPromise
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 OPR/121.0.0.0'
 
+let proxyAgent = null
+const proxyUrl = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+if (proxyUrl) {
+  try {
+    const { ProxyAgent } = await import('undici')
+    proxyAgent = new ProxyAgent(proxyUrl)
+    console.log('[proxy] Loaded ProxyAgent for:', proxyUrl)
+  } catch (e) {
+    console.error('[proxy] Failed to load ProxyAgent:', e.message)
+  }
+}
+
 function customFetch(input, init) {
   let url = ''
   if (typeof input === 'string') {
@@ -76,8 +88,12 @@ function customFetch(input, init) {
     }
   }
 
+  init = init || {}
+  if (proxyAgent) {
+    init.dispatcher = proxyAgent
+  }
+
   if (url && url.includes('googlevideo.com')) {
-    init = init || {}
     let headers = init.headers || {}
     
     if (typeof headers.delete === 'function') {
@@ -419,6 +435,8 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   const hasCookies = cookieContent.length > 100 && existsSync(cookiePath)
   console.log(`[yt-dlp] Cookies: ${hasCookies ? 'YES (' + cookieContent.length + ' bytes)' : 'NO'}`)
 
+  const proxy = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+
   // Helper: run one yt-dlp attempt with given extra args
   function attempt(extraArgs, label) {
     return new Promise((resolve, reject) => {
@@ -433,6 +451,7 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         // This cascading selector always picks a valid combined format.
         // The full `formats` array with ALL qualities is still in the JSON output.
         '-f', 'b[ext=mp4]/b/best[ext=mp4]/best',
+        ...(proxy ? ['--proxy', proxy] : []),
         ...extraArgs,
         url,
       ]
@@ -526,9 +545,11 @@ async function fetchWithYtDlp(url, platform) {
       ? ['--extractor-args', 'instagram:api=graphql']
       : []
 
+    const proxy = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
     const args = [
       '--dump-json', '--no-warnings', '--no-playlist',
       '--skip-download',
+      ...(proxy ? ['--proxy', proxy] : []),
       ...platformArgs,
       url,
     ]

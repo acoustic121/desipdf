@@ -24,6 +24,26 @@ export const config = {
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
 
+let proxyAgent = null
+const proxyUrl = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+if (proxyUrl) {
+  try {
+    const { ProxyAgent } = await import('undici')
+    proxyAgent = new ProxyAgent(proxyUrl)
+    console.log('[proxy] Loaded ProxyAgent for:', proxyUrl)
+  } catch (e) {
+    console.error('[proxy] Failed to load ProxyAgent:', e.message)
+  }
+}
+
+function fetchWithProxy(input, init) {
+  init = init || {}
+  if (proxyAgent) {
+    init.dispatcher = proxyAgent
+  }
+  return globalThis.fetch(input, init)
+}
+
 /// ── yt-dlp: find locally or download to /tmp on Lambda cold start ────────────────
 const TMP_YTDLP = '/tmp/ytdlp-bin'
 
@@ -59,7 +79,7 @@ const _ytDlpPromise = (async () => {
 
   try {
     console.log(`[yt-dlp] Downloading for ${p}/${a}…`)
-    const res = await fetch(url)
+    const res = await fetchWithProxy(url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const buf = await res.arrayBuffer()
     writeFileSync(TMP_YTDLP, Buffer.from(buf))
@@ -96,7 +116,7 @@ async function getFfmpegPath() {
     
     try {
       console.log(`[ffmpeg] Downloading for ${p}/${a} from ${url}…`)
-      const res = await fetch(url)
+      const res = await fetchWithProxy(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const buf = await res.arrayBuffer()
       writeFileSync(TMP_FFMPEG, Buffer.from(buf))
@@ -157,6 +177,8 @@ async function ytDlpVideo(videoId, quality, outputPath) {
     ? `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=${height}]+bestaudio/best[height<=${height}]`
     : `best[height<=${height}][ext=mp4]/best[height<=${height}]/best[ext=mp4]/best`
 
+  const proxy = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+
   return new Promise((resolve, reject) => {
     const args = [
       `https://www.youtube.com/watch?v=${videoId}`,
@@ -166,6 +188,7 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       '--force-ipv4',
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
+      ...(proxy ? ['--proxy', proxy] : []),
       ...(hasCookies ? ['--cookies', cookiePath] : []),
       // Only pass ffmpeg-location if we know ffmpeg is accessible
       ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
@@ -217,6 +240,8 @@ async function ytDlpAudio(videoId, outputPath) {
   if (poToken) poTokenExt += `;po_token=${poToken}`
   if (visitorData) poTokenExt += `;visitor_data=${visitorData}`
 
+  const proxy = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+
   return new Promise((resolve, reject) => {
     const args = ffmpegOk
       ? [
@@ -229,6 +254,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--no-playlist', '--no-warnings',
           '--ffmpeg-location', finalFfmpegPath,
           '--progress', '--newline',
+          ...(proxy ? ['--proxy', proxy] : []),
           ...(hasCookies ? ['--cookies', cookiePath] : []),
         ]
       : [
@@ -240,6 +266,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--progress', '--newline',
+          ...(proxy ? ['--proxy', proxy] : []),
           ...(hasCookies ? ['--cookies', cookiePath] : []),
         ]
     console.log(`[yt-dlp] Audio (ffmpeg: ${ffmpegOk}, client: ${playerClient})`)
@@ -269,7 +296,7 @@ function customFetch(input, init) {
   if (url && url.includes('googlevideo.com')) {
     init = { ...(init || {}), headers: { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9' } }
   }
-  return globalThis.fetch(input, init)
+  return fetchWithProxy(input, init)
 }
 
 let youtubeiPromise = null
@@ -309,7 +336,7 @@ async function getDecipheredUrl(info, downloadOpts) {
         { status: 200, headers: { 'content-type': 'video/mp4', 'content-length': '0' } }
       ))
     }
-    return globalThis.fetch(input, init)
+    return fetchWithProxy(input, init)
   }
   const poToken = process.env.YOUTUBE_PO_TOKEN
   const visitorData = process.env.YOUTUBE_VISITOR_DATA
@@ -349,7 +376,7 @@ async function downloadWithRefresh(getUrl, writable, knownSize = 0) {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        resp = await globalThis.fetch(chunkUrl, { headers: HDR })
+        resp = await fetchWithProxy(chunkUrl, { headers: HDR })
         if (resp.ok) break
         if (resp.status === 403) {
           if (offset === 0) throw new Error('CDN 403 on first chunk')
@@ -457,12 +484,14 @@ export default async function handler(req, res) {
             ? 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best'
             : 'best[ext=mp4]/best[ext=webm]/bestvideo[ext=mp4]/bestvideo/best'
             
+          const proxy = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
           const args = [
             videoUrl,
             '--format', formatStr,
             '--output', outTemplate,
             '--no-playlist', '--no-warnings',
             '--progress', '--newline',
+            ...(proxy ? ['--proxy', proxy] : []),
             ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
           ]
           const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -645,7 +674,7 @@ export default async function handler(req, res) {
     // ── Other platforms ───────────────────────────────────────────────────────
     const targetUrl = directUrl || videoUrl
     if (!targetUrl) return res.status(400).json({ error: 'No download URL provided' })
-    const upstream = await globalThis.fetch(targetUrl, {
+    const upstream = await fetchWithProxy(targetUrl, {
       headers: { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9', 'Referer': 'https://www.google.com/' },
     })
     if (!upstream.ok) return res.status(502).json({ error: `Upstream CDN returned ${upstream.status}` })

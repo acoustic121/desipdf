@@ -10,6 +10,26 @@ import vm from 'node:vm'
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
 
+let proxyAgent = null
+const proxyUrl = process.env.YOUTUBE_PROXY || process.env.HTTP_PROXY || process.env.HTTPS_PROXY
+if (proxyUrl) {
+  try {
+    const { ProxyAgent } = await import('undici')
+    proxyAgent = new ProxyAgent(proxyUrl)
+    console.log('[proxy] Loaded ProxyAgent for:', proxyUrl)
+  } catch (e) {
+    console.error('[proxy] Failed to load ProxyAgent:', e.message)
+  }
+}
+
+function fetchWithProxy(input, init) {
+  init = init || {}
+  if (proxyAgent) {
+    init.dispatcher = proxyAgent
+  }
+  return globalThis.fetch(input, init)
+}
+
 function extractUrl(input) {
   if (typeof input === 'string') return input
   if (input instanceof URL) return input.toString()
@@ -23,7 +43,7 @@ function customFetch(input, init) {
   if (url && url.includes('googlevideo.com')) {
     init = { ...(init || {}), headers: { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9' } }
   }
-  return globalThis.fetch(input, init)
+  return fetchWithProxy(input, init)
 }
 
 let youtubeiPromise = null
@@ -64,7 +84,7 @@ async function getDecipheredUrl(info, downloadOpts) {
         { status: 200, headers: { 'content-type': 'video/mp4', 'content-length': '0' } }
       ))
     }
-    return globalThis.fetch(input, init)
+    return fetchWithProxy(input, init)
   }
 
   const poToken = process.env.YOUTUBE_PO_TOKEN
