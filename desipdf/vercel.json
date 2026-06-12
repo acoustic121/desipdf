@@ -29,6 +29,13 @@
     },
     "pages/api/convert/html-to-pdf-fetch.js": {
       "maxDuration": 30
+    },
+    "pages/api/video/info.js": {
+      "maxDuration": 60
+    },
+    "pages/api/video/download.js": {
+      "maxDuration": 300,
+      "memory": 1024
     }
   }
 }
