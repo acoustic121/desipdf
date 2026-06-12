@@ -391,98 +391,95 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
 
 
 // ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ──────────
-function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
-  return new Promise((resolve, reject) => {
-    // Write YouTube cookies to /tmp if YOUTUBE_COOKIES env var is set.
-    const cookiePath = '/tmp/yt-cookies.txt'
-    const cookieContent = process.env.YOUTUBE_COOKIES || ''
-    if (cookieContent) {
-      try { require('fs').writeFileSync(cookiePath, cookieContent) } catch {}
+async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
+  // Write cookies once upfront
+  const cookiePath = '/tmp/yt-cookies.txt'
+  const cookieContent = process.env.YOUTUBE_COOKIES || ''
+  if (cookieContent) {
+    try { require('fs').writeFileSync(cookiePath, cookieContent) } catch (e) {
+      console.warn('[yt-dlp] Failed to write cookie file:', e.message)
     }
-    const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
+  }
+  const hasCookies = cookieContent.length > 100 && require('fs').existsSync(cookiePath)
+  console.log(`[yt-dlp] Cookies: ${hasCookies ? 'YES (' + cookieContent.length + ' bytes)' : 'NO'}`)
 
-    // Player client selection:
-    // - With cookies: 'web' client matches browser cookies → full auth session
-    // - Without cookies: 'tv_embedded' gives 25 video formats vs 1 for web/ios/android
-    //   (tv_embedded uses a different access token that YouTube doesn't bot-check)
-    const playerClient = hasCookies ? 'web' : 'tv_embedded'
-    const args = [
-      '-J', '--skip-download',
-      '--no-warnings', '--no-playlist',
-      '--extractor-args', `youtube:player_client=${playerClient}`,
-      '--force-ipv4',
-      ...(hasCookies ? ['--cookies', cookiePath] : []),
-      url
-    ]
-
-    if (hasCookies) {
-      console.log(`[yt-dlp] Using web client + cookies (${cookieContent.length} bytes)`)
-    } else {
-      console.log('[yt-dlp] No YOUTUBE_COOKIES — using tv_embedded player client')
-    }
-    const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
-
-
-    let stdout = '', stderr = ''
-    proc.stdout.on('data', d => { stdout += d })
-    proc.stderr.on('data', d => { stderr += d })
-
-    proc.on('close', code => {
-      if (code !== 0) { reject(new Error(stderr.slice(-400) || `yt-dlp exited ${code}`)); return }
-
-      const raw = stdout.trim()
-      if (!raw) { reject(new Error('yt-dlp returned no data for this YouTube URL.')); return }
-
-      let data = null
-      for (const line of raw.split('\n')) {
-        const t = line.trim()
-        if (!t) continue
-        try { data = JSON.parse(t); break } catch {}
-      }
-      if (!data) { reject(new Error('yt-dlp JSON parse failed')); return }
-
-      try {
-        const title = data.title || data.fulltitle || infoTitle || 'YouTube Video'
-        const thumbnail = data.thumbnail || infoThumb || null
-        const fmts = data.formats || []
-
-        // Build quality list from all video formats (ffmpeg will merge audio later)
-        const seenH = new Set()
-        const videoFormats = fmts
-          .filter(f => f.vcodec !== 'none' && f.height && f.url)
-          .sort((a, b) => (b.height || 0) - (a.height || 0))
-          .reduce((acc, f) => {
-            if (!seenH.has(f.height)) {
-              seenH.add(f.height)
-              acc.push({
-                quality: `${f.height}p`,
-                ext: 'mp4',
-                size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
-                downloadType: 'ytdlp',
-                downloadQuality: `${f.height}p`,
-                filename: makeFilename(title, 'mp4'),
-              })
-            }
-            return acc
-          }, [])
-          .slice(0, 6)
-
-        if (!videoFormats.length) {
-          videoFormats.push({
-            quality: 'Best Available', ext: 'mp4', size: null,
-            downloadType: 'ytdlp', downloadQuality: 'best',
-            filename: makeFilename(title, 'mp4'),
-          })
-        }
-
-        resolve({ title, thumbnail, platform: 'youtube', videoFormats, audioFormats: [] })
-      } catch (e) {
-        reject(new Error(`yt-dlp parse error: ${e.message}`))
-      }
+  // Helper: run one yt-dlp attempt with given extra args
+  function attempt(extraArgs, label) {
+    return new Promise((resolve, reject) => {
+      const args = [
+        '-J', '--skip-download',
+        '--no-warnings', '--no-playlist',
+        '--socket-timeout', '8',
+        '--retries', '1',
+        '--force-ipv4',
+        ...extraArgs,
+        url,
+      ]
+      console.log(`[yt-dlp] Trying ${label}…`)
+      const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+      let stdout = '', stderr = ''
+      proc.stdout.on('data', d => { stdout += d })
+      proc.stderr.on('data', d => { stderr += d })
+      proc.on('close', code => {
+        const errSnippet = stderr.replace(/\n/g, ' ').slice(-200)
+        console.log(`[yt-dlp] ${label} exit=${code} out=${stdout.length}b err=${errSnippet}`)
+        if (code !== 0) { reject(new Error(stderr.slice(-300) || 'exit ' + code)); return }
+        if (!stdout.trim()) { reject(new Error('no output')); return }
+        try { resolve(JSON.parse(stdout.trim())) }
+        catch { reject(new Error('JSON parse failed')) }
+      })
+      proc.on('error', reject)
     })
-    proc.on('error', reject)
-  })
+  }
+
+  // Strategies in priority order
+  const strategies = [
+    { label: 'tv_embedded', args: ['--extractor-args', 'youtube:player_client=tv_embedded'] },
+    ...(hasCookies ? [{ label: 'web+cookies', args: ['--extractor-args', 'youtube:player_client=web', '--cookies', cookiePath] }] : []),
+    { label: 'ios', args: ['--extractor-args', 'youtube:player_client=ios'] },
+    { label: 'android', args: ['--extractor-args', 'youtube:player_client=android'] },
+  ]
+
+  let lastErr = null
+  for (const { label, args } of strategies) {
+    try {
+      const data = await attempt(args, label)
+      const title = data.title || data.fulltitle || infoTitle || 'YouTube Video'
+      const thumbnail = data.thumbnail || infoThumb || null
+      const fmts = data.formats || []
+      console.log(`[yt-dlp] ${label} success: ${fmts.length} total formats`)
+
+      const seenH = new Set()
+      const videoFormats = fmts
+        .filter(f => f.vcodec !== 'none' && f.height && f.url)
+        .sort((a, b) => (b.height || 0) - (a.height || 0))
+        .reduce((acc, f) => {
+          if (!seenH.has(f.height)) {
+            seenH.add(f.height)
+            acc.push({
+              quality: `${f.height}p`, ext: 'mp4',
+              size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
+              downloadType: 'ytdlp', downloadQuality: `${f.height}p`,
+              filename: makeFilename(title, 'mp4'),
+            })
+          }
+          return acc
+        }, [])
+        .slice(0, 6)
+
+      if (!videoFormats.length) {
+        videoFormats.push({ quality: 'Best Available', ext: 'mp4', size: null,
+          downloadType: 'ytdlp', downloadQuality: 'best', filename: makeFilename(title, 'mp4') })
+      }
+      return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats: [] }
+    } catch (e) {
+      console.warn(`[yt-dlp] ${label} failed:`, e.message.slice(0, 150))
+      lastErr = e
+    }
+  }
+  throw new Error('yt-dlp all strategies failed: ' + (lastErr?.message?.slice(0, 200) || 'unknown'))
 }
+
 
 // ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, Pinterest) ─────
 async function fetchWithYtDlp(url, platform) {
