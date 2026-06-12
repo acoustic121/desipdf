@@ -9,6 +9,10 @@ export const config = { maxDuration: 60 }
 function findYtDlp() {
   const HOME = process.env.HOME || ''
   const candidates = [
+    // Project-local binary (downloaded by postinstall script — used on Vercel)
+    join(process.cwd(), 'bin', 'yt-dlp'),
+    join(__dirname, '../../../../bin/yt-dlp'),
+    // System-wide (macOS brew, Linux package manager)
     '/opt/homebrew/bin/yt-dlp',
     '/usr/local/bin/yt-dlp',
     '/usr/bin/yt-dlp',

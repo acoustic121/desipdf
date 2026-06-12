@@ -31,11 +31,17 @@
       "maxDuration": 30
     },
     "pages/api/video/info.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 512,
+      "includeFiles": "bin/**"
     },
     "pages/api/video/download.js": {
       "maxDuration": 300,
-      "memory": 1024
+      "memory": 1024,
+      "includeFiles": "bin/**"
+    },
+    "pages/api/video/get-urls.js": {
+      "maxDuration": 60
     }
   }
 }

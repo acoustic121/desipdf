@@ -26,16 +26,20 @@ const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHT
 
 // ── Find yt-dlp binary ────────────────────────────────────────────────────────
 function findYtDlp() {
+  const HOME = process.env.HOME || ''
   const candidates = [
+    // Project-local binary (downloaded by postinstall script — used on Vercel)
+    join(process.cwd(), 'bin', 'yt-dlp'),
+    join(__dirname, '../../../../bin/yt-dlp'),
+    // System-wide (macOS brew, Linux package manager)
     '/opt/homebrew/bin/yt-dlp',   // macOS Apple Silicon (brew)
-    '/usr/local/bin/yt-dlp',      // macOS Intel (brew)
-    '/usr/bin/yt-dlp',            // Linux
-    '/usr/local/bin/yt-dlp',      // Linux pip
-    join(process.env.HOME || '', '.local/bin/yt-dlp'),  // pip --user
-    join(process.env.HOME || '', 'Library/Python/3.14/bin/yt-dlp'),
-    join(process.env.HOME || '', 'Library/Python/3.13/bin/yt-dlp'),
-    join(process.env.HOME || '', 'Library/Python/3.12/bin/yt-dlp'),
-    join(process.env.HOME || '', 'Library/Python/3.11/bin/yt-dlp'),
+    '/usr/local/bin/yt-dlp',      // macOS Intel (brew) / Linux pip
+    '/usr/bin/yt-dlp',            // Linux system
+    join(HOME, '.local/bin/yt-dlp'),  // pip --user
+    join(HOME, 'Library/Python/3.14/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.13/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.12/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.11/bin/yt-dlp'),
   ]
   for (const p of candidates) {
     if (existsSync(p)) return p

@@ -28,3 +28,8 @@ yarn-error.log*
 
 # Vercel
 .vercel
+
+# yt-dlp binary (downloaded at build time by postinstall script)
+bin/yt-dlp
+bin/yt-dlp_*
+
