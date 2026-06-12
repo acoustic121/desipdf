@@ -1,18 +1,18 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
-const INVIDIOUS_INSTANCES = [
-  'https://inv.tux.pizza',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.privacyredirect.com',
-  'https://inv.in.projectsegfau.lt',
-  'https://invidious.asir.dev',
-  'https://inv.nadeko.net',
-  'https://yewtu.be',
-  'https://invidious.privacydev.net'
+const DEFAULT_COBALT_INSTANCES = [
+  'https://cobaltapi.kittycat.boo',
+  'https://dog.kittycat.boo',
+  'https://rue-cobalt.xenon.zone',
+  'https://fox.kittycat.boo',
+  'https://nuko-c.meowing.de',
+  'https://api.qwkuns.me',
+  'https://cobalt.omega.wolfy.love',
+  'https://cobaltapi.squair.xyz'
 ]
 
 function extractYouTubeId(url) {
@@ -79,7 +79,7 @@ function QualityBadge({ label, type }) {
   return <span className={`${base} bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300`}>{label}</span>
 }
 
-function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
+function FormatRow({ format, type, platform, videoUrl, loading, setLoading, cobaltInstance }) {
   const [status, setStatus] = useState('')
   const apiHref = buildDownloadHref({ format, platform, videoUrl })
   const isThisLoading = loading === format.quality
@@ -91,8 +91,72 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
     setStatus('Preparing…')
 
     try {
-      if (platform === 'youtube' && format.downloadType === 'direct' && format.directUrl) {
-        // Option B: direct client-side download using browser/home IP
+      if (platform === 'youtube') {
+        setStatus('Connecting…')
+        const cobaltUrl = cobaltInstance || 'https://cobaltapi.kittycat.boo'
+        
+        const res = await fetch(cobaltUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: videoUrl,
+            downloadMode: type === 'audio' ? 'audio' : 'auto',
+            videoQuality: format.quality === '720p' ? '720' : '360',
+            audioFormat: 'mp3'
+          })
+        })
+
+        if (!res.ok) {
+          throw new Error(`Server returned HTTP ${res.status}`)
+        }
+        
+        const data = await res.json()
+        if (data.status === 'error') {
+          throw new Error(data.error?.code || data.text || 'The selected download server is currently overloaded. Please switch servers using the dropdown above and try again.')
+        }
+
+        const downloadUrl = data.url
+        if (!downloadUrl) {
+          throw new Error('No download link was returned by the server.')
+        }
+
+        // Now download the file using the returned URL
+        try {
+          setStatus('Saving…')
+          const fileRes = await fetch(downloadUrl)
+          if (fileRes.ok) {
+            const blob = await fileRes.blob()
+            const objectUrl = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = objectUrl
+            a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+            return
+          }
+        } catch (corsErr) {
+          console.warn('[direct download] CORS block or fetch failed, falling back to new tab:', corsErr.message)
+        }
+
+        // Fallback: open direct URL in a new tab using user's home IP
+        const a = document.createElement('a')
+        a.href = downloadUrl
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+        a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        return
+      }
+
+      if (format.downloadType === 'direct' && format.directUrl) {
+        // Instagram (legacy), TikTok, Facebook, Pinterest — proxy the CDN URL
         try {
           const res = await fetch(format.directUrl)
           if (res.ok) {
@@ -205,8 +269,33 @@ export default function VideoToolLayout({ tool, children }) {
   const [dlLoading, setDlLoading] = useState(null) // which format is downloading
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [invidiousInstance, setInvidiousInstance] = useState('https://yewtu.be')
+  const [cobaltInstance, setCobaltInstance] = useState('https://cobaltapi.kittycat.boo')
+  const [cobaltInstancesList, setCobaltInstancesList] = useState(DEFAULT_COBALT_INSTANCES)
   const inputRef = useRef(null)
+
+  useEffect(() => {
+    async function loadInstances() {
+      try {
+        const res = await fetch('https://cobalt.directory/api/working?type=api')
+        if (res.ok) {
+          const json = await res.json()
+          const list = json.data?.youtube || []
+          if (list.length > 0) {
+            const unique = [...new Set(list)].filter(url => url.startsWith('http'))
+            if (unique.length > 0) {
+              setCobaltInstancesList(unique)
+              setCobaltInstance(current => 
+                !unique.includes(current) ? unique[0] : current
+              )
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch dynamic Cobalt instances:', err)
+      }
+    }
+    loadInstances()
+  }, [])
 
   const handleFetch = async (e) => {
     e.preventDefault()
@@ -230,14 +319,12 @@ export default function VideoToolLayout({ tool, children }) {
             quality: '720p',
             ext: 'mp4',
             downloadType: 'direct',
-            itag: 22,
             filename: `${sanitizedTitle}_720p.mp4`
           },
           {
             quality: '360p',
             ext: 'mp4',
             downloadType: 'direct',
-            itag: 18,
             filename: `${sanitizedTitle}_360p.mp4`
           }
         ]
@@ -247,7 +334,6 @@ export default function VideoToolLayout({ tool, children }) {
             quality: '140kbps',
             ext: 'm4a',
             downloadType: 'direct',
-            itag: 140,
             filename: `${sanitizedTitle}.m4a`
           }
         ]
@@ -412,11 +498,11 @@ export default function VideoToolLayout({ tool, children }) {
                       </span>
                     </div>
                     <select
-                      value={invidiousInstance}
-                      onChange={e => setInvidiousInstance(e.target.value)}
+                      value={cobaltInstance}
+                      onChange={e => setCobaltInstance(e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-teal-200 dark:border-teal-800 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-teal-500 font-medium"
                     >
-                      {INVIDIOUS_INSTANCES.map((inst) => (
+                      {cobaltInstancesList.map((inst) => (
                         <option key={inst} value={inst}>
                           {inst.replace('https://', '')}
                         </option>
@@ -433,23 +519,18 @@ export default function VideoToolLayout({ tool, children }) {
                       {result.videoFormats.every(f => ['jpg','jpeg','png','gif','webp'].includes(f.ext?.toLowerCase())) ? 'Photo' : 'Video'}
                     </h3>
                     <div>
-                      {result.videoFormats.map((fmt, i) => {
-                        const updatedFmt = result.platform === 'youtube' && fmt.itag ? {
-                          ...fmt,
-                          directUrl: `${invidiousInstance}/latest_version?id=${result.videoId}&itag=${fmt.itag}&local=true`
-                        } : fmt;
-                        return (
-                          <FormatRow
-                            key={i}
-                            format={updatedFmt}
-                            type="video"
-                            platform={result.platform}
-                            videoUrl={result.originalUrl}
-                            loading={dlLoading}
-                            setLoading={setDlLoading}
-                          />
-                        );
-                      })}
+                      {result.videoFormats.map((fmt, i) => (
+                        <FormatRow
+                          key={i}
+                          format={fmt}
+                          type="video"
+                          platform={result.platform}
+                          videoUrl={result.originalUrl}
+                          loading={dlLoading}
+                          setLoading={setDlLoading}
+                          cobaltInstance={cobaltInstance}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -461,23 +542,18 @@ export default function VideoToolLayout({ tool, children }) {
                       <span>🎵</span> Music / Audio
                     </h3>
                     <div>
-                      {result.audioFormats.map((fmt, i) => {
-                        const updatedFmt = result.platform === 'youtube' && fmt.itag ? {
-                          ...fmt,
-                          directUrl: `${invidiousInstance}/latest_version?id=${result.videoId}&itag=${fmt.itag}&local=true`
-                        } : fmt;
-                        return (
-                          <FormatRow
-                            key={i}
-                            format={updatedFmt}
-                            type="audio"
-                            platform={result.platform}
-                            videoUrl={result.originalUrl}
-                            loading={dlLoading}
-                            setLoading={setDlLoading}
-                          />
-                        )
-                      })}
+                      {result.audioFormats.map((fmt, i) => (
+                        <FormatRow
+                          key={i}
+                          format={fmt}
+                          type="audio"
+                          platform={result.platform}
+                          videoUrl={result.originalUrl}
+                          loading={dlLoading}
+                          setLoading={setDlLoading}
+                          cobaltInstance={cobaltInstance}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
