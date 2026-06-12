@@ -548,15 +548,28 @@ async function fetchInstagramOG(url) {
         }
       }
 
-      // Photo post: use og:image as the downloadable file
+      // Photo post: upgrade og:image to full resolution by stripping Instagram CDN size prefix
+      // og:image is a cropped square thumbnail e.g. s640x640/sh0.08/e35/photo.jpg
+      // Full res original is the same URL without the sNNNxNNN/ and shX.XX/ segments
       if (thumbnail && (thumbnail.includes('cdninstagram') || thumbnail.includes('scontent') || thumbnail.includes('fbcdn'))) {
         const ext = thumbnail.includes('.png') ? 'png' : 'jpg'
-        console.log(`[Instagram] Found image via OG`)
+
+        // Try to build the full-resolution URL by removing size restrictions
+        // Pattern: /sNNNxNNN/ and /shX.XX/ are thumbnail-only path segments
+        let fullResUrl = thumbnail
+          .replace(/\/s\d+x\d+\//g, '/')   // remove /s640x640/ etc
+          .replace(/\/sh\d+\.\d+\//g, '/')  // remove /sh0.08/ etc
+          .replace(/\/p\d+x\d+\//g, '/')    // remove /p1080x1080/ etc
+
+        // If the URL changed, use it; otherwise fall back to the original thumbnail
+        const directUrl = fullResUrl !== thumbnail ? fullResUrl : thumbnail
+
+        console.log(`[Instagram] Found image via OG (full-res: ${fullResUrl !== thumbnail})`)
         return {
           title, thumbnail, platform: 'instagram',
           videoFormats: [{
             quality: 'Original', ext, size: null,
-            downloadType: 'direct', directUrl: thumbnail,
+            downloadType: 'direct', directUrl,
             filename: makeFilename(title, ext),
           }],
           audioFormats: [],
