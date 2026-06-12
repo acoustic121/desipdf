@@ -124,6 +124,14 @@ async function ytDlpVideo(videoId, quality, outputPath) {
   const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
   const height = parseInt(quality?.replace('p', '') || '1080', 10)
 
+  // Cookies + web client = authenticated browser session
+  // No cookies + tv_embedded = best format coverage without auth
+  const cookiePath = '/tmp/yt-cookies.txt'
+  const cookieContent = process.env.YOUTUBE_COOKIES || ''
+  if (cookieContent) { try { writeFileSync(cookiePath, cookieContent) } catch {} }
+  const hasCookies = cookieContent && existsSync(cookiePath)
+  const playerClient = hasCookies ? 'web' : 'tv_embedded'
+
   // Without ffmpeg: use combined format (no merge needed, max ~720p)
   // With ffmpeg: use separate video+audio streams (supports 1080p+)
   const formatSel = ffmpegOk
@@ -135,14 +143,15 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       `https://www.youtube.com/watch?v=${videoId}`,
       '--format', formatSel,
       '--output', outputPath,
-      '--extractor-args', 'youtube:player_client=android,web',
+      '--extractor-args', `youtube:player_client=${playerClient}`,
       '--force-ipv4',
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
+      ...(hasCookies ? ['--cookies', cookiePath] : []),
       // Only pass ffmpeg-location if we know ffmpeg is accessible
       ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
     ]
-    console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no (combined format)'})`)
+    console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no'}, client: ${playerClient})`)
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
@@ -163,6 +172,13 @@ async function ytDlpAudio(videoId, outputPath) {
   const runtimeFfmpeg = await getFfmpegPath()
   const ffmpegOk = runtimeFfmpeg && existsSync(runtimeFfmpeg)
   const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
+
+  const cookiePath = '/tmp/yt-cookies.txt'
+  const cookieContent = process.env.YOUTUBE_COOKIES || ''
+  if (cookieContent) { try { writeFileSync(cookiePath, cookieContent) } catch {} }
+  const hasCookies = cookieContent && existsSync(cookiePath)
+  const playerClient = hasCookies ? 'web' : 'tv_embedded'
+
   return new Promise((resolve, reject) => {
     const args = ffmpegOk
       ? [
@@ -170,23 +186,25 @@ async function ytDlpAudio(videoId, outputPath) {
           '--format', 'bestaudio/best',
           '--extract-audio', '--audio-format', 'mp3', '--audio-quality', '192K',
           '--output', outputPath,
-          '--extractor-args', 'youtube:player_client=android,web',
+          '--extractor-args', `youtube:player_client=${playerClient}`,
           '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--ffmpeg-location', finalFfmpegPath,
           '--progress', '--newline',
+          ...(hasCookies ? ['--cookies', cookiePath] : []),
         ]
       : [
           // Without ffmpeg: download best audio stream as-is (m4a/opus)
           `https://www.youtube.com/watch?v=${videoId}`,
           '--format', 'bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best',
           '--output', outputPath.replace(/\.mp3$/, '.m4a'),
-          '--extractor-args', 'youtube:player_client=android,web',
+          '--extractor-args', `youtube:player_client=${playerClient}`,
           '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--progress', '--newline',
+          ...(hasCookies ? ['--cookies', cookiePath] : []),
         ]
-    console.log(`[yt-dlp] Audio (ffmpeg: ${ffmpegOk})`)
+    console.log(`[yt-dlp] Audio (ffmpeg: ${ffmpegOk}, client: ${playerClient})`)
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))

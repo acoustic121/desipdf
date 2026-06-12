@@ -401,21 +401,25 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     }
     const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
 
-    // Use -J (single JSON dump) + --skip-download to get ALL 33+ formats without
-    // triggering yt-dlp's format selection logic (which crashes without ffmpeg
-    // because it can't merge separate video+audio adaptive streams).
-    // -J alone also selects "best" format and fails; --skip-download bypasses it.
+    // Player client selection:
+    // - With cookies: 'web' client matches browser cookies → full auth session
+    // - Without cookies: 'tv_embedded' gives 25 video formats vs 1 for web/ios/android
+    //   (tv_embedded uses a different access token that YouTube doesn't bot-check)
+    const playerClient = hasCookies ? 'web' : 'tv_embedded'
     const args = [
       '-J', '--skip-download',
       '--no-warnings', '--no-playlist',
-      '--extractor-args', 'youtube:player_client=ios,android,web',
+      '--extractor-args', `youtube:player_client=${playerClient}`,
       '--force-ipv4',
       ...(hasCookies ? ['--cookies', cookiePath] : []),
       url
     ]
 
-    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES for authentication')
-    else console.log('[yt-dlp] No cookies — using ios/android/web player clients')
+    if (hasCookies) {
+      console.log(`[yt-dlp] Using web client + cookies (${cookieContent.length} bytes)`)
+    } else {
+      console.log('[yt-dlp] No YOUTUBE_COOKIES — using tv_embedded player client')
+    }
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
 
