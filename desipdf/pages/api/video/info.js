@@ -148,10 +148,21 @@ async function fetchYouTube(url) {
   const combinedFormats = info.streaming_data?.formats || []
   const adaptiveFormats = info.streaming_data?.adaptive_formats || []
 
-  // Video formats: combined first (they have audio), then adaptive video-only (higher quality)
+  // For each quality level, pick ONE format to show — prefer mp4 container (AV1/H.264)
+  // since that's what the download endpoint selects when format:'mp4' is requested.
+  // This ensures the displayed file size matches the actual downloaded size.
+  const adaptiveVideoByQuality = {}
+  for (const f of adaptiveFormats.filter(f => f.has_video && !f.has_audio && f.quality_label)) {
+    const q = f.quality_label
+    const isMp4 = (f.mime_type || '').includes('mp4')
+    if (!adaptiveVideoByQuality[q] || isMp4) {
+      adaptiveVideoByQuality[q] = f
+    }
+  }
+
   const allVideoFormats = [
     ...combinedFormats.filter(f => f.quality_label),
-    ...adaptiveFormats.filter(f => f.has_video && !f.has_audio && f.quality_label),
+    ...Object.values(adaptiveVideoByQuality),
   ]
 
   const seenQ = new Set()
@@ -173,6 +184,7 @@ async function fetchYouTube(url) {
       return acc
     }, [])
     .slice(0, 8)
+
 
   // Audio formats: adaptive audio-only streams (MP3 via 1MB chunk download)
   const seenA = new Set()
