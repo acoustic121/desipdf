@@ -50,16 +50,7 @@ const PLATFORMS = [
       { name: 'Facebook Video Downloader', href: '/tools/video/facebook-downloader', icon: '📹' },
     ],
   },
-  {
-    name: 'TikTok',
-    icon: '🎵',
-    color: 'from-slate-800 to-gray-900',
-    bg: 'bg-gray-50 dark:bg-gray-900/50',
-    border: 'border-gray-100 dark:border-gray-800',
-    tools: [
 
-    ],
-  },
   {
     name: 'Pinterest',
     icon: '📌',
