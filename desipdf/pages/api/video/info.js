@@ -237,10 +237,23 @@ async function fetchYouTube(url) {
   }
 
   if (!info || !info.basic_info) {
-    // Innertube completely failed — jump straight to yt-dlp
+    // Innertube completely failed — jump straight to yt-dlp, then Invidious
     console.warn('[YouTube] Innertube failed entirely, trying yt-dlp…')
     const ytDlpPath = await getYtDlpPath()
-    if (ytDlpPath) return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
+    if (ytDlpPath) {
+      try {
+        return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
+      } catch (ytErr) {
+        console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
+      }
+    }
+    // Final fallback: Invidious API
+    console.warn('[YouTube] Trying Invidious API as final fallback…')
+    try {
+      return await fetchYouTubeViaInvidious(videoId, null, null)
+    } catch (invErr) {
+      console.error('[YouTube] Invidious fallback failed:', invErr.message)
+    }
     throw new Error('Could not load video info. The video may be private, deleted, or unavailable in your region.')
   }
 
@@ -343,9 +356,8 @@ async function fetchYouTube(url) {
 async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
   const t = infoTitle || 'YouTube Video'
 
-  // Try multiple Invidious instances in order (community-maintained public servers)
-  // Updated June 2026 — tested for availability from datacenter IPs
-  const instances = [
+  // Default fallback instances:
+  let instances = [
     'https://inv.tux.pizza',
     'https://invidious.nerdvpn.de',
     'https://invidious.privacyredirect.com',
@@ -355,6 +367,28 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
     'https://yewtu.be',
     'https://invidious.privacydev.net',
   ]
+
+  try {
+    const listResp = await fetch('https://api.invidious.io/instances.json')
+    if (listResp.ok) {
+      const listData = await listResp.json()
+      if (Array.isArray(listData)) {
+        // filter for HTTPS instances that have API enabled and high monitor uptime ratio
+        const dynamicInstances = listData
+          .filter(item => {
+            const stats = item[1]
+            return stats && stats.api && stats.type === 'https' && stats.uri
+          })
+          .map(item => item[1].uri)
+          .slice(0, 5)
+        if (dynamicInstances.length > 0) {
+          instances = [...new Set([...dynamicInstances, ...instances])]
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Invidious] Failed to fetch dynamic instances list:', e.message)
+  }
 
   for (const instance of instances) {
     try {
