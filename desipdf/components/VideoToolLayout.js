@@ -29,96 +29,28 @@ function extractYouTubeId(url) {
   return null
 }
 
-async function fetchYouTubeInfoClientSide(videoId) {
-  let instances = [...INVIDIOUS_INSTANCES]
+async function fetchYouTubeInfoOEmbed(videoId) {
   try {
-    const listResp = await fetch('https://api.invidious.io/instances.json')
-    if (listResp.ok) {
-      const listData = await listResp.json()
-      if (Array.isArray(listData)) {
-        const dynamic = listData
-          .filter(item => {
-            const stats = item[1]
-            return stats && stats.api && stats.type === 'https' && stats.uri
-          })
-          .map(item => item[1].uri)
-          .slice(0, 5)
-        if (dynamic.length > 0) {
-          instances = [...new Set([...dynamic, ...instances])]
-        }
-      }
+    const url = `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
+    const resp = await fetch(url)
+    if (!resp.ok) throw new Error(`Status ${resp.status}`)
+    const data = await resp.json()
+    if (data.error) throw new Error(data.error)
+    return {
+      title: data.title || 'YouTube Video',
+      thumbnail: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      platform: 'youtube',
+      videoId: videoId
     }
   } catch (e) {
-    console.warn('[Invidious] Failed to fetch dynamic instances:', e.message)
-  }
-
-  let lastErr = null
-  for (const instance of instances) {
-    try {
-      console.log(`[Client Invidious] Trying ${instance}...`)
-      const resp = await fetch(
-        `${instance}/api/v1/videos/${videoId}?fields=title,videoThumbnails,formatStreams,adaptiveFormats`,
-        {
-          headers: { 'Accept': 'application/json' }
-        }
-      )
-      if (!resp.ok) continue
-      const data = await resp.json()
-      
-      const title = data.title || 'YouTube Video'
-      const thumbnail = data.videoThumbnails?.find(t => t.quality === 'maxres')?.url
-        || data.videoThumbnails?.[0]?.url || null
-
-      const seenQ = new Set()
-      const videoFormats = (data.formatStreams || [])
-        .filter(f => f.type?.startsWith('video/mp4') && f.qualityLabel)
-        .sort((a, b) => (parseInt(b.qualityLabel) || 0) - (parseInt(a.qualityLabel) || 0))
-        .reduce((acc, f) => {
-          if (!seenQ.has(f.qualityLabel)) {
-            seenQ.add(f.qualityLabel)
-            acc.push({
-              quality: f.qualityLabel,
-              ext: 'mp4',
-              size: null,
-              downloadType: 'direct',
-              directUrl: f.url,
-              filename: `${title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'}.mp4`,
-            })
-          }
-          return acc
-        }, [])
-
-      const seenA = new Set()
-      const audioFormats = (data.adaptiveFormats || [])
-        .filter(f => f.type?.startsWith('audio/') && f.bitrate)
-        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
-        .reduce((acc, f) => {
-          const bitrate = Math.round((f.bitrate || 0) / 1000)
-          if (bitrate > 0 && !seenA.has(bitrate)) {
-            seenA.add(bitrate)
-            const ext = f.type?.includes('webm') ? 'webm' : 'm4a'
-            acc.push({
-              quality: `${bitrate}kbps`,
-              ext: ext,
-              size: null,
-              downloadType: 'direct',
-              directUrl: f.url,
-              filename: `${title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'}.${ext}`,
-            })
-          }
-          return acc
-        }, [])
-        .slice(0, 4)
-
-      if (videoFormats.length > 0 || audioFormats.length > 0) {
-        return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
-      }
-    } catch (e) {
-      console.warn(`[Client Invidious] Instance ${instance} failed:`, e.message)
-      lastErr = e
+    console.warn('[oEmbed] Failed to fetch oEmbed:', e.message)
+    return {
+      title: 'YouTube Video',
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      platform: 'youtube',
+      videoId: videoId
     }
   }
-  throw new Error('All Invidious instances failed to resolve video info. The video may be private or unavailable.')
 }
 
 
@@ -273,6 +205,7 @@ export default function VideoToolLayout({ tool, children }) {
   const [dlLoading, setDlLoading] = useState(null) // which format is downloading
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [invidiousInstance, setInvidiousInstance] = useState('https://yewtu.be')
   const inputRef = useRef(null)
 
   const handleFetch = async (e) => {
@@ -285,10 +218,56 @@ export default function VideoToolLayout({ tool, children }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
-      setResult({ ...data, originalUrl: trimmed })
+      const ytId = extractYouTubeId(trimmed)
+      if (ytId) {
+        // Resolve YouTube metadata client-side
+        const ytInfo = await fetchYouTubeInfoOEmbed(ytId)
+        
+        const sanitizedTitle = ytInfo.title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'
+        
+        const videoFormats = [
+          {
+            quality: '720p',
+            ext: 'mp4',
+            downloadType: 'direct',
+            itag: 22,
+            filename: `${sanitizedTitle}_720p.mp4`
+          },
+          {
+            quality: '360p',
+            ext: 'mp4',
+            downloadType: 'direct',
+            itag: 18,
+            filename: `${sanitizedTitle}_360p.mp4`
+          }
+        ]
+        
+        const audioFormats = [
+          {
+            quality: '140kbps',
+            ext: 'm4a',
+            downloadType: 'direct',
+            itag: 140,
+            filename: `${sanitizedTitle}.m4a`
+          }
+        ]
+        
+        setResult({
+          title: ytInfo.title,
+          thumbnail: ytInfo.thumbnail,
+          platform: 'youtube',
+          videoId: ytId,
+          originalUrl: trimmed,
+          videoFormats,
+          audioFormats
+        })
+      } else {
+        // Resolve other platforms via server
+        const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
+        setResult({ ...data, originalUrl: trimmed })
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -421,6 +400,31 @@ export default function VideoToolLayout({ tool, children }) {
               </div>
 
               <div className="p-4 space-y-5">
+                {/* YouTube Download Server/Mirror Dropdown */}
+                {result.platform === 'youtube' && (
+                  <div className="p-3.5 bg-teal-50/50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>⚙️</span> Download Server
+                      </label>
+                      <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
+                        If download fails, switch server below
+                      </span>
+                    </div>
+                    <select
+                      value={invidiousInstance}
+                      onChange={e => setInvidiousInstance(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-teal-200 dark:border-teal-800 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-teal-500 font-medium"
+                    >
+                      {INVIDIOUS_INSTANCES.map((inst) => (
+                        <option key={inst} value={inst}>
+                          {inst.replace('https://', '')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Video formats */}
                 {result.videoFormats?.length > 0 && (
                   <div>
@@ -429,17 +433,23 @@ export default function VideoToolLayout({ tool, children }) {
                       {result.videoFormats.every(f => ['jpg','jpeg','png','gif','webp'].includes(f.ext?.toLowerCase())) ? 'Photo' : 'Video'}
                     </h3>
                     <div>
-                      {result.videoFormats.map((fmt, i) => (
-                        <FormatRow
-                          key={i}
-                          format={fmt}
-                          type="video"
-                          platform={result.platform}
-                          videoUrl={result.originalUrl}
-                          loading={dlLoading}
-                          setLoading={setDlLoading}
-                        />
-                      ))}
+                      {result.videoFormats.map((fmt, i) => {
+                        const updatedFmt = result.platform === 'youtube' && fmt.itag ? {
+                          ...fmt,
+                          directUrl: `${invidiousInstance}/latest_version?id=${result.videoId}&itag=${fmt.itag}&local=true`
+                        } : fmt;
+                        return (
+                          <FormatRow
+                            key={i}
+                            format={updatedFmt}
+                            type="video"
+                            platform={result.platform}
+                            videoUrl={result.originalUrl}
+                            loading={dlLoading}
+                            setLoading={setDlLoading}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -451,17 +461,23 @@ export default function VideoToolLayout({ tool, children }) {
                       <span>🎵</span> Music / Audio
                     </h3>
                     <div>
-                      {result.audioFormats.map((fmt, i) => (
-                        <FormatRow
-                          key={i}
-                          format={fmt}
-                          type="audio"
-                          platform={result.platform}
-                          videoUrl={result.originalUrl}
-                          loading={dlLoading}
-                          setLoading={setDlLoading}
-                        />
-                      ))}
+                      {result.audioFormats.map((fmt, i) => {
+                        const updatedFmt = result.platform === 'youtube' && fmt.itag ? {
+                          ...fmt,
+                          directUrl: `${invidiousInstance}/latest_version?id=${result.videoId}&itag=${fmt.itag}&local=true`
+                        } : fmt;
+                        return (
+                          <FormatRow
+                            key={i}
+                            format={updatedFmt}
+                            type="audio"
+                            platform={result.platform}
+                            videoUrl={result.originalUrl}
+                            loading={dlLoading}
+                            setLoading={setDlLoading}
+                          />
+                        )
+                      })}
                     </div>
                   </div>
                 )}
