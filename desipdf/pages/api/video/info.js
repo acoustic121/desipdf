@@ -265,6 +265,17 @@ async function fetchYouTube(url) {
     .slice(0, 4)
 
   if (!videoFormats.length && !audioFormats.length) {
+    // Innertube returned empty formats — Vercel's AWS IPs are often blocked by YouTube.
+    // Fall back to yt-dlp which handles bot detection better.
+    console.warn('[YouTube] Innertube returned empty formats — trying yt-dlp fallback…')
+    const ytDlpPath = await getYtDlpPath()
+    if (ytDlpPath) {
+      try {
+        return await fetchYouTubeViaYtDlp(url, ytDlpPath, title, thumbnail)
+      } catch (ytErr) {
+        console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
+      }
+    }
     throw new Error('No downloadable formats found. The video may be private, age-restricted, or region-blocked.')
   }
 
@@ -273,7 +284,65 @@ async function fetchYouTube(url) {
 
 }
 
-// ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, etc.) ───────────
+// ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ────────────
+function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytDlpPath, [
+      '--dump-json', '--no-warnings', '--no-playlist', '--skip-download', url
+    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+
+    let stdout = '', stderr = ''
+    proc.stdout.on('data', d => { stdout += d })
+    proc.stderr.on('data', d => { stderr += d })
+
+    proc.on('close', code => {
+      if (code !== 0) { reject(new Error(stderr.slice(-300) || `yt-dlp exited ${code}`)); return }
+      try {
+        const data = JSON.parse(stdout.trim().split('\n')[0])
+        const title = data.title || data.fulltitle || infoTitle || 'YouTube Video'
+        const thumbnail = data.thumbnail || infoThumb || null
+        const fmts = data.formats || []
+
+        // Build quality list from combined formats (no ffmpeg merge needed)
+        const seenH = new Set()
+        const videoFormats = fmts
+          .filter(f => f.vcodec !== 'none' && f.acodec !== 'none' && f.height && f.url)
+          .sort((a, b) => (b.height || 0) - (a.height || 0))
+          .reduce((acc, f) => {
+            if (!seenH.has(f.height)) {
+              seenH.add(f.height)
+              acc.push({
+                quality: `${f.height}p`,
+                ext: f.ext || 'mp4',
+                size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
+                downloadType: 'ytdlp',
+                downloadQuality: `${f.height}p`,
+                filename: makeFilename(title, 'mp4'),
+              })
+            }
+            return acc
+          }, [])
+          .slice(0, 6)
+
+        if (!videoFormats.length) {
+          // Just give a generic best-quality option
+          videoFormats.push({
+            quality: 'Best Available', ext: 'mp4', size: null,
+            downloadType: 'ytdlp', downloadQuality: 'best',
+            filename: makeFilename(title, 'mp4'),
+          })
+        }
+
+        resolve({ title, thumbnail, platform: 'youtube', videoFormats, audioFormats: [] })
+      } catch (e) {
+        reject(new Error(`yt-dlp parse error: ${e.message}`))
+      }
+    })
+    proc.on('error', reject)
+  })
+}
+
+// ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, Pinterest) ─────
 async function fetchWithYtDlp(url, platform) {
   const ytDlpPath = await getYtDlpPath()
   if (!ytDlpPath) throw new Error(`yt-dlp not available for ${platform}`)
@@ -306,18 +375,50 @@ async function fetchWithYtDlp(url, platform) {
         const height = data.height || data.requested_formats?.[0]?.height || null
         const fileSizeApprox = data.filesize_approx || data.filesize || null
 
-        resolve({
-          title, thumbnail, platform,
-          videoFormats: [{
-            quality: height ? `${height}p` : 'HD',
-            ext: 'mp4',
-            size: fileSizeApprox ? formatBytes(fileSizeApprox) : null,
-            downloadType: 'ytdlp',
-            downloadQuality: 'best',
-            filename: makeFilename(title, 'mp4'),
-          }],
-          audioFormats: [],
-        })
+        // ─ For social platforms: extract CDN URL directly from yt-dlp JSON.
+        // This avoids needing to re-run yt-dlp at download time AND avoids ffmpeg.
+        // yt-dlp JSON has either data.url (single combined format) or data.formats[].
+        const fmts = data.formats || []
+
+        // Find best combined format (video + audio in one stream) — no merge needed
+        const combined = fmts
+          .filter(f => f.url && f.vcodec && f.vcodec !== 'none' && f.acodec && f.acodec !== 'none')
+          .sort((a, b) => (b.height || 0) - (a.height || 0) || (b.filesize || b.filesize_approx || 0) - (a.filesize || a.filesize_approx || 0))
+
+        const best = combined[0]  // Best combined format
+        const directUrl = best?.url || data.url  // Fallback: top-level url for single-format videos
+
+        if (directUrl) {
+          const finalHeight = best?.height || height
+          const finalExt   = best?.ext   || data.ext || 'mp4'
+          const finalSize  = best?.filesize || best?.filesize_approx || fileSizeApprox
+          resolve({
+            title, thumbnail, platform,
+            videoFormats: [{
+              quality:      finalHeight ? `${finalHeight}p` : 'HD',
+              ext:          finalExt,
+              size:         finalSize ? formatBytes(finalSize) : null,
+              downloadType: 'direct',   // Proxy the CDN URL — no yt-dlp re-run needed
+              directUrl,
+              filename:     makeFilename(title, finalExt),
+            }],
+            audioFormats: [],
+          })
+        } else {
+          // No combined format with direct URL found — fall back to re-downloading with yt-dlp
+          resolve({
+            title, thumbnail, platform,
+            videoFormats: [{
+              quality: height ? `${height}p` : 'HD',
+              ext: 'mp4',
+              size: fileSizeApprox ? formatBytes(fileSizeApprox) : null,
+              downloadType: 'ytdlp',
+              downloadQuality: 'best',
+              filename: makeFilename(title, 'mp4'),
+            }],
+            audioFormats: [],
+          })
+        }
       } catch (e) {
         reject(new Error(`yt-dlp JSON parse failed: ${e.message}`))
       }
