@@ -11,10 +11,8 @@ export const config = {
 }
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
-// YouTube CDN allows range chunks ≤ ~2MB. Its default (10MB) triggers 403.
-const CHUNK_SIZE = 1024 * 1024 // 1 MB per chunk — stays within CDN limit
 
-// ── Extract URL string from fetch input ────────────────────────────────────────
+// ── Extract URL string from fetch input ───────────────────────────────────────
 function extractUrl(input) {
   if (typeof input === 'string') return input
   if (input instanceof URL) return input.toString()
@@ -24,6 +22,7 @@ function extractUrl(input) {
 }
 
 // ── Normal customFetch: strips all headers for googlevideo CDN ─────────────────
+// YouTube CDN returns 403 when 'referer' or 'origin' is set from a server IP.
 function customFetch(input, init) {
   const url = extractUrl(input)
   if (url && url.includes('googlevideo.com')) {
@@ -55,7 +54,7 @@ async function initYoutubei() {
   return youtubeiPromise
 }
 
-// ── Extract YouTube video ID ─────────────────────────────────────────────────
+// ── Extract YouTube video ID ──────────────────────────────────────────────────
 function extractYouTubeId(url) {
   const patterns = [
     /[?&]v=([A-Za-z0-9_-]{11})/,
@@ -73,20 +72,17 @@ function extractYouTubeId(url) {
 // ── Get deciphered CDN base URL for a given format via fetch interception ──────
 //
 // YouTube CDN URLs are signed — they must be deciphered server-side.
-// YouTubei.js does this internally when download() is called, then uses its own
-// chunked fetcher with 10MB chunks which triggers 403. We intercept the call,
-// capture the deciphered URL, and do our own 1MB chunked download instead.
+// YouTubei.js deciphers them internally when download() is called, but then uses
+// 10MB chunks which trigger 403. We intercept the call, capture the deciphered
+// URL, and do our own small-chunk download instead.
 async function getDecipheredUrl(info, downloadOpts) {
   let captured = null
   const { Innertube } = await initYoutubei()
 
-  // Create a new Innertube instance with a "capture" fetch:
-  // When googlevideo.com is called, save the URL and return a minimal response.
   const captureFetch = (input, init) => {
     const url = extractUrl(input)
     if (url && url.includes('googlevideo.com')) {
       if (!captured) captured = url
-      // Return a fake OK response so youtubei.js doesn't throw
       return Promise.resolve(new Response(
         new ReadableStream({ start(c) { c.close() } }),
         { status: 200, headers: { 'content-type': 'video/mp4', 'content-length': '0' } }
@@ -101,97 +97,104 @@ async function getDecipheredUrl(info, downloadOpts) {
     generate_session_locally: true,
     fetch: captureFetch,
   })
-  // Use the SAME session player as the original info (share the inner state)
-  // by re-fetching info with the capture instance
   const captureInfo = await yt.getInfo(info.basic_info.id, { client: 'MWEB' })
   try { await captureInfo.download(downloadOpts) } catch {}
 
   if (!captured) throw new Error('Could not decipher CDN URL for the requested format')
-  // Strip the range parameter that youtubei.js appended — we'll add our own
-  return captured.replace(/&range=\d+-\d+/, '')
+  return captured.replace(/&range=\d+-\d+/, '') // strip range — we'll add our own
 }
 
-// ── Download from CDN URL in safe 1MB chunks, write to a Node.js writable ──────
+// ── URL-refreshing chunk downloader ──────────────────────────────────────────
 //
-// YouTube CDN blocks requests with range ≥ ~5MB (returns 403).
-// Fetching in 1MB chunks consistently returns 200.
+// YouTube CDN enforces a per-signed-URL byte quota (~28 MB / ~1 min of 4K video).
+// After that limit the CDN returns 403, even though the URL isn't expired.
 //
-// IMPORTANT: do NOT pass the req-close abort signal here during /tmp downloads.
-// The browser hasn't received any bytes yet, so it may drop the connection early,
-// triggering the abort and truncating the download at ~30 MB.
-// Instead we use no signal (let each chunk complete) and retry on transient failures.
-async function downloadInChunks(baseUrl, writable, streamAbortSignal) {
-  // Extract content-length from the URL's clen param (best-effort)
-  let totalSize = 0
-  try {
-    const u = new URL(baseUrl)
-    totalSize = parseInt(u.searchParams.get('clen') || '0', 10) || 0
-  } catch {}
+// Fix: call getUrl() every 24 MB to get a fresh signed URL and continue from the
+// same byte offset. The new signature allows serving any range of the content.
+//
+// `getUrl`   — async () => baseUrl string (no &range param)
+// `writable` — Node.js Writable (file stream or HTTP response)
+// `knownSize` — total bytes expected (from clen URL param), or 0 if unknown
+async function downloadWithRefresh(getUrl, writable, knownSize = 0) {
+  const URL_QUOTA_BYTES = 24 * 1024 * 1024 // refresh every 24 MB (before ~28 MB CDN limit)
+  const CHUNK = 1024 * 1024                // 1 MB per request (CDN blocks ≥ ~5 MB)
+  const HDR = { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9' }
 
   let offset = 0
-  const headers = { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9' }
-  const MAX_RETRIES = 3
+  let urlBytesUsed = 0
+  let currentUrl = await getUrl()
 
   while (true) {
-    // Only abort if explicitly streaming to browser was cancelled (not during /tmp download)
-    if (streamAbortSignal?.aborted) break
+    // ── Proactive URL refresh before hitting the CDN byte quota ──────────────
+    if (urlBytesUsed >= URL_QUOTA_BYTES) {
+      console.log(`[dl] URL refresh at ${(offset / 1e6).toFixed(1)} MB…`)
+      currentUrl = await getUrl()
+      urlBytesUsed = 0
+    }
 
-    const end = offset + CHUNK_SIZE - 1
-    const chunkUrl = `${baseUrl}&range=${offset}-${end}`
+    if (knownSize > 0 && offset >= knownSize) break
 
-    // Fetch without abort signal — each individual chunk must complete fully.
-    // Aborting mid-chunk causes truncation; we handle failures via retry instead.
+    const end = offset + CHUNK - 1
+    let chunkUrl = `${currentUrl}&range=${offset}-${end}`
+
+    // ── Fetch with one URL-refresh retry on 403 ──────────────────────────────
     let resp = null
-    let lastErr = null
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        resp = await globalThis.fetch(chunkUrl, { headers })
+        resp = await globalThis.fetch(chunkUrl, { headers: HDR })
         if (resp.ok) break
-        // 403 at offset > 0 sometimes means we've reached the end of available data
-        if (!resp.ok && offset > 0 && resp.status === 403) {
-          resp = null // treat as end-of-stream
-          break
+
+        if (resp.status === 403) {
+          if (offset === 0) throw new Error('CDN 403 on first chunk — URL invalid')
+          if (attempt === 0) {
+            // Quota hit: get a fresh URL and retry this same chunk
+            console.log(`[dl] 403 at ${(offset / 1e6).toFixed(1)} MB → refreshing URL`)
+            currentUrl = await getUrl()
+            urlBytesUsed = 0
+            chunkUrl = `${currentUrl}&range=${offset}-${end}`
+            continue
+          }
+          // Still 403 after refresh = genuine end or hard block
+          console.log(`[dl] 403 after refresh at ${(offset / 1e6).toFixed(1)} MB — stopping`)
+          resp = null
         }
-        // Other non-ok at offset 0 = real failure
-        if (!resp.ok && offset === 0) {
-          throw new Error(`CDN returned ${resp.status} for first chunk`)
-        }
+        break
       } catch (err) {
-        lastErr = err
-        if (attempt < MAX_RETRIES - 1) await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+        if (attempt === 1) throw err
+        await new Promise(r => setTimeout(r, 400))
       }
     }
 
     if (!resp || !resp.ok) {
-      if (offset === 0) throw lastErr || new Error('Failed to fetch first chunk after retries')
-      break // Treat as end of stream for partial failures mid-download
+      if (offset === 0) throw new Error('CDN rejected first chunk')
+      break
     }
 
     const buf = Buffer.from(await resp.arrayBuffer())
     if (buf.length === 0) break
 
-    const canContinue = writable.write(buf)
-    if (!canContinue) await new Promise(r => writable.once('drain', r))
+    const ok = writable.write(buf)
+    if (!ok) await new Promise(r => writable.once('drain', r))
 
     offset += buf.length
-    if (totalSize > 0 && offset >= totalSize) break
-    if (buf.length < CHUNK_SIZE) break // Last chunk received
+    urlBytesUsed += buf.length
+    if (buf.length < CHUNK) break // last chunk
   }
 
-  console.log(`[chunks] Downloaded ${(offset / 1024 / 1024).toFixed(1)} MB (expected: ${(totalSize / 1024 / 1024).toFixed(1)} MB)`)
+  console.log(`[dl] ✅ ${(offset / 1e6).toFixed(1)} MB / ${knownSize > 0 ? (knownSize / 1e6).toFixed(1) + ' MB' : '?'}`)
 }
 
-// ── Download to a tmp file ────────────────────────────────────────────────────
-// Note: no abortSignal passed — the browser hasn't received any data yet so
-// req.close can fire prematurely. We let each /tmp download complete fully.
-async function downloadToFile(baseUrl, filePath) {
+// ── Download stream to a /tmp file ────────────────────────────────────────────
+// No abort signal — browser hasn't received any data yet so req.close fires
+// prematurely on long downloads.
+async function downloadToFile(getUrl, filePath, knownSize = 0) {
   const fileStream = createWriteStream(filePath)
-  const closePromise = new Promise((res, rej) => {
-    fileStream.on('finish', res)
-    fileStream.on('error', rej)
+  const closePromise = new Promise((resolve, reject) => {
+    fileStream.on('finish', resolve)
+    fileStream.on('error', reject)
   })
   try {
-    await downloadInChunks(baseUrl, fileStream, null) // null = no abort during /tmp download
+    await downloadWithRefresh(getUrl, fileStream, knownSize)
     fileStream.end()
     await closePromise
   } catch (err) {
@@ -200,7 +203,7 @@ async function downloadToFile(baseUrl, filePath) {
   }
 }
 
-// ── Merge with ffmpeg, pipe output to res ────────────────────────────────────
+// ── Merge video + audio with ffmpeg, stream result to browser ─────────────────
 function mergeWithFfmpeg(videoFile, audioFile, res, req) {
   return new Promise((resolve, reject) => {
     const ff = spawn(ffmpegPath, [
@@ -233,14 +236,11 @@ export default async function handler(req, res) {
     filename = 'video.mp4',
     directUrl,
     downloadType,    // 'video' | 'videoOnly' | 'audio'
-    downloadQuality, // e.g. '1080p', '720p', 'best'
+    downloadQuality, // e.g. '2160p', '1080p', '720p', 'best'
   } = req.query
 
   if (!videoUrl && !directUrl) return res.status(400).json({ error: 'videoUrl or directUrl required' })
   const safeFilename = (filename || 'video.mp4').replace(/"/g, '')
-
-  const abortController = new AbortController()
-  req.on('close', () => abortController.abort())
 
   try {
     // ── YouTube ───────────────────────────────────────────────────────────────
@@ -249,7 +249,6 @@ export default async function handler(req, res) {
       if (!videoId) return res.status(400).json({ error: 'Invalid YouTube URL' })
 
       const { Innertube } = await initYoutubei()
-      // Use normal customFetch for getInfo (we need the player data for deciphering)
       const yt = await Innertube.create({
         lang: 'en', location: 'US',
         retrieve_player: true,
@@ -257,54 +256,73 @@ export default async function handler(req, res) {
         fetch: customFetch,
       })
       const info = await yt.getInfo(videoId, { client: 'MWEB' })
-      console.log('[download] Video:', info.basic_info.title?.slice(0, 50), '| type:', downloadType, '| quality:', downloadQuality)
+      console.log(`[download] "${info.basic_info.title?.slice(0, 50)}" | type:${downloadType} quality:${downloadQuality}`)
 
       const isAudio = downloadType === 'audio'
       const isHighQuality = downloadType === 'videoOnly' ||
         (['1080p', '1440p', '2160p', '240p', '144p'].includes(downloadQuality) && downloadType === 'video')
 
-      // ── Audio-only download ─────────────────────────────────────────────────
-      // Get deciphered audio CDN URL, then stream in safe 1MB chunks to browser.
+      // ── Audio-only ─────────────────────────────────────────────────────────
       if (isAudio) {
-        console.log('[download] Audio: capturing deciphered URL…')
-        const audioBaseUrl = await getDecipheredUrl(info, {
-          type: 'audio', quality: 'best', format: 'any', client: 'MWEB'
-        })
-        console.log('[download] ✅ Audio URL captured, streaming in 1MB chunks…')
+        const audioOpts = { type: 'audio', quality: 'best', format: 'any', client: 'MWEB' }
+        console.log('[download] Audio: capturing URL…')
+        const firstUrl = await getDecipheredUrl(info, audioOpts)
+        const clen = parseInt(new URL(firstUrl).searchParams.get('clen') || '0', 10) || 0
+        console.log(`[download] ✅ Audio URL ready, size: ${(clen / 1e6).toFixed(1)} MB`)
 
         res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
         res.setHeader('Content-Type', 'audio/mpeg')
         res.setHeader('Cache-Control', 'no-store')
 
-        await downloadInChunks(audioBaseUrl, res, abortController.signal)
+        let firstUsed = false
+        await downloadWithRefresh(
+          () => { if (!firstUsed) { firstUsed = true; return firstUrl } return getDecipheredUrl(info, audioOpts) },
+          res, clen
+        )
         if (!res.writableEnded) res.end()
         return
       }
 
-      // ── High-quality video (1080p / 1440p / 2160p / 144p / 240p) ──────────
-      // Video-only adaptive + best audio → download both to /tmp → ffmpeg merge
+      // ── High-quality adaptive video (1080p / 1440p / 2160p / 144p / 240p) ──
+      // Video-only stream + audio stream → /tmp → ffmpeg merge → browser
       if (isHighQuality) {
         const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
         const videoTmp = join(tmpdir(), `ytv_${id}.mp4`)
         const audioTmp = join(tmpdir(), `yta_${id}.m4a`)
 
         try {
-          console.log(`[download] HQ video: capturing video URL (${downloadQuality})…`)
-          const videoBaseUrl = await getDecipheredUrl(info, {
-            type: 'video', quality: downloadQuality, format: 'mp4', client: 'MWEB'
-          })
-          console.log(`[download] ✅ Video URL captured, downloading to /tmp…`)
-          await downloadToFile(videoBaseUrl, videoTmp)  // no abort — browser hasn't received data yet
-          console.log('[download] ✅ Video file written')
+          // ── Video ─────────────────────────────────────────────────────────
+          const vOpts = { type: 'video', quality: downloadQuality, format: 'mp4', client: 'MWEB' }
+          console.log(`[download] Capturing video URL (${downloadQuality})…`)
+          const firstVideoUrl = await getDecipheredUrl(info, vOpts)
+          const vClen = parseInt(new URL(firstVideoUrl).searchParams.get('clen') || '0', 10) || 0
+          console.log(`[download] ✅ Video URL ready, size: ${(vClen / 1e6).toFixed(1)} MB`)
 
+          let vFirst = false
+          const getVideoUrl = () => {
+            if (!vFirst) { vFirst = true; return firstVideoUrl }
+            return getDecipheredUrl(info, vOpts)
+          }
+          console.log('[download] Downloading video to /tmp…')
+          await downloadToFile(getVideoUrl, videoTmp, vClen)
+          console.log('[download] ✅ Video written')
+
+          // ── Audio ─────────────────────────────────────────────────────────
+          const aOpts = { type: 'audio', quality: 'best', format: 'any', client: 'MWEB' }
           console.log('[download] Capturing audio URL…')
-          const audioBaseUrl = await getDecipheredUrl(info, {
-            type: 'audio', quality: 'best', format: 'any', client: 'MWEB'
-          })
-          console.log('[download] ✅ Audio URL captured, downloading to /tmp…')
-          await downloadToFile(audioBaseUrl, audioTmp)  // no abort
-          console.log('[download] ✅ Audio file written')
+          const firstAudioUrl = await getDecipheredUrl(info, aOpts)
+          const aClen = parseInt(new URL(firstAudioUrl).searchParams.get('clen') || '0', 10) || 0
+          console.log(`[download] ✅ Audio URL ready, size: ${(aClen / 1e6).toFixed(1)} MB`)
 
+          let aFirst = false
+          const getAudioUrl = () => {
+            if (!aFirst) { aFirst = true; return firstAudioUrl }
+            return getDecipheredUrl(info, aOpts)
+          }
+          await downloadToFile(getAudioUrl, audioTmp, aClen)
+          console.log('[download] ✅ Audio written')
+
+          // ── Merge ─────────────────────────────────────────────────────────
           res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
           res.setHeader('Content-Type', 'video/mp4')
           res.setHeader('Cache-Control', 'no-store')
@@ -321,13 +339,10 @@ export default async function handler(req, res) {
       }
 
       // ── Combined muxed stream (360p, 480p, 720p) ──────────────────────────
-      // These already have audio. Stream directly using youtubei.js's single-fetch path.
-      console.log('[download] Combined stream (single-fetch)…')
+      // Single-fetch path — no range chunking needed, works reliably.
+      console.log('[download] Combined stream…')
       const combinedStream = await info.download({
-        type: 'video+audio',
-        quality: 'best',
-        format: 'any',
-        client: 'MWEB',
+        type: 'video+audio', quality: 'best', format: 'any', client: 'MWEB',
       })
       res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
       res.setHeader('Content-Type', 'video/mp4')
