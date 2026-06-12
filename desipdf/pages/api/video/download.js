@@ -127,10 +127,29 @@ async function ytDlpVideo(videoId, quality, outputPath) {
   // Cookies + web client = authenticated browser session
   // No cookies + tv_embedded = best format coverage without auth
   const cookiePath = '/tmp/yt-cookies.txt'
-  const cookieContent = process.env.YOUTUBE_COOKIES || ''
-  if (cookieContent) { try { writeFileSync(cookiePath, cookieContent) } catch {} }
-  const hasCookies = cookieContent && existsSync(cookiePath)
-  const playerClient = hasCookies ? 'web' : 'tv_embedded'
+  const rawCookies = process.env.YOUTUBE_COOKIES || ''
+  const cookieContent = rawCookies
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim()
+  if (cookieContent) {
+    try {
+      const cookieBody = cookieContent.startsWith('# Netscape')
+        ? cookieContent
+        : '# Netscape HTTP Cookie File\n' + cookieContent
+      writeFileSync(cookiePath, cookieBody + '\n')
+    } catch (e) {
+      console.warn('[yt-dlp] Failed to write cookie file:', e.message)
+    }
+  }
+  const hasCookies = cookieContent.length > 100 && existsSync(cookiePath)
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
+  const playerClient = (hasCookies || poToken) ? 'web' : 'tv_embedded'
+
+  let poTokenExt = ''
+  if (poToken) poTokenExt += `;po_token=${poToken}`
+  if (visitorData) poTokenExt += `;visitor_data=${visitorData}`
 
   // Without ffmpeg: use combined format (no merge needed, max ~720p)
   // With ffmpeg: use separate video+audio streams (supports 1080p+)
@@ -143,7 +162,7 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       `https://www.youtube.com/watch?v=${videoId}`,
       '--format', formatSel,
       '--output', outputPath,
-      '--extractor-args', `youtube:player_client=${playerClient}`,
+      '--extractor-args', `youtube:player_client=${playerClient}${poTokenExt}`,
       '--force-ipv4',
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
@@ -151,7 +170,7 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       // Only pass ffmpeg-location if we know ffmpeg is accessible
       ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
     ]
-    console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no'}, client: ${playerClient})`)
+    console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no'}, client: ${playerClient}${poToken ? ', po_token: yes' : ''})`)
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
@@ -174,10 +193,29 @@ async function ytDlpAudio(videoId, outputPath) {
   const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
 
   const cookiePath = '/tmp/yt-cookies.txt'
-  const cookieContent = process.env.YOUTUBE_COOKIES || ''
-  if (cookieContent) { try { writeFileSync(cookiePath, cookieContent) } catch {} }
-  const hasCookies = cookieContent && existsSync(cookiePath)
-  const playerClient = hasCookies ? 'web' : 'tv_embedded'
+  const rawCookies = process.env.YOUTUBE_COOKIES || ''
+  const cookieContent = rawCookies
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim()
+  if (cookieContent) {
+    try {
+      const cookieBody = cookieContent.startsWith('# Netscape')
+        ? cookieContent
+        : '# Netscape HTTP Cookie File\n' + cookieContent
+      writeFileSync(cookiePath, cookieBody + '\n')
+    } catch (e) {
+      console.warn('[yt-dlp] Failed to write cookie file:', e.message)
+    }
+  }
+  const hasCookies = cookieContent.length > 100 && existsSync(cookiePath)
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
+  const playerClient = (hasCookies || poToken) ? 'web' : 'tv_embedded'
+
+  let poTokenExt = ''
+  if (poToken) poTokenExt += `;po_token=${poToken}`
+  if (visitorData) poTokenExt += `;visitor_data=${visitorData}`
 
   return new Promise((resolve, reject) => {
     const args = ffmpegOk
@@ -186,7 +224,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--format', 'bestaudio/best',
           '--extract-audio', '--audio-format', 'mp3', '--audio-quality', '192K',
           '--output', outputPath,
-          '--extractor-args', `youtube:player_client=${playerClient}`,
+          '--extractor-args', `youtube:player_client=${playerClient}${poTokenExt}`,
           '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--ffmpeg-location', finalFfmpegPath,
@@ -198,7 +236,7 @@ async function ytDlpAudio(videoId, outputPath) {
           `https://www.youtube.com/watch?v=${videoId}`,
           '--format', 'bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best',
           '--output', outputPath.replace(/\.mp3$/, '.m4a'),
-          '--extractor-args', `youtube:player_client=${playerClient}`,
+          '--extractor-args', `youtube:player_client=${playerClient}${poTokenExt}`,
           '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--progress', '--newline',
@@ -273,7 +311,17 @@ async function getDecipheredUrl(info, downloadOpts) {
     }
     return globalThis.fetch(input, init)
   }
-  const yt = await Innertube.create({ lang: 'en', location: 'US', retrieve_player: true, generate_session_locally: true, fetch: captureFetch })
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
+  const yt = await Innertube.create({
+    lang: 'en',
+    location: 'US',
+    retrieve_player: true,
+    generate_session_locally: true,
+    fetch: captureFetch,
+    ...(poToken ? { po_token: poToken } : {}),
+    ...(visitorData ? { visitor_data: visitorData } : {}),
+  })
   const captureInfo = await yt.getInfo(info.basic_info.id, { client: 'MWEB' })
   try { await captureInfo.download(downloadOpts) } catch {}
   if (!captured) throw new Error('Could not decipher CDN URL')
@@ -490,7 +538,17 @@ export default async function handler(req, res) {
 
       // ── Fallback: youtubei.js (works for ≤30 MB files / lower qualities) ──
       const { Innertube } = await initYoutubei()
-      const yt = await Innertube.create({ lang: 'en', location: 'US', retrieve_player: true, generate_session_locally: true, fetch: customFetch })
+      const poToken = process.env.YOUTUBE_PO_TOKEN
+      const visitorData = process.env.YOUTUBE_VISITOR_DATA
+      const yt = await Innertube.create({
+        lang: 'en',
+        location: 'US',
+        retrieve_player: true,
+        generate_session_locally: true,
+        fetch: customFetch,
+        ...(poToken ? { po_token: poToken } : {}),
+        ...(visitorData ? { visitor_data: visitorData } : {}),
+      })
       const info = await yt.getInfo(videoId, { client: 'MWEB' })
       console.log(`[download] "${info.basic_info.title?.slice(0, 50)}" | type:${downloadType} q:${downloadQuality}`)
 

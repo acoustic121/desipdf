@@ -182,12 +182,16 @@ async function fetchYouTube(url) {
   // Innertube uses YouTube's own internal API — much more reliable than ytdl-core
   const { Innertube } = await initYoutubei()
 
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
   const yt = await Innertube.create({
     lang: 'en',
     location: 'US',
     retrieve_player: true,
     generate_session_locally: true,
     fetch: customFetch,
+    ...(poToken ? { po_token: poToken } : {}),
+    ...(visitorData ? { visitor_data: visitorData } : {}),
   })
 
   // Try multiple clients — Vercel IPs get blocked for some clients but not others
@@ -449,15 +453,25 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     })
   }
 
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
+  let poTokenExt = ''
+  if (poToken) poTokenExt += `;po_token=${poToken}`
+  if (visitorData) poTokenExt += `;visitor_data=${visitorData}`
+
   // Strategies in priority order:
-  // 1. web+cookies: cookies pass auth check even on Vercel IPs (most reliable)
-  // 2. tv_embedded: no-cookie client that bypasses bot check on non-datacenter IPs
-  // 3. ios / android: mobile clients as last resort
+  // 1. web+cookies+po_token (if both cookies and po_token are present)
+  // 2. web+cookies
+  // 3. web+po_token (if po_token is present)
+  // 4. tv_embedded: no-cookie client that bypasses bot check on non-datacenter IPs
+  // 5. ios / android: mobile clients as last resort
   const strategies = [
+    ...(hasCookies && poToken ? [{ label: 'web+cookies+po_token', args: ['--extractor-args', `youtube:player_client=web${poTokenExt}`, '--cookies', cookiePath] }] : []),
     ...(hasCookies ? [{ label: 'web+cookies', args: ['--extractor-args', 'youtube:player_client=web', '--cookies', cookiePath] }] : []),
-    { label: 'tv_embedded', args: ['--extractor-args', 'youtube:player_client=tv_embedded'] },
-    { label: 'ios', args: ['--extractor-args', 'youtube:player_client=ios'] },
-    { label: 'android', args: ['--extractor-args', 'youtube:player_client=android'] },
+    ...(poToken ? [{ label: 'web+po_token', args: ['--extractor-args', `youtube:player_client=web${poTokenExt}`] }] : []),
+    { label: 'tv_embedded', args: ['--extractor-args', `youtube:player_client=tv_embedded${poTokenExt}`] },
+    { label: 'ios', args: ['--extractor-args', `youtube:player_client=ios${poTokenExt}`] },
+    { label: 'android', args: ['--extractor-args', `youtube:player_client=android${poTokenExt}`] },
   ]
 
   let lastErr = null

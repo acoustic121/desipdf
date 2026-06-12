@@ -67,7 +67,17 @@ async function getDecipheredUrl(info, downloadOpts) {
     return globalThis.fetch(input, init)
   }
 
-  const yt = await Innertube.create({ lang: 'en', location: 'US', retrieve_player: true, generate_session_locally: true, fetch: captureFetch })
+  const poToken = process.env.YOUTUBE_PO_TOKEN
+  const visitorData = process.env.YOUTUBE_VISITOR_DATA
+  const yt = await Innertube.create({
+    lang: 'en',
+    location: 'US',
+    retrieve_player: true,
+    generate_session_locally: true,
+    fetch: captureFetch,
+    ...(poToken ? { po_token: poToken } : {}),
+    ...(visitorData ? { visitor_data: visitorData } : {}),
+  })
   const captureInfo = await yt.getInfo(info.basic_info.id, { client: 'MWEB' })
   try { await captureInfo.download(downloadOpts) } catch {}
 
@@ -86,7 +96,17 @@ export default async function handler(req, res) {
 
   try {
     const { Innertube } = await initYoutubei()
-    const yt = await Innertube.create({ lang: 'en', location: 'US', retrieve_player: true, generate_session_locally: true, fetch: customFetch })
+    const poToken = process.env.YOUTUBE_PO_TOKEN
+    const visitorData = process.env.YOUTUBE_VISITOR_DATA
+    const yt = await Innertube.create({
+      lang: 'en',
+      location: 'US',
+      retrieve_player: true,
+      generate_session_locally: true,
+      fetch: customFetch,
+      ...(poToken ? { po_token: poToken } : {}),
+      ...(visitorData ? { visitor_data: visitorData } : {}),
+    })
     const info = await yt.getInfo(videoId, { client: 'MWEB' })
 
     const vOpts = { type: 'video', quality: downloadQuality, format: 'mp4', client: 'MWEB' }
