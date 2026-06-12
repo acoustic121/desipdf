@@ -373,20 +373,28 @@ export default async function handler(req, res) {
     if (downloadType === 'ytdlp' && videoUrl) {
       const ytDlpPath = await getYtDlpPath()
       if (!ytDlpPath) return res.status(500).json({ error: 'yt-dlp is not available on this server' })
+      
+      const runtimeFfmpeg = await getFfmpegPath()
+      const ffmpegOk = runtimeFfmpeg && existsSync(runtimeFfmpeg)
+      const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
+      
       const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      // Use %(ext)s template so yt-dlp picks the extension (combined format, no merge needed)
+      // Use %(ext)s template so yt-dlp picks the extension
       const outTemplate = join(tmpdir(), `ytdl_${id}.%(ext)s`)
-      console.log(`[download] yt-dlp generic: ${videoUrl.slice(0, 60)}`)
+      console.log(`[download] yt-dlp generic: ${videoUrl.slice(0, 60)} (ffmpeg: ${ffmpegOk})`)
       try {
         await new Promise((resolve, reject) => {
+          const formatStr = ffmpegOk
+            ? 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best'
+            : 'best[ext=mp4]/best[ext=webm]/bestvideo[ext=mp4]/bestvideo/best'
+            
           const args = [
             videoUrl,
-            // 'best[ext=mp4]' prefers mp4 combined format — no ffmpeg merge needed.
-            // Fallback to 'bestvideo' for platforms like Pinterest that only have separate streams.
-            '--format', 'best[ext=mp4]/best[ext=webm]/bestvideo[ext=mp4]/bestvideo/best',
+            '--format', formatStr,
             '--output', outTemplate,
             '--no-playlist', '--no-warnings',
             '--progress', '--newline',
+            ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', dirname(finalFfmpegPath)] : []),
           ]
           const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
           const stderr = []
