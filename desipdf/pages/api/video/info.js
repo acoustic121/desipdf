@@ -394,9 +394,21 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
 async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   // Write cookies once upfront
   const cookiePath = '/tmp/yt-cookies.txt'
-  const cookieContent = process.env.YOUTUBE_COOKIES || ''
+  const rawCookies = process.env.YOUTUBE_COOKIES || ''
+  // Sanitize: remove \r (Windows line endings), trim whitespace, ensure Netscape header
+  const cookieContent = rawCookies
+    .replace(/\r\n/g, '\n')  // Windows CRLF → Unix LF
+    .replace(/\r/g, '\n')    // stray \r → LF
+    .trim()                   // remove leading/trailing blank lines
   if (cookieContent) {
-    try { require('fs').writeFileSync(cookiePath, cookieContent) } catch (e) {
+    try {
+      // Ensure proper Netscape cookie file header (required by yt-dlp)
+      const cookieBody = cookieContent.startsWith('# Netscape')
+        ? cookieContent
+        : '# Netscape HTTP Cookie File\n' + cookieContent
+      require('fs').writeFileSync(cookiePath, cookieBody + '\n')
+      console.log('[yt-dlp] Cookie file written:', cookieBody.split('\n').length, 'lines')
+    } catch (e) {
       console.warn('[yt-dlp] Failed to write cookie file:', e.message)
     }
   }
