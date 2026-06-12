@@ -424,6 +424,11 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         '--socket-timeout', '8',
         '--retries', '1',
         '--force-ipv4',
+        // CRITICAL: Without -f, yt-dlp tries to select "best" (needs ffmpeg to merge).
+        // Vercel has no ffmpeg -> yt-dlp crashes BEFORE outputting any JSON.
+        // This cascading selector always picks a valid combined format.
+        // The full `formats` array with ALL qualities is still in the JSON output.
+        '-f', 'b[ext=mp4]/b/best[ext=mp4]/best',
         ...extraArgs,
         url,
       ]
@@ -444,10 +449,13 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     })
   }
 
-  // Strategies in priority order
+  // Strategies in priority order:
+  // 1. web+cookies: cookies pass auth check even on Vercel IPs (most reliable)
+  // 2. tv_embedded: no-cookie client that bypasses bot check on non-datacenter IPs
+  // 3. ios / android: mobile clients as last resort
   const strategies = [
-    { label: 'tv_embedded', args: ['--extractor-args', 'youtube:player_client=tv_embedded'] },
     ...(hasCookies ? [{ label: 'web+cookies', args: ['--extractor-args', 'youtube:player_client=web', '--cookies', cookiePath] }] : []),
+    { label: 'tv_embedded', args: ['--extractor-args', 'youtube:player_client=tv_embedded'] },
     { label: 'ios', args: ['--extractor-args', 'youtube:player_client=ios'] },
     { label: 'android', args: ['--extractor-args', 'youtube:player_client=android'] },
   ]
