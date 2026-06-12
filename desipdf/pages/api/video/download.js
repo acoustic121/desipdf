@@ -115,7 +115,12 @@ async function getDecipheredUrl(info, downloadOpts) {
 //
 // YouTube CDN blocks requests with range ≥ ~5MB (returns 403).
 // Fetching in 1MB chunks consistently returns 200.
-async function downloadInChunks(baseUrl, writable, abortSignal) {
+//
+// IMPORTANT: do NOT pass the req-close abort signal here during /tmp downloads.
+// The browser hasn't received any bytes yet, so it may drop the connection early,
+// triggering the abort and truncating the download at ~30 MB.
+// Instead we use no signal (let each chunk complete) and retry on transient failures.
+async function downloadInChunks(baseUrl, writable, streamAbortSignal) {
   // Extract content-length from the URL's clen param (best-effort)
   let totalSize = 0
   try {
@@ -125,16 +130,41 @@ async function downloadInChunks(baseUrl, writable, abortSignal) {
 
   let offset = 0
   const headers = { 'User-Agent': webUA, 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9' }
+  const MAX_RETRIES = 3
 
   while (true) {
-    if (abortSignal?.aborted) break
+    // Only abort if explicitly streaming to browser was cancelled (not during /tmp download)
+    if (streamAbortSignal?.aborted) break
+
     const end = offset + CHUNK_SIZE - 1
     const chunkUrl = `${baseUrl}&range=${offset}-${end}`
 
-    const resp = await globalThis.fetch(chunkUrl, { headers, signal: abortSignal })
-    if (!resp.ok) {
-      if (offset === 0) throw new Error(`CDN returned ${resp.status} for chunk at offset ${offset}`)
-      break // End of stream
+    // Fetch without abort signal — each individual chunk must complete fully.
+    // Aborting mid-chunk causes truncation; we handle failures via retry instead.
+    let resp = null
+    let lastErr = null
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        resp = await globalThis.fetch(chunkUrl, { headers })
+        if (resp.ok) break
+        // 403 at offset > 0 sometimes means we've reached the end of available data
+        if (!resp.ok && offset > 0 && resp.status === 403) {
+          resp = null // treat as end-of-stream
+          break
+        }
+        // Other non-ok at offset 0 = real failure
+        if (!resp.ok && offset === 0) {
+          throw new Error(`CDN returned ${resp.status} for first chunk`)
+        }
+      } catch (err) {
+        lastErr = err
+        if (attempt < MAX_RETRIES - 1) await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+      }
+    }
+
+    if (!resp || !resp.ok) {
+      if (offset === 0) throw lastErr || new Error('Failed to fetch first chunk after retries')
+      break // Treat as end of stream for partial failures mid-download
     }
 
     const buf = Buffer.from(await resp.arrayBuffer())
@@ -145,19 +175,23 @@ async function downloadInChunks(baseUrl, writable, abortSignal) {
 
     offset += buf.length
     if (totalSize > 0 && offset >= totalSize) break
-    if (buf.length < CHUNK_SIZE) break // Last chunk
+    if (buf.length < CHUNK_SIZE) break // Last chunk received
   }
+
+  console.log(`[chunks] Downloaded ${(offset / 1024 / 1024).toFixed(1)} MB (expected: ${(totalSize / 1024 / 1024).toFixed(1)} MB)`)
 }
 
 // ── Download to a tmp file ────────────────────────────────────────────────────
-async function downloadToFile(baseUrl, filePath, abortSignal) {
+// Note: no abortSignal passed — the browser hasn't received any data yet so
+// req.close can fire prematurely. We let each /tmp download complete fully.
+async function downloadToFile(baseUrl, filePath) {
   const fileStream = createWriteStream(filePath)
   const closePromise = new Promise((res, rej) => {
     fileStream.on('finish', res)
     fileStream.on('error', rej)
   })
   try {
-    await downloadInChunks(baseUrl, fileStream, abortSignal)
+    await downloadInChunks(baseUrl, fileStream, null) // null = no abort during /tmp download
     fileStream.end()
     await closePromise
   } catch (err) {
@@ -260,7 +294,7 @@ export default async function handler(req, res) {
             type: 'video', quality: downloadQuality, format: 'mp4', client: 'MWEB'
           })
           console.log(`[download] ✅ Video URL captured, downloading to /tmp…`)
-          await downloadToFile(videoBaseUrl, videoTmp, abortController.signal)
+          await downloadToFile(videoBaseUrl, videoTmp)  // no abort — browser hasn't received data yet
           console.log('[download] ✅ Video file written')
 
           console.log('[download] Capturing audio URL…')
@@ -268,7 +302,7 @@ export default async function handler(req, res) {
             type: 'audio', quality: 'best', format: 'any', client: 'MWEB'
           })
           console.log('[download] ✅ Audio URL captured, downloading to /tmp…')
-          await downloadToFile(audioBaseUrl, audioTmp, abortController.signal)
+          await downloadToFile(audioBaseUrl, audioTmp)  // no abort
           console.log('[download] ✅ Audio file written')
 
           res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
