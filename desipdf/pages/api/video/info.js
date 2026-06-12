@@ -406,13 +406,13 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
       const cookieBody = cookieContent.startsWith('# Netscape')
         ? cookieContent
         : '# Netscape HTTP Cookie File\n' + cookieContent
-      require('fs').writeFileSync(cookiePath, cookieBody + '\n')
+      writeFileSync(cookiePath, cookieBody + '\n')
       console.log('[yt-dlp] Cookie file written:', cookieBody.split('\n').length, 'lines')
     } catch (e) {
       console.warn('[yt-dlp] Failed to write cookie file:', e.message)
     }
   }
-  const hasCookies = cookieContent.length > 100 && require('fs').existsSync(cookiePath)
+  const hasCookies = cookieContent.length > 100 && existsSync(cookiePath)
   console.log(`[yt-dlp] Cookies: ${hasCookies ? 'YES (' + cookieContent.length + ' bytes)' : 'NO'}`)
 
   // Helper: run one yt-dlp attempt with given extra args
