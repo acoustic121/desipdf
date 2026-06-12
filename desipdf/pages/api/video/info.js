@@ -293,7 +293,7 @@ async function fetchYouTube(url) {
     .slice(0, 4)
 
   if (!videoFormats.length && !audioFormats.length) {
-    // Innertube returned empty formats for all clients — fall back to yt-dlp
+    // Innertube returned empty formats for all clients — fall back to yt-dlp, then Cobalt
     console.warn('[YouTube] All Innertube clients returned empty formats — trying yt-dlp fallback…')
     const ytDlpPath = await getYtDlpPath()
     if (ytDlpPath) {
@@ -303,13 +303,87 @@ async function fetchYouTube(url) {
         console.error('[YouTube] yt-dlp fallback failed:', ytErr.message)
       }
     }
+    // Final fallback: Cobalt API (runs on non-AWS infrastructure, not blocked by YouTube)
+    console.warn('[YouTube] Trying Cobalt API as final fallback…')
+    try {
+      return await fetchYouTubeViaCobalt(url, title, thumbnail)
+    } catch (cobaltErr) {
+      console.error('[YouTube] Cobalt fallback failed:', cobaltErr.message)
+    }
     throw new Error('No downloadable formats found. The video may be private, age-restricted, or region-blocked.')
   }
 
   return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
 
-
 }
+
+// ── Cobalt API fallback (final YouTube fallback when Vercel IPs are blocked) ─────
+// cobalt.tools runs on its own infrastructure not flagged by YouTube.
+// Returns tunnel URLs for multiple quality levels.
+async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
+  const t = infoTitle || 'YouTube Video'
+
+  // Request multiple qualities in parallel to give the user options
+  const qualityRequests = [
+    { q: 'max',  label: 'Best Available' },
+    { q: '1080', label: '1080p' },
+    { q: '720',  label: '720p' },
+    { q: '480',  label: '480p' },
+    { q: '360',  label: '360p' },
+  ]
+
+  const settledResults = await Promise.allSettled(
+    qualityRequests.map(async ({ q, label }) => {
+      const resp = await fetch('https://api.cobalt.tools/', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          vQuality: q,
+          downloadMode: 'auto',
+          filenameStyle: 'basic',
+        }),
+        signal: AbortSignal.timeout(12000),
+      })
+      if (!resp.ok) throw new Error(`Cobalt HTTP ${resp.status}`)
+      const data = await resp.json()
+      if (!data.url || !['tunnel', 'redirect', 'stream'].includes(data.status)) {
+        throw new Error(`Cobalt status: ${data.status} | ${data.error?.code || ''}`)
+      }
+      return { q, label, url: data.url, filename: data.filename }
+    })
+  )
+
+  // Deduplicate by URL (Cobalt may return the same tunnel for multiple quality requests)
+  const seen = new Set()
+  const videoFormats = []
+  for (const r of settledResults) {
+    if (r.status !== 'fulfilled') continue
+    const { label, url: directUrl, filename } = r.value
+    if (seen.has(directUrl)) continue
+    seen.add(directUrl)
+    videoFormats.push({
+      quality: label,
+      ext: 'mp4',
+      size: null,
+      downloadType: 'direct',
+      directUrl,
+      filename: filename || makeFilename(t, 'mp4'),
+    })
+  }
+
+  if (!videoFormats.length) {
+    throw new Error('Cobalt could not extract this video. It may be private or unavailable.')
+  }
+
+  console.log(`[YouTube/Cobalt] Got ${videoFormats.length} format(s)`)
+  return { title: t, thumbnail: infoThumb, platform: 'youtube', videoFormats, audioFormats: [] }
+}
+
+
 
 // ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ──────────
 function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
