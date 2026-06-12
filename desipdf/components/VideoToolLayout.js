@@ -70,7 +70,12 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
       <div className="flex items-center gap-3">
         <QualityBadge label={format.quality} type={type} />
         <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 font-medium">
-          {type === 'video' ? `MP4 – ${format.quality}` : `MP3 – ${format.quality}`}
+          {type === 'video'
+            ? (['jpg','jpeg','png','gif','webp'].includes(format.ext?.toLowerCase())
+                ? `${format.ext?.toUpperCase()} – ${format.quality}`
+                : `${format.ext?.toUpperCase() || 'MP4'} – ${format.quality}`)
+            : `MP3 – ${format.quality}`
+          }
         </span>
         {format.size && (
           <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[60px] text-right">{format.size}</span>
@@ -79,10 +84,12 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
           onClick={handleClick}
           disabled={isThisLoading}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all duration-200 shadow-sm
-            ${type === 'video'
-              ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
-              : 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700'
-            }
+            ${(() => {
+              const isPhoto = ['jpg','jpeg','png','gif','webp'].includes(format.ext?.toLowerCase())
+              if (type === 'audio') return 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700'
+              if (isPhoto) return 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
+              return 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+            })()}
             ${isThisLoading ? 'opacity-75 cursor-not-allowed' : ''}
           `}
         >
@@ -268,7 +275,8 @@ export default function VideoToolLayout({ tool, children }) {
                 {result.videoFormats?.length > 0 && (
                   <div>
                     <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                      <span>📹</span> Video
+                    <span>{result.videoFormats.every(f => ['jpg','jpeg','png','gif','webp'].includes(f.ext?.toLowerCase())) ? '📸' : '📹'}</span>
+                      {result.videoFormats.every(f => ['jpg','jpeg','png','gif','webp'].includes(f.ext?.toLowerCase())) ? 'Photo' : 'Video'}
                     </h3>
                     <div>
                       {result.videoFormats.map((fmt, i) => (
