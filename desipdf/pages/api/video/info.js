@@ -472,43 +472,139 @@ async function fetchWithYtDlp(url, platform) {
   })
 }
 
-// ── Instagram fallback: OG meta tags via Facebook bot UA ─────────────────────
-// Instagram reliably serves og:image / og:video to Facebook's crawler
-// because FB itself embeds Instagram posts — no auth needed for public posts.
+// ── Instagram fallback: extract full-res media from page/embed sources ────────
+// og:image is always a center-cropped square thumbnail — we need display_url
+// from Instagram's embedded JSON which has the actual uncropped full-res image.
 async function fetchInstagramOG(url) {
   const match = url.match(/instagram\.com\/(?:p|reel|tv|stories\/[^/]+)\/([A-Za-z0-9_-]+)/)
   if (!match) throw new Error('Invalid Instagram URL. Please use a direct post link (e.g. instagram.com/p/...).')
   const shortcode = match[1]
 
-  const unescape = s => s
+  const unesc = s => s
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/\\\\/g, '\\')
+    .replace(/\\n/g, '').replace(/\\t/g, '')
 
-  // ── Approach 1: OG meta tags with Facebook crawler UA ────────────────────
+  // ── Helper: parse the best result from an HTML blob ──────────────────────
+  function parseFromHtml(html) {
+    // 1) Try display_url from embedded JSON — this is the FULL-RES UNCROPPED image
+    //    Instagram embeds JSON data in <script> tags on the page
+    const displayUrlPatterns = [
+      /"display_url"\s*:\s*"([^"]+)"/,
+      /"display_src"\s*:\s*"([^"]+)"/,
+      /,"display_url":"([^"]+)"/,
+    ]
+    for (const pat of displayUrlPatterns) {
+      const m = html.match(pat)
+      if (m) {
+        const imgUrl = unesc(m[1])
+        if (imgUrl.startsWith('http') && (imgUrl.includes('cdninstagram') || imgUrl.includes('scontent') || imgUrl.includes('fbcdn'))) {
+          console.log('[Instagram] Found display_url (full-res) in page JSON')
+          return { type: 'image', url: imgUrl }
+        }
+      }
+    }
+
+    // 2) Try video_url from embedded JSON
+    const videoUrlPatterns = [
+      /"video_url"\s*:\s*"([^"]+)"/,
+      /"video_src"\s*:\s*"([^"]+)"/,
+    ]
+    for (const pat of videoUrlPatterns) {
+      const m = html.match(pat)
+      if (m) {
+        const vidUrl = unesc(m[1])
+        if (vidUrl.startsWith('http')) {
+          console.log('[Instagram] Found video_url in page JSON')
+          return { type: 'video', url: vidUrl }
+        }
+      }
+    }
+
+    // 3) OG video
+    const ogVideo = html.match(/<meta[^>]+property="og:video(?::secure_url)?"[^>]+content="([^"]+)"/) ||
+                    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:video/)
+    if (ogVideo) {
+      const vidUrl = unesc(ogVideo[1])
+      if (vidUrl.startsWith('http')) {
+        console.log('[Instagram] Found video via og:video')
+        return { type: 'video', url: vidUrl }
+      }
+    }
+
+    // 4) OG image as last resort (will be cropped square, but better than nothing)
+    const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) ||
+                    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    if (ogImage) {
+      const imgUrl = unesc(ogImage[1])
+      if (imgUrl.startsWith('http') && (imgUrl.includes('cdninstagram') || imgUrl.includes('scontent') || imgUrl.includes('fbcdn'))) {
+        console.log('[Instagram] Using og:image fallback (may be square crop)')
+        return { type: 'image', url: imgUrl }
+      }
+    }
+
+    return null
+  }
+
+  // ── Helper: extract title from HTML ──────────────────────────────────────
+  function parseTitle(html) {
+    const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/) ||
+                    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:title"/) ||
+                    html.match(/<title>([^<]+)<\/title>/)
+    return ogTitle
+      ? unesc(ogTitle[1]).replace(/ on Instagram.*/, '').replace(/@\w+:\s*/, '').slice(0, 80).trim()
+      : 'Instagram Media'
+  }
+
+  function parseThumbnail(html) {
+    const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) ||
+                    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    return ogImage ? unesc(ogImage[1]) : null
+  }
+
+  // ── Strategy 1: /media/?size=l — direct redirect to full-res image ────────
+  // This endpoint often redirects to the original uncropped image for public posts
+  try {
+    const mediaResp = await fetch(`https://www.instagram.com/p/${shortcode}/media/?size=l`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/*,*/*',
+      },
+      redirect: 'follow',
+    })
+    if (mediaResp.ok) {
+      const finalUrl = mediaResp.url
+      const ct = mediaResp.headers.get('content-type') || ''
+      if (finalUrl && finalUrl !== `https://www.instagram.com/p/${shortcode}/media/?size=l` && ct.startsWith('image/')) {
+        console.log('[Instagram] Got full-res image via /media/?size=l redirect')
+        return {
+          title: 'Instagram Photo', thumbnail: finalUrl, platform: 'instagram',
+          videoFormats: [{
+            quality: 'Original', ext: 'jpg', size: null,
+            downloadType: 'direct', directUrl: finalUrl,
+            filename: makeFilename('Instagram Photo', 'jpg'),
+          }],
+          audioFormats: [],
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Instagram] /media/?size=l failed:', e.message.slice(0, 60))
+  }
+
+  // ── Strategy 2-4: Fetch page with various bot UAs, look for display_url ──
   const attempts = [
     {
       fetchUrl: `https://www.instagram.com/p/${shortcode}/`,
-      headers: {
-        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-        'Accept': 'text/html',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: { 'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
     },
     {
       fetchUrl: `https://www.instagram.com/p/${shortcode}/`,
-      headers: {
-        'User-Agent': 'Twitterbot/1.0',
-        'Accept': 'text/html',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: { 'User-Agent': 'Twitterbot/1.0', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
     },
     {
       fetchUrl: `https://www.instagram.com/p/${shortcode}/embed/captioned/`,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-        'Accept': 'text/html',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
     },
   ]
 
@@ -518,70 +614,33 @@ async function fetchInstagramOG(url) {
       if (!resp.ok) continue
       const html = await resp.text()
 
-      // Extract title
-      const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/) ||
-                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:title"/)
-      const title = ogTitle ? unescape(ogTitle[1]).replace(/ on Instagram.*/, '').replace(/@\w+:\s*/, '').slice(0, 80).trim() : 'Instagram Media'
+      const title = parseTitle(html)
+      const thumbnail = parseThumbnail(html)
+      const found = parseFromHtml(html)
 
-      // Extract thumbnail
-      const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) ||
-                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-      const thumbnail = ogImage ? unescape(ogImage[1]) : null
-
-      // Check for video first
-      const ogVideo = html.match(/<meta[^>]+property="og:video(?::secure_url)?"[^>]+content="([^"]+)"/) ||
-                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:video/) ||
-                      html.match(/"video_url"\s*:\s*"([^"]+)"/) ||
-                      html.match(/<video[^>]+src="([^"]+)"/)
-
-      if (ogVideo) {
-        const videoUrl = unescape(ogVideo[1])
-        console.log(`[Instagram] Found video via OG (${attempt.fetchUrl.includes('embed') ? 'embed' : 'OG'})`)
+      if (found) {
+        const isVideo = found.type === 'video'
         return {
-          title, thumbnail, platform: 'instagram',
+          title, thumbnail: thumbnail || (found.type === 'image' ? found.url : null), platform: 'instagram',
           videoFormats: [{
-            quality: 'HD', ext: 'mp4', size: null,
-            downloadType: 'direct', directUrl: videoUrl,
-            filename: makeFilename(title, 'mp4'),
-          }],
-          audioFormats: [],
-        }
-      }
-
-      // Photo post: upgrade og:image to full resolution by stripping Instagram CDN size prefix
-      // og:image is a cropped square thumbnail e.g. s640x640/sh0.08/e35/photo.jpg
-      // Full res original is the same URL without the sNNNxNNN/ and shX.XX/ segments
-      if (thumbnail && (thumbnail.includes('cdninstagram') || thumbnail.includes('scontent') || thumbnail.includes('fbcdn'))) {
-        const ext = thumbnail.includes('.png') ? 'png' : 'jpg'
-
-        // Try to build the full-resolution URL by removing size restrictions
-        // Pattern: /sNNNxNNN/ and /shX.XX/ are thumbnail-only path segments
-        let fullResUrl = thumbnail
-          .replace(/\/s\d+x\d+\//g, '/')   // remove /s640x640/ etc
-          .replace(/\/sh\d+\.\d+\//g, '/')  // remove /sh0.08/ etc
-          .replace(/\/p\d+x\d+\//g, '/')    // remove /p1080x1080/ etc
-
-        // If the URL changed, use it; otherwise fall back to the original thumbnail
-        const directUrl = fullResUrl !== thumbnail ? fullResUrl : thumbnail
-
-        console.log(`[Instagram] Found image via OG (full-res: ${fullResUrl !== thumbnail})`)
-        return {
-          title, thumbnail, platform: 'instagram',
-          videoFormats: [{
-            quality: 'Original', ext, size: null,
-            downloadType: 'direct', directUrl,
-            filename: makeFilename(title, ext),
+            quality: isVideo ? 'HD' : 'Original',
+            ext: isVideo ? 'mp4' : 'jpg',
+            size: null,
+            downloadType: 'direct',
+            directUrl: found.url,
+            filename: makeFilename(title, isVideo ? 'mp4' : 'jpg'),
           }],
           audioFormats: [],
         }
       }
     } catch (e) {
-      console.warn(`[Instagram] OG attempt failed (${attempt.fetchUrl}):`, e.message.slice(0, 80))
+      console.warn(`[Instagram] Attempt failed (${attempt.fetchUrl.slice(0, 50)}):`, e.message.slice(0, 60))
     }
   }
 
   throw new Error('Could not extract this Instagram post. It may be private, require login, or be a carousel/multi-image post. Please try a single public photo or video post.')
 }
+
 
 async function fetchInstagram(url) {
   const ytDlpPath = await getYtDlpPath()
