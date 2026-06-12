@@ -75,13 +75,53 @@ const _ytDlpPromise = (async () => {
 
 const getYtDlpPath = () => _ytDlpPromise
 
+/// ── ffmpeg: find locally or download to /tmp on Lambda cold start ────────────
+const TMP_FFMPEG = '/tmp/ffmpeg-bin'
+let _ffmpegPromise = null
+
+async function getFfmpegPath() {
+  if (ffmpegPath && existsSync(ffmpegPath)) return ffmpegPath
+  if (existsSync(TMP_FFMPEG)) return TMP_FFMPEG
+  
+  if (_ffmpegPromise) return _ffmpegPromise
+  
+  _ffmpegPromise = (async () => {
+    const p = process.platform, a = process.arch
+    const archName = a === 'arm64' ? 'arm64' : 'x64'
+    const osName = p === 'win32' ? 'win32' : p
+    const ext = p === 'win32' ? '.exe' : ''
+    
+    // We use eugeneware/ffmpeg-static binaries which are highly compatible
+    const url = `https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-${osName}-${archName}${ext}`
+    
+    try {
+      console.log(`[ffmpeg] Downloading for ${p}/${a} from ${url}…`)
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const buf = await res.arrayBuffer()
+      writeFileSync(TMP_FFMPEG, Buffer.from(buf))
+      chmodSync(TMP_FFMPEG, 0o755)
+      
+      const ver = execFileSync(TMP_FFMPEG, ['-version'], { encoding: 'utf8' }).toString().split('\n')[0]
+      console.log(`[ffmpeg] Ready: ${ver}`)
+      return TMP_FFMPEG
+    } catch (e) {
+      console.error('[ffmpeg] Download failed:', e.message)
+      return null
+    }
+  })()
+  return _ffmpegPromise
+}
+
 // ── Download video with yt-dlp ────────────────────────────────────────
 async function ytDlpVideo(videoId, quality, outputPath) {
   const ytDlpPath = await getYtDlpPath()
   if (!ytDlpPath) throw new Error('yt-dlp not available')
 
-  // Check if ffmpeg is accessible (it may not be bundled on Vercel)
-  const ffmpegOk = ffmpegPath && existsSync(ffmpegPath)
+  // Check if ffmpeg is accessible (dynamically fetch if on Vercel)
+  const runtimeFfmpeg = await getFfmpegPath()
+  const ffmpegOk = runtimeFfmpeg && existsSync(runtimeFfmpeg)
+  const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
   const height = parseInt(quality?.replace('p', '') || '1080', 10)
 
   // Without ffmpeg: use combined format (no merge needed, max ~720p)
@@ -99,7 +139,7 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
       // Only pass ffmpeg-location if we know ffmpeg is accessible
-      ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', dirname(ffmpegPath)] : []),
+      ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', dirname(finalFfmpegPath)] : []),
     ]
     console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no (combined format)'})`)
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -119,7 +159,9 @@ async function ytDlpAudio(videoId, outputPath) {
   const ytDlpPath = await getYtDlpPath()
   if (!ytDlpPath) throw new Error('yt-dlp not available')
 
-  const ffmpegOk = ffmpegPath && existsSync(ffmpegPath)
+  const runtimeFfmpeg = await getFfmpegPath()
+  const ffmpegOk = runtimeFfmpeg && existsSync(runtimeFfmpeg)
+  const finalFfmpegPath = ffmpegOk ? runtimeFfmpeg : ffmpegPath
   return new Promise((resolve, reject) => {
     const args = ffmpegOk
       ? [
@@ -129,7 +171,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--output', outputPath,
           '--extractor-args', 'youtube:player_client=android,web',
           '--no-playlist', '--no-warnings',
-          '--ffmpeg-location', dirname(ffmpegPath),
+          '--ffmpeg-location', dirname(finalFfmpegPath),
           '--progress', '--newline',
         ]
       : [
@@ -280,9 +322,12 @@ async function downloadToFile(getUrl, filePath, knownSize = 0) {
 }
 
 // ── Merge with ffmpeg, pipe to response ──────────────────────────────────────
-function mergeWithFfmpeg(videoFile, audioFile, res, req) {
+async function mergeWithFfmpeg(videoFile, audioFile, res, req) {
+  const runtimeFfmpeg = await getFfmpegPath()
+  const finalFfmpegPath = (runtimeFfmpeg && existsSync(runtimeFfmpeg)) ? runtimeFfmpeg : ffmpegPath
+
   return new Promise((resolve, reject) => {
-    const ff = spawn(ffmpegPath, [
+    const ff = spawn(finalFfmpegPath, [
       '-y', '-i', videoFile, '-i', audioFile,
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
       '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
