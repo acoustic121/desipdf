@@ -472,14 +472,112 @@ async function fetchWithYtDlp(url, platform) {
   })
 }
 
+// ── Instagram embed fallback (no auth needed for public posts) ─────────────
+async function fetchInstagramEmbed(url) {
+  const match = url.match(/instagram\.com\/(?:p|reel|tv|stories\/[^/]+)\/([A-Za-z0-9_-]+)/)
+  if (!match) throw new Error('Invalid Instagram URL. Please use a direct post link (e.g. instagram.com/p/...).')
+  const shortcode = match[1]
+
+  const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/captioned/`
+  let html = ''
+  try {
+    const resp = await fetch(embedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://www.instagram.com/',
+      },
+    })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    html = await resp.text()
+  } catch (e) {
+    throw new Error('Could not reach Instagram. The post may be private or require login.')
+  }
+
+  // Unescape unicode sequences in the HTML blob
+  const unescape = s => s.replace(/\\u0026/g, '&').replace(/\\u003c/g, '<').replace(/\\u003e/g, '>').replace(/\\\//g, '/').replace(/\\\\/g, '\\')
+
+  // ── Try to extract video URL ────────────────────────────────────────────────
+  const videoPatterns = [
+    /"video_url"\s*:\s*"([^"]+)"/,
+    /class="[^"]*EmbedVideo[^"]*"[^>]*src="([^"]+)"/,
+    /<video[^>]+src="([^"]+)"/,
+  ]
+  for (const pattern of videoPatterns) {
+    const m = html.match(pattern)
+    if (m) {
+      const videoUrl = unescape(m[1])
+      const titleMatch = html.match(/"text"\s*:\s*"([^"]{1,120})"/) || html.match(/<title>([^<]+)<\/title>/)
+      const title = titleMatch ? unescape(titleMatch[1]).replace(/ on Instagram.*/, '').slice(0, 80).trim() : 'Instagram Video'
+      const thumbMatch = html.match(/"display_url"\s*:\s*"([^"]+)"/) || html.match(/<img[^>]+src="(https:\/\/[^"]+cdninstagram[^"]+)"/)
+      const thumbnail = thumbMatch ? unescape(thumbMatch[1]) : null
+
+      return {
+        title,
+        thumbnail,
+        platform: 'instagram',
+        videoFormats: [{
+          quality: 'HD',
+          ext: 'mp4',
+          size: null,
+          downloadType: 'direct',
+          directUrl: videoUrl,
+          filename: makeFilename(title, 'mp4'),
+        }],
+        audioFormats: [],
+      }
+    }
+  }
+
+  // ── Try to extract image URL ────────────────────────────────────────────────
+  const imgPatterns = [
+    /"display_url"\s*:\s*"([^"]+)"/,
+    /src="(https:\/\/[^"]+\.cdninstagram\.com[^"]+\.jpg[^"]*)"/,
+    /src="(https:\/\/[^"]+scontent[^"]+\.jpg[^"]*)"/,
+    /<img[^>]+src="(https:\/\/[^"]+(?:cdninstagram|scontent)[^"]+)"/,
+  ]
+  for (const pattern of imgPatterns) {
+    const m = html.match(pattern)
+    if (m) {
+      const imgUrl = unescape(m[1])
+      const ext = imgUrl.includes('.png') ? 'png' : 'jpg'
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/)
+      const title = titleMatch ? unescape(titleMatch[1]).replace(/ on Instagram.*/, '').slice(0, 80).trim() : 'Instagram Photo'
+
+      return {
+        title,
+        thumbnail: imgUrl,
+        platform: 'instagram',
+        videoFormats: [{
+          quality: 'Original',
+          ext,
+          size: null,
+          downloadType: 'direct',
+          directUrl: imgUrl,
+          filename: makeFilename(title, ext),
+        }],
+        audioFormats: [],
+      }
+    }
+  }
+
+  throw new Error('Could not extract media from this Instagram post. The post may be private or require login.')
+}
+
 async function fetchInstagram(url) {
   const ytDlpPath = await getYtDlpPath()
   if (ytDlpPath) {
-    return await fetchWithYtDlp(url, 'instagram')
+    try {
+      return await fetchWithYtDlp(url, 'instagram')
+    } catch (err) {
+      console.warn('[Instagram] yt-dlp failed, trying embed fallback:', err.message.slice(0, 120))
+    }
   }
-  // Legacy fallback (unreliable — embed page frequently broken by Instagram)
-  throw new Error('Could not extract Instagram video. Please try again later.')
+  // Fallback: scrape Instagram's public embed page (works for public posts without auth)
+  return await fetchInstagramEmbed(url)
 }
+
 
 async function fetchTikTok(url) {
   const ytDlpPath = await getYtDlpPath()
