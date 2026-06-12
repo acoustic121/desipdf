@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@heroicons/react": "^2.1.3",
     "@pdfsmaller/pdf-encrypt-lite": "^1.0.2",
     "@supabase/supabase-js": "^2.43.4",
