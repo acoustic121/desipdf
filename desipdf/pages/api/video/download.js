@@ -95,6 +95,7 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       `https://www.youtube.com/watch?v=${videoId}`,
       '--format', formatSel,
       '--output', outputPath,
+      '--extractor-args', 'youtube:player_client=android,web',
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
       // Only pass ffmpeg-location if we know ffmpeg is accessible
@@ -126,6 +127,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--format', 'bestaudio/best',
           '--extract-audio', '--audio-format', 'mp3', '--audio-quality', '192K',
           '--output', outputPath,
+          '--extractor-args', 'youtube:player_client=android,web',
           '--no-playlist', '--no-warnings',
           '--ffmpeg-location', dirname(ffmpegPath),
           '--progress', '--newline',
@@ -135,6 +137,7 @@ async function ytDlpAudio(videoId, outputPath) {
           `https://www.youtube.com/watch?v=${videoId}`,
           '--format', 'bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best',
           '--output', outputPath.replace(/\.mp3$/, '.m4a'),
+          '--extractor-args', 'youtube:player_client=android,web',
           '--no-playlist', '--no-warnings',
           '--progress', '--newline',
         ]
@@ -334,8 +337,8 @@ export default async function handler(req, res) {
           const args = [
             videoUrl,
             // 'best[ext=mp4]' prefers mp4 combined format — no ffmpeg merge needed.
-            // Fallback to 'best' for platforms like Pinterest with non-mp4 combined formats.
-            '--format', 'best[ext=mp4]/best[ext=webm]/best',
+            // Fallback to 'bestvideo' for platforms like Pinterest that only have separate streams.
+            '--format', 'best[ext=mp4]/best[ext=webm]/bestvideo[ext=mp4]/bestvideo/best',
             '--output', outTemplate,
             '--no-playlist', '--no-warnings',
             '--progress', '--newline',

@@ -288,7 +288,9 @@ async function fetchYouTube(url) {
 function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   return new Promise((resolve, reject) => {
     const proc = spawn(ytDlpPath, [
-      '--dump-json', '--no-warnings', '--no-playlist', '--skip-download', url
+      '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
+      '--extractor-args', 'youtube:player_client=android,web',
+      url
     ], { stdio: ['ignore', 'pipe', 'pipe'] })
 
     let stdout = '', stderr = ''
