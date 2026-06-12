@@ -1,126 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-
-// ── ffmpeg.wasm browser-side download (for 1080p+ adaptive streams) ────────────
-//
-// YouTube CDN rate-limits server IPs to ~30 MB per adaptive stream session.
-// Solution: server deciphers the signed URL, browser fetches directly from CDN
-// (residential IP = no rate limit), ffmpeg.wasm merges video + audio.
-
-const FFMPEG_CORE_URL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js'
-const FFMPEG_WASM_URL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
-
-// Fetch a stream from YouTube CDN in chunks (4 MB each — safe for browser IP)
-async function fetchStreamInChunks(baseUrl, totalSize, onProgress) {
-  const CHUNK = 4 * 1024 * 1024 // 4 MB per request
-  const chunks = []
-  let downloaded = 0
-
-  while (true) {
-    const end = totalSize > 0
-      ? Math.min(downloaded + CHUNK - 1, totalSize - 1)
-      : downloaded + CHUNK - 1
-    const resp = await fetch(`${baseUrl}&range=${downloaded}-${end}`, {
-      headers: { 'Accept': '*/*' },
-    })
-    if (!resp.ok) {
-      if (downloaded === 0) throw new Error(`CDN returned ${resp.status}`)
-      break
-    }
-    const buf = await resp.arrayBuffer()
-    if (buf.byteLength === 0) break
-    chunks.push(new Uint8Array(buf))
-    downloaded += buf.byteLength
-    onProgress?.(downloaded, totalSize)
-    if (downloaded >= totalSize && totalSize > 0) break
-    if (buf.byteLength < CHUNK) break
-  }
-
-  // Concatenate all chunks into a single Uint8Array
-  const total = chunks.reduce((s, c) => s + c.byteLength, 0)
-  const out = new Uint8Array(total)
-  let pos = 0
-  for (const c of chunks) { out.set(c, pos); pos += c.byteLength }
-  return out
-}
-
-async function downloadHighQualityBrowser({ format, videoUrl, filename, onStatus, onProgress }) {
-  // Phase 1: Get deciphered CDN URLs from server
-  onStatus('Getting stream URLs…', 0)
-  const params = new URLSearchParams({
-    videoUrl,
-    downloadType: format.downloadType,
-    downloadQuality: format.downloadQuality,
-  })
-  const urlRes = await fetch(`/api/video/get-urls?${params}`)
-  if (!urlRes.ok) {
-    const err = await urlRes.json().catch(() => ({}))
-    throw new Error(err.error || 'Failed to get stream URLs')
-  }
-  const { videoStreamUrl, audioStreamUrl, videoSize, audioSize } = await urlRes.json()
-
-  // Phase 2: Load ffmpeg.wasm (cached by browser after first load)
-  onStatus('Loading video merger…', 2)
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg')
-  const { toBlobURL } = await import('@ffmpeg/util')
-  const ffmpeg = new FFmpeg()
-
-  try {
-    await ffmpeg.load({
-      coreURL: await toBlobURL(FFMPEG_CORE_URL, 'text/javascript'),
-      wasmURL: await toBlobURL(FFMPEG_WASM_URL, 'application/wasm'),
-    })
-  } catch {
-    // Fallback: try loading without BlobURL (some environments block blob:)
-    await ffmpeg.load({ coreURL: FFMPEG_CORE_URL, wasmURL: FFMPEG_WASM_URL })
-  }
-
-  // Phase 3: Download video directly from YouTube CDN (browser IP — no rate limit)
-  const mbStr = videoSize > 0 ? ` (${(videoSize / 1e6).toFixed(0)} MB)` : ''
-  onStatus(`Downloading ${format.quality} video${mbStr}…`, 5)
-  const videoData = await fetchStreamInChunks(videoStreamUrl, videoSize, (dl, total) => {
-    const pct = total > 0 ? Math.round((dl / total) * 75) + 5 : 5
-    onStatus(`Downloading video… ${(dl / 1e6).toFixed(0)}/${(total / 1e6).toFixed(0)} MB`, pct)
-  })
-  await ffmpeg.writeFile('video.mp4', videoData)
-
-  // Phase 4: Download audio
-  onStatus('Downloading audio…', 80)
-  const audioData = await fetchStreamInChunks(audioStreamUrl, audioSize, (dl, total) => {
-    const pct = total > 0 ? Math.round((dl / total) * 8) + 80 : 80
-    onStatus(`Downloading audio… ${(dl / 1e6).toFixed(1)} MB`, pct)
-  })
-  await ffmpeg.writeFile('audio.m4a', audioData)
-
-  // Phase 5: Merge with ffmpeg.wasm
-  onStatus('Merging video and audio…', 88)
-  await ffmpeg.exec([
-    '-i', 'video.mp4',
-    '-i', 'audio.m4a',
-    '-c:v', 'copy',
-    '-c:a', 'aac', '-b:a', '192k',
-    '-movflags', '+faststart',
-    'output.mp4',
-  ])
-
-  // Phase 6: Save file
-  onStatus('Saving…', 98)
-  const outputData = await ffmpeg.readFile('output.mp4')
-  const blob = new Blob([outputData.buffer], { type: 'video/mp4' })
-  const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = objectUrl
-  a.download = filename || `video_${format.quality}.mp4`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-
-  // Cleanup ffmpeg memory
-  try { await ffmpeg.deleteFile('video.mp4'); await ffmpeg.deleteFile('audio.m4a'); await ffmpeg.deleteFile('output.mp4') } catch {}
-  onStatus('Done!', 100)
-}
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
@@ -128,7 +8,6 @@ function buildDownloadHref({ format, platform, videoUrl }) {
   const params = new URLSearchParams()
   params.set('filename', format.filename || 'video.mp4')
   params.set('platform', platform)
-
   if (format.downloadType === 'direct' && format.directUrl) {
     params.set('directUrl', format.directUrl)
   } else if (platform === 'youtube') {
@@ -136,7 +15,6 @@ function buildDownloadHref({ format, platform, videoUrl }) {
     params.set('downloadType', format.downloadType || 'video')
     params.set('downloadQuality', format.downloadQuality || 'best')
   }
-
   return `/api/video/download?${params.toString()}`
 }
 
@@ -148,38 +26,23 @@ function QualityBadge({ label, type }) {
 
 function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
   const [status, setStatus] = useState('')
-  const [progress, setProgress] = useState(0)
   const apiHref = buildDownloadHref({ format, platform, videoUrl })
   const isThisLoading = loading === format.quality
 
-  const handleClick = useCallback(async (e) => {
+  const handleClick = async (e) => {
     e.preventDefault()
     if (isThisLoading) return
     setLoading(format.quality)
-    setStatus('')
-    setProgress(0)
+    setStatus('Preparing…')
 
     try {
-      // ── High-quality adaptive video: browser-side ffmpeg.wasm download ───────
-      // Server-side download is limited to ~30 MB per CDN session.
-      // Browser fetches directly from YouTube CDN, no such limit.
-      if (platform === 'youtube' && format.downloadType === 'videoOnly') {
-        await downloadHighQualityBrowser({
-          format,
-          videoUrl,
-          filename: format.filename,
-          onStatus: (msg, pct) => { setStatus(msg); setProgress(pct) },
-        })
-        return
-      }
-
-      // ── Server-side download for all other formats ────────────────────────────
-      setStatus('Downloading…')
+      // All downloads go through our server API (yt-dlp handles HQ YouTube server-side)
       const res = await fetch(apiHref)
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || `Server error ${res.status}`)
       }
+      setStatus('Saving…')
       const blob = await res.blob()
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -194,12 +57,11 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
     } finally {
       setLoading(null)
       setStatus('')
-      setProgress(0)
     }
-  }, [isThisLoading, format, platform, videoUrl, apiHref, type, setLoading])
+  }
 
   return (
-    <div className="py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+    <div className="py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
       <div className="flex items-center gap-3">
         <QualityBadge label={format.quality} type={type} />
         <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 font-medium">
@@ -225,7 +87,7 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span>Working…</span>
+              <span>{status || 'Working…'}</span>
             </>
           ) : (
             <>
@@ -237,30 +99,11 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
           )}
         </button>
       </div>
-
-      {/* Progress bar — shown during browser-side HQ download */}
-      {isThisLoading && status && (
-        <div className="mt-2 ml-[76px]">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{status}</span>
-            {progress > 0 && <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{progress}%</span>}
-          </div>
-          {progress > 0 && (
-            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
 
 
-// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function VideoToolLayout({ tool, children }) {
   const [url, setUrl] = useState('')
