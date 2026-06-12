@@ -444,24 +444,72 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
 
 
 
+function convertToNetscape(raw) {
+  const input = raw.trim()
+  if (!input) return ''
+
+  // 1. If it's already Netscape format
+  if (input.includes('# Netscape') || (input.includes('.youtube.com') && input.split('\n').some(line => line.split(/\s+/).length >= 6))) {
+    return input.startsWith('# Netscape') ? input : '# Netscape HTTP Cookie File\n' + input
+  }
+
+  // 2. If it's JSON format
+  if (input.startsWith('[') && input.endsWith(']')) {
+    try {
+      const arr = JSON.parse(input)
+      if (Array.isArray(arr)) {
+        let out = '# Netscape HTTP Cookie File\n'
+        for (const item of arr) {
+          const domain = item.domain || '.youtube.com'
+          const includeSubdomains = domain.startsWith('.') ? 'TRUE' : 'FALSE'
+          const path = item.path || '/'
+          const secure = item.secure ? 'TRUE' : 'FALSE'
+          const expiration = item.expirationDate || item.expiry || Math.round(Date.now() / 1000) + 31536000
+          const name = item.name
+          const value = item.value
+          if (name && value !== undefined) {
+            out += `${domain}\t${includeSubdomains}\t${path}\t${secure}\t${expiration}\t${name}\t${value}\n`
+          }
+        }
+        return out
+      }
+    } catch (e) {
+      console.warn('[cookies] Failed to parse JSON cookies:', e.message)
+    }
+  }
+
+  // 3. If it's raw Header format (key=value; key=value)
+  if (input.includes('=') && (input.includes(';') || !input.includes('\n'))) {
+    let out = '# Netscape HTTP Cookie File\n'
+    const pairs = input.split(';')
+    const expiry = Math.round(Date.now() / 1000) + 31536000
+    for (const pair of pairs) {
+      const idx = pair.indexOf('=')
+      if (idx > -1) {
+        const name = pair.slice(0, idx).trim()
+        const value = pair.slice(idx + 1).trim()
+        if (name && value) {
+          out += `.youtube.com\tTRUE\t/\tTRUE\t${expiry}\t${name}\t${value}\n`
+        }
+      }
+    }
+    return out
+  }
+
+  return input.startsWith('# Netscape') ? input : '# Netscape HTTP Cookie File\n' + input
+}
+
 // ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ──────────
 async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   // Write cookies once upfront
   const cookiePath = '/tmp/yt-cookies.txt'
   const rawCookies = process.env.YOUTUBE_COOKIES || ''
-  // Sanitize: remove \r (Windows line endings), trim whitespace, ensure Netscape header
-  const cookieContent = rawCookies
-    .replace(/\r\n/g, '\n')  // Windows CRLF → Unix LF
-    .replace(/\r/g, '\n')    // stray \r → LF
-    .trim()                   // remove leading/trailing blank lines
+  
+  const cookieContent = convertToNetscape(rawCookies)
   if (cookieContent) {
     try {
-      // Ensure proper Netscape cookie file header (required by yt-dlp)
-      const cookieBody = cookieContent.startsWith('# Netscape')
-        ? cookieContent
-        : '# Netscape HTTP Cookie File\n' + cookieContent
-      writeFileSync(cookiePath, cookieBody + '\n')
-      console.log('[yt-dlp] Cookie file written:', cookieBody.split('\n').length, 'lines')
+      writeFileSync(cookiePath, cookieContent + '\n')
+      console.log('[yt-dlp] Cookie file written:', cookieContent.split('\n').length, 'lines')
     } catch (e) {
       console.warn('[yt-dlp] Failed to write cookie file:', e.message)
     }
