@@ -4,6 +4,124 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
+const INVIDIOUS_INSTANCES = [
+  'https://inv.tux.pizza',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.privacyredirect.com',
+  'https://inv.in.projectsegfau.lt',
+  'https://invidious.asir.dev',
+  'https://inv.nadeko.net',
+  'https://yewtu.be',
+  'https://invidious.privacydev.net'
+]
+
+function extractYouTubeId(url) {
+  const patterns = [
+    /[?&]v=([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+  ]
+  for (const p of patterns) {
+    const m = url.match(p)
+    if (m) return m[1]
+  }
+  return null
+}
+
+async function fetchYouTubeInfoClientSide(videoId) {
+  let instances = [...INVIDIOUS_INSTANCES]
+  try {
+    const listResp = await fetch('https://api.invidious.io/instances.json')
+    if (listResp.ok) {
+      const listData = await listResp.json()
+      if (Array.isArray(listData)) {
+        const dynamic = listData
+          .filter(item => {
+            const stats = item[1]
+            return stats && stats.api && stats.type === 'https' && stats.uri
+          })
+          .map(item => item[1].uri)
+          .slice(0, 5)
+        if (dynamic.length > 0) {
+          instances = [...new Set([...dynamic, ...instances])]
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Invidious] Failed to fetch dynamic instances:', e.message)
+  }
+
+  let lastErr = null
+  for (const instance of instances) {
+    try {
+      console.log(`[Client Invidious] Trying ${instance}...`)
+      const resp = await fetch(
+        `${instance}/api/v1/videos/${videoId}?fields=title,videoThumbnails,formatStreams,adaptiveFormats`,
+        {
+          headers: { 'Accept': 'application/json' }
+        }
+      )
+      if (!resp.ok) continue
+      const data = await resp.json()
+      
+      const title = data.title || 'YouTube Video'
+      const thumbnail = data.videoThumbnails?.find(t => t.quality === 'maxres')?.url
+        || data.videoThumbnails?.[0]?.url || null
+
+      const seenQ = new Set()
+      const videoFormats = (data.formatStreams || [])
+        .filter(f => f.type?.startsWith('video/mp4') && f.qualityLabel)
+        .sort((a, b) => (parseInt(b.qualityLabel) || 0) - (parseInt(a.qualityLabel) || 0))
+        .reduce((acc, f) => {
+          if (!seenQ.has(f.qualityLabel)) {
+            seenQ.add(f.qualityLabel)
+            acc.push({
+              quality: f.qualityLabel,
+              ext: 'mp4',
+              size: null,
+              downloadType: 'direct',
+              directUrl: f.url,
+              filename: `${title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'}.mp4`,
+            })
+          }
+          return acc
+        }, [])
+
+      const seenA = new Set()
+      const audioFormats = (data.adaptiveFormats || [])
+        .filter(f => f.type?.startsWith('audio/') && f.bitrate)
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
+        .reduce((acc, f) => {
+          const bitrate = Math.round((f.bitrate || 0) / 1000)
+          if (bitrate > 0 && !seenA.has(bitrate)) {
+            seenA.add(bitrate)
+            const ext = f.type?.includes('webm') ? 'webm' : 'm4a'
+            acc.push({
+              quality: `${bitrate}kbps`,
+              ext: ext,
+              size: null,
+              downloadType: 'direct',
+              directUrl: f.url,
+              filename: `${title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'}.${ext}`,
+            })
+          }
+          return acc
+        }, [])
+        .slice(0, 4)
+
+      if (videoFormats.length > 0 || audioFormats.length > 0) {
+        return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
+      }
+    } catch (e) {
+      console.warn(`[Client Invidious] Instance ${instance} failed:`, e.message)
+      lastErr = e
+    }
+  }
+  throw new Error('All Invidious instances failed to resolve video info. The video may be private or unavailable.')
+}
+
+
 function buildDownloadHref({ format, platform, videoUrl }) {
   const params = new URLSearchParams()
   params.set('filename', format.filename || 'video.mp4')
@@ -167,10 +285,19 @@ export default function VideoToolLayout({ tool, children }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
-      setResult({ ...data, originalUrl: trimmed })
+      const isYouTube = /youtube\.com|youtu\.be/.test(trimmed)
+      if (isYouTube) {
+        const videoId = extractYouTubeId(trimmed)
+        if (!videoId) throw new Error('Invalid YouTube URL. Please enter a valid YouTube video link.')
+        console.log('[YouTube] Fetching info client-side via Invidious...')
+        const data = await fetchYouTubeInfoClientSide(videoId)
+        setResult({ ...data, originalUrl: trimmed })
+      } else {
+        const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
+        setResult({ ...data, originalUrl: trimmed })
+      }
     } catch (err) {
       setError(err.message)
     } finally {
