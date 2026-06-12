@@ -52,9 +52,7 @@ const aiTools = [
   { name: 'Translate PDF', href: '/tools/translate-pdf', icon: '🌏' },
 ]
 const videoTools = [
-  { name: '▶️ YouTube Downloader', href: '/tools/video/youtube-downloader' },
-  { name: '⚡ YouTube Shorts', href: '/tools/video/youtube-shorts-downloader' },
-  { name: '🎵 YouTube to MP3', href: '/tools/video/youtube-to-mp3' },
+
   { name: '📸 Instagram Downloader', href: '/tools/video/instagram-downloader' },
   { name: '🎞️ Instagram Reels', href: '/tools/video/instagram-reels-downloader' },
   { name: '👥 Facebook Downloader', href: '/tools/video/facebook-downloader' },
@@ -62,17 +60,6 @@ const videoTools = [
   { name: '📌 Pinterest Downloader', href: '/tools/video/pinterest-downloader' },
 ]
 
-const ytTools = [
-  { name: 'YouTube Downloader', href: '/tools/video/youtube-downloader', icon: '▶️' },
-  { name: 'YouTube Video', href: '/tools/video/youtube-video-downloader', icon: '📹' },
-  { name: 'YouTube Shorts', href: '/tools/video/youtube-shorts-downloader', icon: '⚡' },
-  { name: 'YouTube to MP3', href: '/tools/video/youtube-to-mp3', icon: '🎵' },
-  { name: 'YouTube Audio', href: '/tools/video/youtube-audio-downloader', icon: '🔊' },
-  { name: 'YouTube Song', href: '/tools/video/youtube-song-downloader', icon: '🎶' },
-  { name: 'YouTube to MP4', href: '/tools/video/youtube-to-mp4', icon: '💾' },
-  { name: 'YouTube Music', href: '/tools/video/youtube-music-downloader', icon: '🎼' },
-  { name: 'YouTube Movies', href: '/tools/video/youtube-movies-downloader', icon: '🎥' },
-]
 
 const igTools = [
   { name: 'Instagram Downloader', href: '/tools/video/instagram-downloader', icon: '📸' },
@@ -167,24 +154,7 @@ export default function Header() {
             <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-bold text-slate-700 dark:text-slate-200">
               <Link href="/tools/video-downloader" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Home</Link>
               
-              {/* YouTube Dropdown */}
-              <div className="relative group py-5">
-                <button className="flex items-center gap-1 group-hover:text-red-600 transition-colors uppercase">
-                  YouTube
-                  <svg className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </button>
-                <div className="absolute left-0 top-full w-[240px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl p-3 z-50 transition-all duration-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0">
-                  <div className="space-y-1">
-                    {ytTools.map(t => (
-                      <Link key={t.href} href={t.href} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg hover:text-red-600 transition-all">
-                        <span>{t.icon}</span> {t.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
+
 
               {/* Instagram Dropdown */}
               <div className="relative group py-5">

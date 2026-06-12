@@ -138,7 +138,7 @@ export default function Home() {
             <div className="flex-1 text-center sm:text-left">
               <div className="inline-flex items-center gap-2 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">🆕 New Tool</div>
               <h2 className="text-2xl font-extrabold text-white">Free All Video Downloader</h2>
-              <p className="text-cyan-100 text-sm mt-1">Download from YouTube, Instagram, Facebook & Pinterest — MP4 or MP3, any quality</p>
+              <p className="text-cyan-100 text-sm mt-1">Download from Instagram, Facebook & Pinterest — MP4 or MP3, any quality</p>
             </div>
             <div className="flex-shrink-0 flex items-center gap-2 bg-white text-teal-700 font-bold px-5 py-2.5 rounded-xl shadow text-sm group-hover:bg-cyan-50 transition-colors">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

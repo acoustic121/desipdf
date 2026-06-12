@@ -4,54 +4,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
-const DEFAULT_COBALT_INSTANCES = [
-  'https://cobaltapi.kittycat.boo',
-  'https://dog.kittycat.boo',
-  'https://rue-cobalt.xenon.zone',
-  'https://fox.kittycat.boo',
-  'https://nuko-c.meowing.de',
-  'https://api.qwkuns.me',
-  'https://cobalt.omega.wolfy.love',
-  'https://cobaltapi.squair.xyz'
-]
 
-function extractYouTubeId(url) {
-  const patterns = [
-    /[?&]v=([A-Za-z0-9_-]{11})/,
-    /youtu\.be\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
-  ]
-  for (const p of patterns) {
-    const m = url.match(p)
-    if (m) return m[1]
-  }
-  return null
-}
-
-async function fetchYouTubeInfoOEmbed(videoId) {
-  try {
-    const url = `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
-    const resp = await fetch(url)
-    if (!resp.ok) throw new Error(`Status ${resp.status}`)
-    const data = await resp.json()
-    if (data.error) throw new Error(data.error)
-    return {
-      title: data.title || 'YouTube Video',
-      thumbnail: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-      platform: 'youtube',
-      videoId: videoId
-    }
-  } catch (e) {
-    console.warn('[oEmbed] Failed to fetch oEmbed:', e.message)
-    return {
-      title: 'YouTube Video',
-      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-      platform: 'youtube',
-      videoId: videoId
-    }
-  }
-}
 
 
 function buildDownloadHref({ format, platform, videoUrl }) {
@@ -65,10 +18,6 @@ function buildDownloadHref({ format, platform, videoUrl }) {
     // Instagram, TikTok, Facebook via yt-dlp — re-download at click time
     params.set('videoUrl', videoUrl)
     params.set('downloadType', 'ytdlp')
-  } else if (platform === 'youtube') {
-    params.set('videoUrl', videoUrl)
-    params.set('downloadType', format.downloadType || 'video')
-    params.set('downloadQuality', format.downloadQuality || 'best')
   }
   return `/api/video/download?${params.toString()}`
 }
@@ -79,7 +28,7 @@ function QualityBadge({ label, type }) {
   return <span className={`${base} bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300`}>{label}</span>
 }
 
-function FormatRow({ format, type, platform, videoUrl, loading, setLoading, cobaltInstance }) {
+function FormatRow({ format, type, platform, videoUrl, loading, setLoading }) {
   const [status, setStatus] = useState('')
   const apiHref = buildDownloadHref({ format, platform, videoUrl })
   const isThisLoading = loading === format.quality
@@ -91,69 +40,7 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading, coba
     setStatus('Preparing…')
 
     try {
-      if (platform === 'youtube') {
-        setStatus('Connecting…')
-        const cobaltUrl = cobaltInstance || 'https://cobaltapi.kittycat.boo'
-        
-        const res = await fetch(cobaltUrl, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            url: videoUrl,
-            downloadMode: type === 'audio' ? 'audio' : 'auto',
-            videoQuality: format.quality === 'HD' ? 'max' : (format.quality.replace(/\D/g, '') || 'max'),
-            audioFormat: 'mp3'
-          })
-        })
 
-        if (!res.ok) {
-          throw new Error(`Server returned HTTP ${res.status}`)
-        }
-        
-        const data = await res.json()
-        if (data.status === 'error') {
-          throw new Error(data.error?.code || data.text || 'The selected download server is currently overloaded. Please switch servers using the dropdown above and try again.')
-        }
-
-        const downloadUrl = data.url
-        if (!downloadUrl) {
-          throw new Error('No download link was returned by the server.')
-        }
-
-        // Now download the file using the returned URL
-        try {
-          setStatus('Saving…')
-          const fileRes = await fetch(downloadUrl)
-          if (fileRes.ok) {
-            const blob = await fileRes.blob()
-            const objectUrl = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = objectUrl
-            a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-            return
-          }
-        } catch (corsErr) {
-          console.warn('[direct download] CORS block or fetch failed, falling back to new tab:', corsErr.message)
-        }
-
-        // Fallback: open direct URL in a new tab using user's home IP
-        const a = document.createElement('a')
-        a.href = downloadUrl
-        a.target = '_blank'
-        a.rel = 'noopener noreferrer'
-        a.download = format.filename || (type === 'audio' ? 'audio.mp3' : 'video.mp4')
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        return
-      }
 
       if (format.downloadType === 'direct' && format.directUrl) {
         // Instagram (legacy), TikTok, Facebook, Pinterest — proxy the CDN URL
@@ -269,33 +156,7 @@ export default function VideoToolLayout({ tool, children }) {
   const [dlLoading, setDlLoading] = useState(null) // which format is downloading
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [cobaltInstance, setCobaltInstance] = useState('https://cobaltapi.kittycat.boo')
-  const [cobaltInstancesList, setCobaltInstancesList] = useState(DEFAULT_COBALT_INSTANCES)
   const inputRef = useRef(null)
-
-  useEffect(() => {
-    async function loadInstances() {
-      try {
-        const res = await fetch('https://cobalt.directory/api/working?type=api')
-        if (res.ok) {
-          const json = await res.json()
-          const list = json.data?.youtube || []
-          if (list.length > 0) {
-            const unique = [...new Set(list)].filter(url => url.startsWith('http'))
-            if (unique.length > 0) {
-              setCobaltInstancesList(unique)
-              setCobaltInstance(current => 
-                !unique.includes(current) ? unique[0] : current
-              )
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch dynamic Cobalt instances:', err)
-      }
-    }
-    loadInstances()
-  }, [])
 
   const handleFetch = async (e) => {
     e.preventDefault()
@@ -307,53 +168,11 @@ export default function VideoToolLayout({ tool, children }) {
     setError(null)
 
     try {
-      const ytId = extractYouTubeId(trimmed)
-      if (ytId) {
-        // Resolve YouTube metadata client-side
-        const ytInfo = await fetchYouTubeInfoOEmbed(ytId)
-        
-        const sanitizedTitle = ytInfo.title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '_') || 'video'
-        
-        const videoFormats = [
-          {
-            quality: '720p',
-            ext: 'mp4',
-            downloadType: 'direct',
-            filename: `${sanitizedTitle}_720p.mp4`
-          },
-          {
-            quality: '360p',
-            ext: 'mp4',
-            downloadType: 'direct',
-            filename: `${sanitizedTitle}_360p.mp4`
-          }
-        ]
-        
-        const audioFormats = [
-          {
-            quality: '140kbps',
-            ext: 'm4a',
-            downloadType: 'direct',
-            filename: `${sanitizedTitle}.m4a`
-          }
-        ]
-        
-        setResult({
-          title: ytInfo.title,
-          thumbnail: ytInfo.thumbnail,
-          platform: 'youtube',
-          videoId: ytId,
-          originalUrl: trimmed,
-          videoFormats,
-          audioFormats
-        })
-      } else {
-        // Resolve other platforms via server
-        const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
-        setResult({ ...data, originalUrl: trimmed })
-      }
+      // Resolve platforms via server
+      const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
+      setResult({ ...data, originalUrl: trimmed })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -486,30 +305,6 @@ export default function VideoToolLayout({ tool, children }) {
               </div>
 
               <div className="p-4 space-y-5">
-                {/* YouTube Download Server/Mirror Dropdown */}
-                {result.platform === 'youtube' && (
-                  <div className="p-3.5 bg-teal-50/50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>⚙️</span> Download Server
-                      </label>
-                      <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
-                        If download fails, switch server below
-                      </span>
-                    </div>
-                    <select
-                      value={cobaltInstance}
-                      onChange={e => setCobaltInstance(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-teal-200 dark:border-teal-800 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-teal-500 font-medium"
-                    >
-                      {cobaltInstancesList.map((inst) => (
-                        <option key={inst} value={inst}>
-                          {inst.replace('https://', '')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
 
                 {/* Video formats */}
                 {result.videoFormats?.length > 0 && (
@@ -528,7 +323,6 @@ export default function VideoToolLayout({ tool, children }) {
                           videoUrl={result.originalUrl}
                           loading={dlLoading}
                           setLoading={setDlLoading}
-                          cobaltInstance={cobaltInstance}
                         />
                       ))}
                     </div>
@@ -551,7 +345,6 @@ export default function VideoToolLayout({ tool, children }) {
                           videoUrl={result.originalUrl}
                           loading={dlLoading}
                           setLoading={setDlLoading}
-                          cobaltInstance={cobaltInstance}
                         />
                       ))}
                     </div>

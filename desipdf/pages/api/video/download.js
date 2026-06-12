@@ -342,30 +342,7 @@ function customFetch(input, init) {
   return fetchWithProxy(input, init)
 }
 
-let youtubeiPromise = null
-async function initYoutubei() {
-  if (youtubeiPromise) return youtubeiPromise
-  youtubeiPromise = (async () => {
-    const { Innertube, Platform } = await import('youtubei.js')
-    Platform.shim.eval = function (data, args) {
-      try { return vm.runInContext(`(function(){${data.output}})()`, vm.createContext({ ...args })) }
-      catch (e) { console.error('VM eval:', e); throw e }
-    }
-    return { Innertube }
-  })()
-  return youtubeiPromise
-}
 
-function extractYouTubeId(url) {
-  const patterns = [
-    /[?&]v=([A-Za-z0-9_-]{11})/,
-    /youtu\.be\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
-  ]
-  for (const p of patterns) { const m = url.match(p); if (m) return m[1] }
-  return null
-}
 
 async function getDecipheredUrl(info, downloadOpts) {
   let captured = null

@@ -7,24 +7,6 @@ import SeoHead from '../../components/SeoHead'
 
 const PLATFORMS = [
   {
-    name: 'YouTube',
-    icon: '▶️',
-    color: 'from-red-500 to-rose-600',
-    bg: 'bg-red-50 dark:bg-red-950/20',
-    border: 'border-red-100 dark:border-red-900/40',
-    tools: [
-      { name: 'YouTube Downloader', href: '/tools/video/youtube-downloader', icon: '🎬' },
-      { name: 'YouTube Video Downloader', href: '/tools/video/youtube-video-downloader', icon: '📹' },
-      { name: 'YouTube Shorts Downloader', href: '/tools/video/youtube-shorts-downloader', icon: '⚡' },
-      { name: 'YouTube to MP3', href: '/tools/video/youtube-to-mp3', icon: '🎵' },
-      { name: 'YouTube Audio Downloader', href: '/tools/video/youtube-audio-downloader', icon: '🔊' },
-      { name: 'YouTube Song Downloader', href: '/tools/video/youtube-song-downloader', icon: '🎶' },
-      { name: 'YouTube to MP4', href: '/tools/video/youtube-to-mp4', icon: '💾' },
-      { name: 'YouTube Music Downloader', href: '/tools/video/youtube-music-downloader', icon: '🎼' },
-      { name: 'YouTube Movies Downloader', href: '/tools/video/youtube-movies-downloader', icon: '🎥' },
-    ],
-  },
-  {
     name: 'Instagram',
     icon: '📸',
     color: 'from-pink-500 to-fuchsia-600',
@@ -65,7 +47,7 @@ const PLATFORMS = [
 ]
 
 const SUPPORTED_PLATFORMS = [
-  { name: 'YouTube', icon: '▶️', href: '/tools/video/youtube-downloader', desc: 'Download YouTube videos, shorts & music' },
+
   { name: 'Facebook', icon: '👥', href: '/tools/video/facebook-downloader', desc: 'Download Facebook videos & reels' },
   { name: 'Instagram', icon: '📸', href: '/tools/video/instagram-downloader', desc: 'Download reels, stories & photos' },
 
@@ -84,20 +66,20 @@ export default function VideoDownloaderHub() {
     if (!trimmed) return
 
     // Auto-detect platform and route to the appropriate tool
-    if (/youtube\.com|youtu\.be/.test(trimmed)) router.push(`/tools/video/youtube-downloader?url=${encodeURIComponent(trimmed)}`)
+
     else if (/instagram\.com/.test(trimmed)) router.push(`/tools/video/instagram-downloader?url=${encodeURIComponent(trimmed)}`)
 
     else if (/facebook\.com|fb\.watch/.test(trimmed)) router.push(`/tools/video/facebook-downloader?url=${encodeURIComponent(trimmed)}`)
     else if (/pinterest\.com|pin\.it/.test(trimmed)) router.push(`/tools/video/pinterest-downloader?url=${encodeURIComponent(trimmed)}`)
-    else router.push(`/tools/video/youtube-downloader?url=${encodeURIComponent(trimmed)}`)
+    else router.push(`/tools/video/instagram-downloader?url=${encodeURIComponent(trimmed)}`)
   }
 
   return (
     <>
       <SeoHead
-        title="Free All Video Downloader – Download YouTube, Instagram, Facebook & Pinterest Videos"
-        description="Download videos from YouTube, Instagram, Facebook, and Pinterest for free. No signup required. Choose MP4 quality or extract MP3 audio instantly."
-        keywords="video downloader, youtube downloader, instagram downloader, facebook video downloader, pinterest downloader, mp4 download, mp3 download"
+        title="Free All Video Downloader – Download Instagram, Facebook & Pinterest Videos"
+        description="Download videos from Instagram, Facebook, and Pinterest for free. No signup required. Choose MP4 quality or extract MP3 audio instantly."
+        keywords="video downloader, instagram downloader, facebook video downloader, pinterest downloader, mp4 download, mp3 download"
         canonical="/tools/video-downloader"
       />
 
@@ -226,7 +208,7 @@ export default function VideoDownloaderHub() {
         </div>
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { step: '1', icon: '📋', title: 'Copy the Video Link', desc: 'Find the video on YouTube, Instagram, or Facebook. Tap Share → Copy link.' },
+            { step: '1', icon: '📋', title: 'Copy the Video Link', desc: 'Find the video on Instagram, or Facebook. Tap Share → Copy link.' },
             { step: '2', icon: '⬇️', title: 'Paste & Click Download', desc: 'Paste the copied URL into the box above, then click the Download button.' },
             { step: '3', icon: '💾', title: 'Choose Quality & Save', desc: 'Select your preferred format (MP4 or MP3) and quality, then save to your device.' },
           ].map(s => (
@@ -252,7 +234,7 @@ export default function VideoDownloaderHub() {
           {[
             { icon: '⚡', title: 'Instant Analysis', desc: 'Paste a link and get all available download formats in seconds.' },
             { icon: '📱', title: 'Works on Any Device', desc: 'Download on mobile, tablet, or desktop — no extra apps needed.' },
-            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports YouTube, Instagram, Facebook, Pinterest and more.' },
+            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports Instagram, Facebook, Pinterest and more.' },
             { icon: '🎯', title: 'Flexible Quality', desc: 'Pick the quality you want — from 144p up to 1080p+ when available.' },
             { icon: '🔒', title: 'Privacy-First', desc: 'No data storage. Your links are processed privately and never saved.' },
             { icon: '🆓', title: 'Completely Free', desc: 'No signup, no watermarks, no limits. 100% free forever.' },
