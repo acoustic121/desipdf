@@ -51,6 +51,16 @@ const aiTools = [
   { name: 'AI Summarizer', href: '/tools/ai-summarizer', icon: '🤖' },
   { name: 'Translate PDF', href: '/tools/translate-pdf', icon: '🌏' },
 ]
+const videoTools = [
+  { name: '▶️ YouTube Downloader', href: '/tools/video/youtube-downloader' },
+  { name: '⚡ YouTube Shorts', href: '/tools/video/youtube-shorts-downloader' },
+  { name: '🎵 YouTube to MP3', href: '/tools/video/youtube-to-mp3' },
+  { name: '📸 Instagram Downloader', href: '/tools/video/instagram-downloader' },
+  { name: '🎞️ Instagram Reels', href: '/tools/video/instagram-reels-downloader' },
+  { name: '👥 Facebook Downloader', href: '/tools/video/facebook-downloader' },
+  { name: '🎵 TikTok Downloader', href: '/tools/video/tiktok-downloader' },
+  { name: '📌 Pinterest Downloader', href: '/tools/video/pinterest-downloader' },
+]
 
 export default function Header() {
   const [dark, setDark] = useState(false)
@@ -265,6 +275,26 @@ export default function Header() {
 
               </div>
             </div>
+
+            {/* Video Downloader */}
+            <div className="relative group py-5">
+              <Link href="/tools/video-downloader" className="flex items-center gap-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors uppercase">
+                🎬 Video
+                <svg className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </Link>
+              <div className="absolute right-0 top-full w-[240px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl p-3 z-50 transition-all duration-200 ease-in-out opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0">
+                <Link href="/tools/video-downloader" className="block px-3 py-2 text-xs font-bold text-teal-600 dark:text-teal-400 border-b border-gray-100 dark:border-gray-800 mb-1">All Video Tools →</Link>
+                <div className="space-y-0.5">
+                  {videoTools.map(t => (
+                    <Link key={t.href} href={t.href} className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-950/20 rounded-lg hover:text-teal-600 transition-all">
+                      {t.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </nav>
 
           {/* Right Controls - extreme right */}
@@ -373,6 +403,7 @@ export default function Header() {
             <Link href="/pricing" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.about')}</Link>
             <Link href="/faq" className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" onClick={() => setMenuOpen(false)}>{t('nav.faq')}</Link>
+            <Link href="/tools/video-downloader" className="block text-teal-600 dark:text-teal-400 hover:text-teal-700 font-bold" onClick={() => setMenuOpen(false)}>🎬 Free Video Downloader</Link>
 
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Popular Tools</p>

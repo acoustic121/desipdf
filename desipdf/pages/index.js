@@ -130,6 +130,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── VIDEO DOWNLOADER FEATURE BANNER ──────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+        <Link href="/tools/video-downloader" className="group block rounded-3xl overflow-hidden bg-gradient-to-r from-teal-500 via-cyan-600 to-blue-700 hover:from-teal-600 hover:via-cyan-700 hover:to-blue-800 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 duration-200">
+          <div className="flex flex-col sm:flex-row items-center gap-6 px-8 py-7">
+            <div className="text-5xl flex-shrink-0 group-hover:scale-110 transition-transform duration-200">🎬</div>
+            <div className="flex-1 text-center sm:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">🆕 New Tool</div>
+              <h2 className="text-2xl font-extrabold text-white">Free All Video Downloader</h2>
+              <p className="text-cyan-100 text-sm mt-1">Download from YouTube, Instagram, TikTok, Facebook & Pinterest — MP4 or MP3, any quality</p>
+            </div>
+            <div className="flex-shrink-0 flex items-center gap-2 bg-white text-teal-700 font-bold px-5 py-2.5 rounded-xl shadow text-sm group-hover:bg-cyan-50 transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Try it now
+            </div>
+          </div>
+        </Link>
+      </section>
+
       {/* ── TOOLS SECTION ────────────────────────────────────────────────── */}
       <section id="tools" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Section header */}
