@@ -1,32 +1,62 @@
 import vm from 'node:vm'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
 
 export const config = { maxDuration: 60 }
 
-// ── yt-dlp detection ─────────────────────────────────────────────────────────
-function findYtDlp() {
+// ── yt-dlp: find locally or download to /tmp on cold start ─────────────────────
+const TMP_YTDLP = '/tmp/ytdlp-bin'
+
+function findYtDlpSync() {
   const HOME = process.env.HOME || ''
   const candidates = [
-    // Project-local binary (downloaded by postinstall script — used on Vercel)
-    join(process.cwd(), 'bin', 'yt-dlp'),
-    join(__dirname, '../../../../bin/yt-dlp'),
-    // System-wide (macOS brew, Linux package manager)
-    '/opt/homebrew/bin/yt-dlp',
+    TMP_YTDLP,                                         // downloaded at runtime
+    join(process.cwd(), 'bin', 'yt-dlp'),              // postinstall (Vercel)
+    '/opt/homebrew/bin/yt-dlp',                        // macOS brew
     '/usr/local/bin/yt-dlp',
     '/usr/bin/yt-dlp',
     join(HOME, '.local/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.14/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.13/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.12/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.11/bin/yt-dlp'),
   ]
   for (const p of candidates) { if (existsSync(p)) return p }
   try { const r = execFileSync('which', ['yt-dlp'], { encoding: 'utf8' }).trim(); if (r) return r } catch {}
   return null
 }
-const YT_DLP_PATH = findYtDlp()
+
+// Module-level promise: starts download immediately when Lambda boots.
+// By the time a real request arrives, the binary is usually ready.
+const _ytDlpPromise = (async () => {
+  const fast = findYtDlpSync()
+  if (fast) return fast
+
+  const p = process.platform, a = process.arch
+  const url =
+    p === 'linux' && a === 'arm64'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64'
+    : p === 'linux'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux'
+    : p === 'darwin'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos'
+    : null
+  if (!url) return null
+
+  try {
+    console.log(`[yt-dlp] Downloading for ${p}/${a}…`)
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = await res.arrayBuffer()
+    writeFileSync(TMP_YTDLP, Buffer.from(buf))
+    chmodSync(TMP_YTDLP, 0o755)
+    const ver = execFileSync(TMP_YTDLP, ['--version'], { encoding: 'utf8' }).trim()
+    console.log(`[yt-dlp] Ready: ${ver}`)
+    return TMP_YTDLP
+  } catch (e) {
+    console.error('[yt-dlp] Download failed:', e.message)
+    return null
+  }
+})()
+
+const getYtDlpPath = () => _ytDlpPromise
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 OPR/121.0.0.0'
 
@@ -244,10 +274,11 @@ async function fetchYouTube(url) {
 }
 
 // ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, etc.) ───────────
-function fetchWithYtDlp(url, platform) {
-  return new Promise((resolve, reject) => {
-    if (!YT_DLP_PATH) { reject(new Error('yt-dlp not available')); return }
+async function fetchWithYtDlp(url, platform) {
+  const ytDlpPath = await getYtDlpPath()
+  if (!ytDlpPath) throw new Error(`yt-dlp not available for ${platform}`)
 
+  return new Promise((resolve, reject) => {
     const args = [
       '--dump-json', '--no-warnings', '--no-playlist',
       '--skip-download',
@@ -255,7 +286,7 @@ function fetchWithYtDlp(url, platform) {
     ]
 
     console.log(`[yt-dlp info] ${platform}: ${url.slice(0, 60)}`)
-    const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
     let stdout = '', stderr = ''
     proc.stdout.on('data', d => { stdout += d })
@@ -267,7 +298,6 @@ function fetchWithYtDlp(url, platform) {
         return
       }
       try {
-        // yt-dlp may output multiple JSON lines for playlists; take the first
         const firstLine = stdout.trim().split('\n')[0]
         const data = JSON.parse(firstLine)
 
@@ -277,18 +307,14 @@ function fetchWithYtDlp(url, platform) {
         const fileSizeApprox = data.filesize_approx || data.filesize || null
 
         resolve({
-          title,
-          thumbnail,
-          platform,
+          title, thumbnail, platform,
           videoFormats: [{
             quality: height ? `${height}p` : 'HD',
-            ext:     'mp4',
-            size:    fileSizeApprox ? formatBytes(fileSizeApprox) : null,
-            // 'ytdlp' downloadType triggers yt-dlp re-download in download.js
-            // so we never expose ephemeral CDN URLs that expire
-            downloadType:    'ytdlp',
+            ext: 'mp4',
+            size: fileSizeApprox ? formatBytes(fileSizeApprox) : null,
+            downloadType: 'ytdlp',
             downloadQuality: 'best',
-            filename:        makeFilename(title, 'mp4'),
+            filename: makeFilename(title, 'mp4'),
           }],
           audioFormats: [],
         })
@@ -302,45 +328,17 @@ function fetchWithYtDlp(url, platform) {
 }
 
 async function fetchInstagram(url) {
-  // yt-dlp is far more reliable than embed-scraping (which Instagram frequently breaks)
-  if (YT_DLP_PATH) {
+  const ytDlpPath = await getYtDlpPath()
+  if (ytDlpPath) {
     return await fetchWithYtDlp(url, 'instagram')
   }
-
-  // ─ Legacy fallback: embed page scraping (unreliable, kept as last resort) ─
-  const match = url.match(/\/(p|reel|tv)\/([A-Za-z0-9_-]+)/)
-  if (!match) throw new Error('Invalid Instagram URL')
-  const shortcode = match[2]
-
-  const resp = await fetch(`https://www.instagram.com/p/${shortcode}/embed/captioned/`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-  })
-
-  const html = await resp.text()
-  const videoMatch = html.match(/"video_url":"([^"]+)"/) || html.match(/video_url\s*:\s*"([^"]+)"/)
-  const thumbMatch = html.match(/"thumbnail_url":"([^"]+)"/)
-  const titleMatch = html.match(/<title>([^<]+)<\/title>/)
-
-  if (!videoMatch) throw new Error('Could not extract Instagram video. The post may be private or age-restricted.')
-
-  const videoUrl = videoMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/')
-  const thumbnail = thumbMatch ? thumbMatch[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/') : null
-  const title = titleMatch ? titleMatch[1].replace(' • Instagram', '').trim() : 'Instagram Video'
-
-  return {
-    title, thumbnail, platform: 'instagram',
-    videoFormats: [{ quality: 'HD', ext: 'mp4', size: null, directUrl: videoUrl, downloadType: 'direct', filename: makeFilename(title, 'mp4') }],
-    audioFormats: [],
-  }
+  // Legacy fallback (unreliable — embed page frequently broken by Instagram)
+  throw new Error('Could not extract Instagram video. Please try again later.')
 }
 
 async function fetchTikTok(url) {
-  // Try yt-dlp first — no watermark, no third-party API dependency
-  if (YT_DLP_PATH) {
+  const ytDlpPath = await getYtDlpPath()
+  if (ytDlpPath) {
     try {
       return await fetchWithYtDlp(url, 'tiktok')
     } catch (err) {
@@ -349,6 +347,13 @@ async function fetchTikTok(url) {
   }
 
   // Fallback: tikwm.com API
+  // NOTE: tikwm.com sometimes returns relative URLs — always prefix the domain
+  const fixUrl = (u) => {
+    if (!u) return null
+    if (u.startsWith('http://') || u.startsWith('https://')) return u
+    return `https://www.tikwm.com${u.startsWith('/') ? '' : '/'}${u}`
+  }
+
   const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&count=12&cursor=0&web=1&hd=1`
   const resp = await fetch(apiUrl, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -358,17 +363,19 @@ async function fetchTikTok(url) {
 
   const { play, wmplay, music, title, cover } = data.data
   const videoFormats = []
-  if (play) videoFormats.push({ quality: 'HD (No Watermark)', ext: 'mp4', size: null, directUrl: play, downloadType: 'direct', filename: makeFilename(title, 'mp4') })
-  if (wmplay) videoFormats.push({ quality: 'SD (With Watermark)', ext: 'mp4', size: null, directUrl: wmplay, downloadType: 'direct', filename: makeFilename(title, 'mp4') })
+  const playUrl = fixUrl(play), wmUrl = fixUrl(wmplay)
+  if (playUrl) videoFormats.push({ quality: 'HD (No Watermark)', ext: 'mp4', size: null, directUrl: playUrl, downloadType: 'direct', filename: makeFilename(title, 'mp4') })
+  if (wmUrl)  videoFormats.push({ quality: 'SD (With Watermark)', ext: 'mp4', size: null, directUrl: wmUrl,  downloadType: 'direct', filename: makeFilename(title, 'mp4') })
   const audioFormats = []
-  if (music) audioFormats.push({ quality: 'Original Audio', ext: 'mp3', size: null, directUrl: music, downloadType: 'direct', filename: makeFilename(title, 'mp3') })
+  const musicUrl = fixUrl(music)
+  if (musicUrl) audioFormats.push({ quality: 'Original Audio', ext: 'mp3', size: null, directUrl: musicUrl, downloadType: 'direct', filename: makeFilename(title, 'mp3') })
 
   return { title: title || 'TikTok Video', thumbnail: cover || null, platform: 'tiktok', videoFormats, audioFormats }
 }
 
 async function fetchFacebook(url) {
-  // Try yt-dlp first — handles more cases (public pages, groups, etc.)
-  if (YT_DLP_PATH) {
+  const ytDlpPath = await getYtDlpPath()
+  if (ytDlpPath) {
     try {
       return await fetchWithYtDlp(url, 'facebook')
     } catch (err) {
@@ -396,17 +403,16 @@ async function fetchFacebook(url) {
 }
 
 async function fetchPinterest(url) {
-  // Try yt-dlp first — handles Pinterest video pins reliably
-  if (YT_DLP_PATH) {
+  const ytDlpPath = await getYtDlpPath()
+  if (ytDlpPath) {
     try {
       return await fetchWithYtDlp(url, 'pinterest')
     } catch (err) {
-      // yt-dlp may fail for image/GIF pins (not video) — fall through to scraping
-      console.warn('[Pinterest] yt-dlp failed (may be an image pin), falling back:', err.message.slice(0, 100))
+      console.warn('[Pinterest] yt-dlp failed (may be image pin), falling back:', err.message.slice(0, 100))
     }
   }
 
-  // Fallback: HTML scraping (handles images, GIFs, and video pins)
+  // Fallback: HTML scraping (for image/GIF pins)
   const resp = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
   })

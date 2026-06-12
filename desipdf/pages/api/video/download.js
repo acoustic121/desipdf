@@ -11,7 +11,7 @@
  */
 
 import vm from 'node:vm'
-import { createWriteStream, createReadStream, unlink, existsSync } from 'node:fs'
+import { createWriteStream, createReadStream, unlink, existsSync, writeFileSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
@@ -24,35 +24,61 @@ export const config = {
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
 
-// ── Find yt-dlp binary ────────────────────────────────────────────────────────
-function findYtDlp() {
+/// ── yt-dlp: find locally or download to /tmp on Lambda cold start ────────────────
+const TMP_YTDLP = '/tmp/ytdlp-bin'
+
+function findYtDlpSync() {
   const HOME = process.env.HOME || ''
   const candidates = [
-    // Project-local binary (downloaded by postinstall script — used on Vercel)
+    TMP_YTDLP,
     join(process.cwd(), 'bin', 'yt-dlp'),
-    join(__dirname, '../../../../bin/yt-dlp'),
-    // System-wide (macOS brew, Linux package manager)
-    '/opt/homebrew/bin/yt-dlp',   // macOS Apple Silicon (brew)
-    '/usr/local/bin/yt-dlp',      // macOS Intel (brew) / Linux pip
-    '/usr/bin/yt-dlp',            // Linux system
-    join(HOME, '.local/bin/yt-dlp'),  // pip --user
-    join(HOME, 'Library/Python/3.14/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.13/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.12/bin/yt-dlp'),
-    join(HOME, 'Library/Python/3.11/bin/yt-dlp'),
+    '/opt/homebrew/bin/yt-dlp',
+    '/usr/local/bin/yt-dlp',
+    '/usr/bin/yt-dlp',
+    join(HOME, '.local/bin/yt-dlp'),
   ]
-  for (const p of candidates) {
-    if (existsSync(p)) return p
-  }
-  // Try PATH lookup
+  for (const p of candidates) { if (existsSync(p)) return p }
   try { const r = execFileSync('which', ['yt-dlp'], { encoding: 'utf8' }).trim(); if (r) return r } catch {}
   return null
 }
 
-const YT_DLP_PATH = findYtDlp()
+const _ytDlpPromise = (async () => {
+  const fast = findYtDlpSync()
+  if (fast) return fast
+
+  const p = process.platform, a = process.arch
+  const url =
+    p === 'linux' && a === 'arm64'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64'
+    : p === 'linux'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux'
+    : p === 'darwin'
+      ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos'
+    : null
+  if (!url) return null
+
+  try {
+    console.log(`[yt-dlp] Downloading for ${p}/${a}…`)
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = await res.arrayBuffer()
+    writeFileSync(TMP_YTDLP, Buffer.from(buf))
+    chmodSync(TMP_YTDLP, 0o755)
+    const ver = execFileSync(TMP_YTDLP, ['--version'], { encoding: 'utf8' }).trim()
+    console.log(`[yt-dlp] Ready: ${ver}`)
+    return TMP_YTDLP
+  } catch (e) {
+    console.error('[yt-dlp] Download failed:', e.message)
+    return null
+  }
+})()
+
+const getYtDlpPath = () => _ytDlpPromise
 
 // ── Download video+audio with yt-dlp, write merged MP4 to /tmp ───────────────
-function ytDlpVideo(videoId, quality, outputPath) {
+async function ytDlpVideo(videoId, quality, outputPath) {
+  const ytDlpPath = await getYtDlpPath()
+  if (!ytDlpPath) throw new Error('yt-dlp not available')
   return new Promise((resolve, reject) => {
     const height = parseInt(quality?.replace('p', '') || '1080', 10)
     const formatSel = `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=${height}]+bestaudio/best[height<=${height}]`
@@ -66,7 +92,7 @@ function ytDlpVideo(videoId, quality, outputPath) {
       '--progress', '--newline',
     ]
     console.log(`[yt-dlp] Video: ${quality}`)
-    const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
     proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderrLines.push(String(d)) })
@@ -79,7 +105,9 @@ function ytDlpVideo(videoId, quality, outputPath) {
 }
 
 // ── Download audio with yt-dlp, extract to MP3 ───────────────────────────────
-function ytDlpAudio(videoId, outputPath) {
+async function ytDlpAudio(videoId, outputPath) {
+  const ytDlpPath = await getYtDlpPath()
+  if (!ytDlpPath) throw new Error('yt-dlp not available')
   return new Promise((resolve, reject) => {
     const args = [
       `https://www.youtube.com/watch?v=${videoId}`,
@@ -93,7 +121,7 @@ function ytDlpAudio(videoId, outputPath) {
       '--progress', '--newline',
     ]
     console.log(`[yt-dlp] Audio: extracting MP3…`)
-    const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
     proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderrLines.push(String(d)) })
@@ -276,9 +304,9 @@ export default async function handler(req, res) {
 
   try {
     // ── yt-dlp generic download (Instagram, TikTok, Facebook, etc.) ────────────
-    // Triggered when downloadType === 'ytdlp' from the info endpoint.
-    // videoUrl holds the original platform URL (e.g. instagram.com/reel/xxx)
-    if (downloadType === 'ytdlp' && videoUrl && YT_DLP_PATH) {
+    if (downloadType === 'ytdlp' && videoUrl) {
+      const ytDlpPath = await getYtDlpPath()
+      if (!ytDlpPath) return res.status(500).json({ error: 'yt-dlp is not available on this server' })
       const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       const outFile = join(tmpdir(), `ytdl_${id}.mp4`)
       console.log(`[download] yt-dlp generic: ${videoUrl.slice(0, 60)}`)
@@ -293,7 +321,7 @@ export default async function handler(req, res) {
             '--ffmpeg-location', dirname(ffmpegPath),
             '--progress', '--newline',
           ]
-          const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+          const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
           const stderr = []
           proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
           proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderr.push(String(d)) })
@@ -322,31 +350,28 @@ export default async function handler(req, res) {
         (['1080p', '1440p', '2160p', '240p', '144p'].includes(downloadQuality) && downloadType === 'video')
 
 
-      // ── High-quality video: use yt-dlp if available ───────────────────────
-      if (isHighQuality && YT_DLP_PATH) {
-        console.log(`[download] Using yt-dlp for ${downloadQuality} (${YT_DLP_PATH})`)
-        const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-        // yt-dlp adds its own extension so use a base name
-        const outBase = join(tmpdir(), `ytdl_${id}`)
-        const outFile = `${outBase}.mp4`
-
-        try {
-          await ytDlpVideo(videoId, downloadQuality, outFile)
-
-          if (!existsSync(outFile)) throw new Error('yt-dlp did not produce output file')
-
-          res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
-          res.setHeader('Content-Type', 'video/mp4')
-          res.setHeader('Cache-Control', 'no-store')
-
-          console.log('[download] Streaming yt-dlp output to browser…')
-          await pipeFileToResponse(outFile, res, req)
-          console.log('[download] ✅ Done')
-        } finally {
-          unlink(outFile, () => {})
+      // ── High-quality video: use yt-dlp ─────────────────────────────────────
+      if (isHighQuality) {
+        const ytDlpPath = await getYtDlpPath()
+        if (ytDlpPath) {
+          console.log(`[download] Using yt-dlp for ${downloadQuality}`)
+          const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          const outFile = join(tmpdir(), `ytdl_${id}.mp4`)
+          try {
+            await ytDlpVideo(videoId, downloadQuality, outFile)
+            if (!existsSync(outFile)) throw new Error('yt-dlp did not produce output file')
+            res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
+            res.setHeader('Content-Type', 'video/mp4')
+            res.setHeader('Cache-Control', 'no-store')
+            console.log('[download] Streaming yt-dlp output to browser…')
+            await pipeFileToResponse(outFile, res, req)
+            console.log('[download] ✅ Done')
+          } finally {
+            unlink(outFile, () => {})
+          }
+          if (!res.writableEnded) res.end()
+          return
         }
-        if (!res.writableEnded) res.end()
-        return
       }
 
       // ── Fallback: youtubei.js (works for ≤30 MB files / lower qualities) ──
@@ -355,24 +380,25 @@ export default async function handler(req, res) {
       const info = await yt.getInfo(videoId, { client: 'MWEB' })
       console.log(`[download] "${info.basic_info.title?.slice(0, 50)}" | type:${downloadType} q:${downloadQuality}`)
 
-      // ── Audio: use yt-dlp if available (extract to proper MP3) ──────────────
-      // The youtubei.js approach serves Opus/M4A as audio/mpeg which won't play,
-      // and also hits the CDN rate limit (only ~1 MB per session for audio).
-      if (isAudio && YT_DLP_PATH) {
-        const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-        const outFile = join(tmpdir(), `ytda_${id}.mp3`)
-        try {
-          await ytDlpAudio(videoId, outFile)
-          if (!existsSync(outFile)) throw new Error('yt-dlp did not produce audio file')
-          res.setHeader('Content-Disposition', `attachment; filename="${safeFilename.replace(/\.mp4$/, '.mp3')}"`)
-          res.setHeader('Content-Type', 'audio/mpeg')
-          res.setHeader('Cache-Control', 'no-store')
-          await pipeFileToResponse(outFile, res, req)
-        } finally {
-          unlink(outFile, () => {})
+      // ── Audio: use yt-dlp (extract to proper MP3) ───────────────────────────
+      if (isAudio) {
+        const ytDlpPath = await getYtDlpPath()
+        if (ytDlpPath) {
+          const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          const outFile = join(tmpdir(), `ytda_${id}.mp3`)
+          try {
+            await ytDlpAudio(videoId, outFile)
+            if (!existsSync(outFile)) throw new Error('yt-dlp did not produce audio file')
+            res.setHeader('Content-Disposition', `attachment; filename="${safeFilename.replace(/\.mp4$/, '.mp3')}"`)
+            res.setHeader('Content-Type', 'audio/mpeg')
+            res.setHeader('Cache-Control', 'no-store')
+            await pipeFileToResponse(outFile, res, req)
+          } finally {
+            unlink(outFile, () => {})
+          }
+          if (!res.writableEnded) res.end()
+          return
         }
-        if (!res.writableEnded) res.end()
-        return
       }
 
       // ── Audio (Fallback) ──────────────────────────────────────────────────
