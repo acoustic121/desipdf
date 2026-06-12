@@ -190,9 +190,37 @@ async function fetchYouTube(url) {
     fetch: customFetch,
   })
 
-  const info = await yt.getInfo(videoId, { client: 'MWEB' })
+  // Try multiple clients — Vercel IPs get blocked for some clients but not others
+  // IOS client is most reliable in 2025 (doesn't require po_token)
+  const clientsToTry = ['IOS', 'MWEB', 'TV_EMBEDDED']
+  let info = null
+  let lastClientErr = null
+
+  for (const client of clientsToTry) {
+    try {
+      const candidate = await yt.getInfo(videoId, { client })
+      if (candidate?.streaming_data?.formats?.length || candidate?.streaming_data?.adaptive_formats?.length) {
+        info = candidate
+        console.log(`[YouTube] Innertube client ${client} succeeded`)
+        break
+      }
+      console.warn(`[YouTube] Innertube client ${client} returned empty formats, trying next…`)
+    } catch (e) {
+      lastClientErr = e
+      console.warn(`[YouTube] Innertube client ${client} failed: ${e.message.slice(0, 80)}`)
+    }
+  }
+
+  // If Innertube got basic_info but no formats from any client, still capture title/thumbnail
+  if (!info) {
+    try { info = await yt.getInfo(videoId, { client: 'MWEB' }) } catch {}
+  }
 
   if (!info || !info.basic_info) {
+    // Innertube completely failed — jump straight to yt-dlp
+    console.warn('[YouTube] Innertube failed entirely, trying yt-dlp…')
+    const ytDlpPath = await getYtDlpPath()
+    if (ytDlpPath) return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
     throw new Error('Could not load video info. The video may be private, deleted, or unavailable in your region.')
   }
 
@@ -265,9 +293,8 @@ async function fetchYouTube(url) {
     .slice(0, 4)
 
   if (!videoFormats.length && !audioFormats.length) {
-    // Innertube returned empty formats — Vercel's AWS IPs are often blocked by YouTube.
-    // Fall back to yt-dlp which handles bot detection better.
-    console.warn('[YouTube] Innertube returned empty formats — trying yt-dlp fallback…')
+    // Innertube returned empty formats for all clients — fall back to yt-dlp
+    console.warn('[YouTube] All Innertube clients returned empty formats — trying yt-dlp fallback…')
     const ytDlpPath = await getYtDlpPath()
     if (ytDlpPath) {
       try {
@@ -284,12 +311,14 @@ async function fetchYouTube(url) {
 
 }
 
-// ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ────────────
+// ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ──────────
 function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   return new Promise((resolve, reject) => {
+    // ios client is most reliable in 2025 — doesn't require po_token
+    // android_music is a good secondary option
     const proc = spawn(ytDlpPath, [
       '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
-      '--extractor-args', 'youtube:player_client=android,web',
+      '--extractor-args', 'youtube:player_client=ios,android_music,web',
       '--force-ipv4',
       url
     ], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -299,9 +328,20 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     proc.stderr.on('data', d => { stderr += d })
 
     proc.on('close', code => {
-      if (code !== 0) { reject(new Error(stderr.slice(-300) || `yt-dlp exited ${code}`)); return }
+      if (code !== 0) { reject(new Error(stderr.slice(-400) || `yt-dlp exited ${code}`)); return }
+
+      const raw = stdout.trim()
+      if (!raw) { reject(new Error('yt-dlp returned no data for this YouTube URL.')); return }
+
+      let data = null
+      for (const line of raw.split('\n')) {
+        const t = line.trim()
+        if (!t) continue
+        try { data = JSON.parse(t); break } catch {}
+      }
+      if (!data) { reject(new Error('yt-dlp JSON parse failed')); return }
+
       try {
-        const data = JSON.parse(stdout.trim().split('\n')[0])
         const title = data.title || data.fulltitle || infoTitle || 'YouTube Video'
         const thumbnail = data.thumbnail || infoThumb || null
         const fmts = data.formats || []
