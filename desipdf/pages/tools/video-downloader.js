@@ -168,29 +168,6 @@ export default function VideoDownloaderHub() {
         </div>
       </section>
 
-      {/* ── WHY CHOOSE ────────────────────────────────────────────────────── */}
-      <section className="py-16 px-4 bg-white dark:bg-gray-950">
-        <div className="max-w-5xl mx-auto text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">Why Choose PDFChampion Video Downloader?</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-3">Download videos, audio, reels, shorts, and photos in a few clicks.</p>
-        </div>
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
-          {[
-            { icon: '⚡', title: 'Instant Analysis', desc: 'Paste a link and get all available download formats in seconds.' },
-            { icon: '📱', title: 'Works on Any Device', desc: 'Download on mobile, tablet, or desktop — no extra apps needed.' },
-            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports YouTube, TikTok, Instagram, Facebook, Pinterest and more.' },
-            { icon: '🎯', title: 'Flexible Quality', desc: 'Pick the quality you want — from 144p up to 1080p+ when available.' },
-            { icon: '🔒', title: 'Privacy-First', desc: 'No data storage. Your links are processed privately and never saved.' },
-            { icon: '🆓', title: 'Completely Free', desc: 'No signup, no watermarks, no limits. 100% free forever.' },
-          ].map(f => (
-            <div key={f.title} className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 hover:shadow-md transition-all">
-              <div className="text-3xl mb-3">{f.icon}</div>
-              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ── PLATFORM TOOLS GRID ───────────────────────────────────────────── */}
       <section className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
@@ -269,6 +246,30 @@ export default function VideoDownloaderHub() {
               <div className="text-4xl mb-3">{s.icon}</div>
               <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">{s.title}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── WHY CHOOSE ────────────────────────────────────────────────────── */}
+      <section className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-5xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">Why Choose PDFChampion Video Downloader?</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-3">Download videos, audio, reels, shorts, and photos in a few clicks.</p>
+        </div>
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            { icon: '⚡', title: 'Instant Analysis', desc: 'Paste a link and get all available download formats in seconds.' },
+            { icon: '📱', title: 'Works on Any Device', desc: 'Download on mobile, tablet, or desktop — no extra apps needed.' },
+            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports YouTube, TikTok, Instagram, Facebook, Pinterest and more.' },
+            { icon: '🎯', title: 'Flexible Quality', desc: 'Pick the quality you want — from 144p up to 1080p+ when available.' },
+            { icon: '🔒', title: 'Privacy-First', desc: 'No data storage. Your links are processed privately and never saved.' },
+            { icon: '🆓', title: 'Completely Free', desc: 'No signup, no watermarks, no limits. 100% free forever.' },
+          ].map(f => (
+            <div key={f.title} className="bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 hover:shadow-md transition-all">
+              <div className="text-3xl mb-3">{f.icon}</div>
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">{f.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{f.desc}</p>
             </div>
           ))}
         </div>

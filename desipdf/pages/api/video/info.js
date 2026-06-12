@@ -351,9 +351,15 @@ async function fetchWithYtDlp(url, platform) {
   if (!ytDlpPath) throw new Error(`yt-dlp not available for ${platform}`)
 
   return new Promise((resolve, reject) => {
+    // Instagram-specific args to improve extraction reliability
+    const platformArgs = platform === 'instagram'
+      ? ['--extractor-args', 'instagram:api=graphql']
+      : []
+
     const args = [
       '--dump-json', '--no-warnings', '--no-playlist',
       '--skip-download',
+      ...platformArgs,
       url,
     ]
 
@@ -366,13 +372,43 @@ async function fetchWithYtDlp(url, platform) {
 
     proc.on('close', code => {
       if (code !== 0) {
-        reject(new Error(stderr.slice(-300) || `yt-dlp exited ${code}`))
+        // Provide friendlier errors for common Instagram failures
+        const errMsg = stderr.slice(-400) || `yt-dlp exited ${code}`
+        if (platform === 'instagram' && /login|rate.limit|private|protected/i.test(errMsg)) {
+          reject(new Error('This Instagram post is private or requires login. Please try a public post URL.'))
+        } else {
+          reject(new Error(errMsg))
+        }
         return
       }
-      try {
-        const firstLine = stdout.trim().split('\n')[0]
-        const data = JSON.parse(firstLine)
 
+      const raw = stdout.trim()
+      if (!raw) {
+        reject(new Error(`yt-dlp returned no data for this ${platform} URL. The post may be private or unavailable.`))
+        return
+      }
+
+      // yt-dlp can output multiple JSON lines (e.g. carousel / playlist).
+      // Find the first line that parses successfully.
+      let data = null
+      const lines = raw.split('\n')
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        try {
+          data = JSON.parse(trimmed)
+          break
+        } catch {
+          // try next line
+        }
+      }
+
+      if (!data) {
+        reject(new Error(`yt-dlp JSON parse failed: could not parse response for this ${platform} URL.`))
+        return
+      }
+
+      try {
         const title = data.title || data.fulltitle || `${platform} Video`
         const thumbnail = data.thumbnail || data.thumbnails?.[0]?.url || null
         const height = data.height || data.requested_formats?.[0]?.height || null
@@ -428,7 +464,7 @@ async function fetchWithYtDlp(url, platform) {
           })
         }
       } catch (e) {
-        reject(new Error(`yt-dlp JSON parse failed: ${e.message}`))
+        reject(new Error(`yt-dlp response processing failed: ${e.message}`))
       }
     })
 
