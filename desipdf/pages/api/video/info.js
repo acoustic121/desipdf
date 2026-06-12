@@ -1,6 +1,28 @@
 import vm from 'node:vm'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { spawn, execFileSync } from 'node:child_process'
 
 export const config = { maxDuration: 60 }
+
+// ── yt-dlp detection ─────────────────────────────────────────────────────────
+function findYtDlp() {
+  const HOME = process.env.HOME || ''
+  const candidates = [
+    '/opt/homebrew/bin/yt-dlp',
+    '/usr/local/bin/yt-dlp',
+    '/usr/bin/yt-dlp',
+    join(HOME, '.local/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.14/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.13/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.12/bin/yt-dlp'),
+    join(HOME, 'Library/Python/3.11/bin/yt-dlp'),
+  ]
+  for (const p of candidates) { if (existsSync(p)) return p }
+  try { const r = execFileSync('which', ['yt-dlp'], { encoding: 'utf8' }).trim(); if (r) return r } catch {}
+  return null
+}
+const YT_DLP_PATH = findYtDlp()
 
 const webUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 OPR/121.0.0.0'
 
@@ -217,7 +239,71 @@ async function fetchYouTube(url) {
 
 }
 
+// ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, etc.) ───────────
+function fetchWithYtDlp(url, platform) {
+  return new Promise((resolve, reject) => {
+    if (!YT_DLP_PATH) { reject(new Error('yt-dlp not available')); return }
+
+    const args = [
+      '--dump-json', '--no-warnings', '--no-playlist',
+      '--skip-download',
+      url,
+    ]
+
+    console.log(`[yt-dlp info] ${platform}: ${url.slice(0, 60)}`)
+    const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+
+    let stdout = '', stderr = ''
+    proc.stdout.on('data', d => { stdout += d })
+    proc.stderr.on('data', d => { stderr += d })
+
+    proc.on('close', code => {
+      if (code !== 0) {
+        reject(new Error(stderr.slice(-300) || `yt-dlp exited ${code}`))
+        return
+      }
+      try {
+        // yt-dlp may output multiple JSON lines for playlists; take the first
+        const firstLine = stdout.trim().split('\n')[0]
+        const data = JSON.parse(firstLine)
+
+        const title = data.title || data.fulltitle || `${platform} Video`
+        const thumbnail = data.thumbnail || data.thumbnails?.[0]?.url || null
+        const height = data.height || data.requested_formats?.[0]?.height || null
+        const fileSizeApprox = data.filesize_approx || data.filesize || null
+
+        resolve({
+          title,
+          thumbnail,
+          platform,
+          videoFormats: [{
+            quality: height ? `${height}p` : 'HD',
+            ext:     'mp4',
+            size:    fileSizeApprox ? formatBytes(fileSizeApprox) : null,
+            // 'ytdlp' downloadType triggers yt-dlp re-download in download.js
+            // so we never expose ephemeral CDN URLs that expire
+            downloadType:    'ytdlp',
+            downloadQuality: 'best',
+            filename:        makeFilename(title, 'mp4'),
+          }],
+          audioFormats: [],
+        })
+      } catch (e) {
+        reject(new Error(`yt-dlp JSON parse failed: ${e.message}`))
+      }
+    })
+
+    proc.on('error', reject)
+  })
+}
+
 async function fetchInstagram(url) {
+  // yt-dlp is far more reliable than embed-scraping (which Instagram frequently breaks)
+  if (YT_DLP_PATH) {
+    return await fetchWithYtDlp(url, 'instagram')
+  }
+
+  // ─ Legacy fallback: embed page scraping (unreliable, kept as last resort) ─
   const match = url.match(/\/(p|reel|tv)\/([A-Za-z0-9_-]+)/)
   if (!match) throw new Error('Invalid Instagram URL')
   const shortcode = match[2]

@@ -9,7 +9,12 @@ function buildDownloadHref({ format, platform, videoUrl }) {
   params.set('filename', format.filename || 'video.mp4')
   params.set('platform', platform)
   if (format.downloadType === 'direct' && format.directUrl) {
+    // Instagram (legacy), TikTok, Facebook, Pinterest — proxy the CDN URL
     params.set('directUrl', format.directUrl)
+  } else if (format.downloadType === 'ytdlp') {
+    // Instagram, TikTok, Facebook via yt-dlp — re-download at click time
+    params.set('videoUrl', videoUrl)
+    params.set('downloadType', 'ytdlp')
   } else if (platform === 'youtube') {
     params.set('videoUrl', videoUrl)
     params.set('downloadType', format.downloadType || 'video')

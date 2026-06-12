@@ -271,6 +271,43 @@ export default async function handler(req, res) {
   const safeFilename = (filename || 'video.mp4').replace(/"/g, '')
 
   try {
+    // ── yt-dlp generic download (Instagram, TikTok, Facebook, etc.) ────────────
+    // Triggered when downloadType === 'ytdlp' from the info endpoint.
+    // videoUrl holds the original platform URL (e.g. instagram.com/reel/xxx)
+    if (downloadType === 'ytdlp' && videoUrl && YT_DLP_PATH) {
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const outFile = join(tmpdir(), `ytdl_${id}.mp4`)
+      console.log(`[download] yt-dlp generic: ${videoUrl.slice(0, 60)}`)
+      try {
+        await new Promise((resolve, reject) => {
+          const args = [
+            videoUrl,
+            '--format', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            '--output', outFile,
+            '--merge-output-format', 'mp4',
+            '--no-playlist', '--no-warnings',
+            '--ffmpeg-location', dirname(ffmpegPath),
+            '--progress', '--newline',
+          ]
+          const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+          const stderr = []
+          proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
+          proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderr.push(String(d)) })
+          proc.on('close', code => code === 0 ? resolve() : reject(new Error(`yt-dlp failed: ${stderr.join('').slice(-300) || `exit ${code}`}`)))
+          proc.on('error', reject)
+        })
+        if (!existsSync(outFile)) throw new Error('yt-dlp did not produce output file')
+        res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
+        res.setHeader('Content-Type', 'video/mp4')
+        res.setHeader('Cache-Control', 'no-store')
+        await pipeFileToResponse(outFile, res, req)
+      } finally {
+        unlink(outFile, () => {})
+      }
+      if (!res.writableEnded) res.end()
+      return
+    }
+
     // ── YouTube ───────────────────────────────────────────────────────────────
     if (platform === 'youtube' && videoUrl) {
       const videoId = extractYouTubeId(videoUrl)
@@ -279,6 +316,7 @@ export default async function handler(req, res) {
       const isAudio = downloadType === 'audio'
       const isHighQuality = downloadType === 'videoOnly' ||
         (['1080p', '1440p', '2160p', '240p', '144p'].includes(downloadQuality) && downloadType === 'video')
+
 
       // ── High-quality video: use yt-dlp if available ───────────────────────
       if (isHighQuality && YT_DLP_PATH) {
