@@ -91,7 +91,7 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading, coba
     setStatus('Preparing…')
 
     try {
-      if (platform === 'youtube') {
+      if (platform === 'youtube' || platform === 'tiktok') {
         setStatus('Connecting…')
         const cobaltUrl = cobaltInstance || 'https://cobaltapi.kittycat.boo'
         
@@ -104,7 +104,7 @@ function FormatRow({ format, type, platform, videoUrl, loading, setLoading, coba
           body: JSON.stringify({
             url: videoUrl,
             downloadMode: type === 'audio' ? 'audio' : 'auto',
-            videoQuality: format.quality === '720p' ? '720' : '360',
+            videoQuality: format.quality === 'HD' ? 'max' : (format.quality.replace(/\D/g, '') || 'max'),
             audioFormat: 'mp3'
           })
         })
@@ -486,8 +486,8 @@ export default function VideoToolLayout({ tool, children }) {
               </div>
 
               <div className="p-4 space-y-5">
-                {/* YouTube Download Server/Mirror Dropdown */}
-                {result.platform === 'youtube' && (
+                {/* Download Server/Mirror Dropdown */}
+                {['youtube', 'tiktok'].includes(result.platform) && (
                   <div className="p-3.5 bg-teal-50/50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
