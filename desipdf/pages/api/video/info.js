@@ -324,12 +324,16 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
   const t = infoTitle || 'YouTube Video'
 
   // Try multiple Invidious instances in order (community-maintained public servers)
+  // Updated June 2026 — tested for availability from datacenter IPs
   const instances = [
+    'https://inv.tux.pizza',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.privacyredirect.com',
+    'https://inv.in.projectsegfau.lt',
+    'https://invidious.asir.dev',
     'https://inv.nadeko.net',
     'https://yewtu.be',
     'https://invidious.privacydev.net',
-    'https://iv.melmac.space',
-    'https://invidious.jing.rocks',
   ]
 
   for (const instance of instances) {
@@ -397,11 +401,13 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     }
     const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
 
-    // Use --dump-single-json and -f "all" to prevent yt-dlp from crashing when it can't 
-    // find a pre-merged "best" format (due to lacking ffmpeg in Vercel).
-    // The ios player client is required for reliable extraction of formats.
+    // Use -J (single JSON dump) + --skip-download to get ALL 33+ formats without
+    // triggering yt-dlp's format selection logic (which crashes without ffmpeg
+    // because it can't merge separate video+audio adaptive streams).
+    // -J alone also selects "best" format and fails; --skip-download bypasses it.
     const args = [
-      '--dump-single-json', '-f', 'all', '--no-warnings', '--no-playlist', '--skip-download',
+      '-J', '--skip-download',
+      '--no-warnings', '--no-playlist',
       '--extractor-args', 'youtube:player_client=ios,android,web',
       '--force-ipv4',
       ...(hasCookies ? ['--cookies', cookiePath] : []),
@@ -409,6 +415,7 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     ]
 
     if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES for authentication')
+    else console.log('[yt-dlp] No cookies — using ios/android/web player clients')
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
 
