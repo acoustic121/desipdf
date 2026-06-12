@@ -195,12 +195,22 @@ async function fetchYouTube(url) {
   const videoId = extractYouTubeId(url)
   if (!videoId) throw new Error('Invalid YouTube URL. Please paste a valid YouTube video link (e.g. youtube.com/watch?v=...)')
 
-  console.log('[YouTube] Fetching metadata strictly via Invidious (Option B)')
+  const ytDlpPath = await getYtDlpPath()
+  if (ytDlpPath) {
+    try {
+      console.log('[YouTube] Fetching metadata via server-side yt-dlp + cookies...')
+      return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
+    } catch (ytErr) {
+      console.error('[YouTube] Server-side yt-dlp info fetch failed:', ytErr.message)
+    }
+  }
+
+  console.log('[YouTube] Server yt-dlp failed, falling back to Invidious API...')
   try {
     return await fetchYouTubeViaInvidious(videoId, null, null)
   } catch (invErr) {
     console.error('[YouTube] Invidious fetch failed:', invErr.message)
-    throw new Error('Could not load video info via Invidious. The video may be private, age-restricted, or unavailable. Please try a different video.')
+    throw new Error('Could not load video info. The video may be private, deleted, or unavailable. Please try a different video.')
   }
 }
 
@@ -465,9 +475,11 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
           if (!seenH.has(f.height)) {
             seenH.add(f.height)
             acc.push({
-              quality: `${f.height}p`, ext: 'mp4',
+              quality: `${f.height}p`,
+              ext: 'mp4',
               size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
-              downloadType: 'ytdlp', downloadQuality: `${f.height}p`,
+              downloadType: 'direct',
+              directUrl: f.url,
               filename: makeFilename(title, 'mp4'),
             })
           }
@@ -475,11 +487,39 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         }, [])
         .slice(0, 6)
 
-      if (!videoFormats.length) {
-        videoFormats.push({ quality: 'Best Available', ext: 'mp4', size: null,
-          downloadType: 'ytdlp', downloadQuality: 'best', filename: makeFilename(title, 'mp4') })
+      const seenA = new Set()
+      const audioFormats = fmts
+        .filter(f => f.vcodec === 'none' && f.acodec !== 'none' && f.url)
+        .sort((a, b) => (b.abr || b.bitrate || 0) - (a.abr || a.bitrate || 0))
+        .reduce((acc, f) => {
+          const bitrate = Math.round(f.abr || (f.bitrate || 0) / 1000)
+          if (bitrate > 0 && !seenA.has(bitrate)) {
+            seenA.add(bitrate)
+            const ext = f.ext === 'webm' ? 'webm' : 'm4a'
+            acc.push({
+              quality: `${bitrate}kbps`,
+              ext: ext,
+              size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
+              downloadType: 'direct',
+              directUrl: f.url,
+              filename: makeFilename(title, ext),
+            })
+          }
+          return acc
+        }, [])
+        .slice(0, 4)
+
+      if (!videoFormats.length && !audioFormats.length) {
+        videoFormats.push({
+          quality: 'Best Available',
+          ext: 'mp4',
+          size: null,
+          downloadType: 'direct',
+          directUrl: fmts[0]?.url || null,
+          filename: makeFilename(title, 'mp4'),
+        })
       }
-      return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats: [] }
+      return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
     } catch (e) {
       console.warn(`[yt-dlp] ${label} failed:`, e.message.slice(0, 150))
       lastErr = e
