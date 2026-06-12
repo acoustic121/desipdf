@@ -285,19 +285,10 @@ export default function VideoToolLayout({ tool, children }) {
     setError(null)
 
     try {
-      const isYouTube = /youtube\.com|youtu\.be/.test(trimmed)
-      if (isYouTube) {
-        const videoId = extractYouTubeId(trimmed)
-        if (!videoId) throw new Error('Invalid YouTube URL. Please enter a valid YouTube video link.')
-        console.log('[YouTube] Fetching info client-side via Invidious...')
-        const data = await fetchYouTubeInfoClientSide(videoId)
-        setResult({ ...data, originalUrl: trimmed })
-      } else {
-        const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
-        setResult({ ...data, originalUrl: trimmed })
-      }
+      const res = await fetch(`/api/video/info?url=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch video info')
+      setResult({ ...data, originalUrl: trimmed })
     } catch (err) {
       setError(err.message)
     } finally {

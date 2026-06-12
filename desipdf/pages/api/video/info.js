@@ -195,17 +195,7 @@ async function fetchYouTube(url) {
   const videoId = extractYouTubeId(url)
   if (!videoId) throw new Error('Invalid YouTube URL. Please paste a valid YouTube video link (e.g. youtube.com/watch?v=...)')
 
-  const ytDlpPath = await getYtDlpPath()
-  if (ytDlpPath) {
-    try {
-      console.log('[YouTube] Fetching metadata via server-side yt-dlp + cookies...')
-      return await fetchYouTubeViaYtDlp(url, ytDlpPath, null, null)
-    } catch (ytErr) {
-      console.error('[YouTube] Server-side yt-dlp info fetch failed:', ytErr.message)
-    }
-  }
-
-  console.log('[YouTube] Server yt-dlp failed, falling back to Invidious API...')
+  console.log('[YouTube] Fetching metadata via parallel Invidious API...')
   try {
     return await fetchYouTubeViaInvidious(videoId, null, null)
   } catch (invErr) {
@@ -220,9 +210,8 @@ async function fetchYouTube(url) {
 async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
   const t = infoTitle || 'YouTube Video'
 
-  // Default fallback instances:
+  // Expanded fallback list of instances:
   let instances = [
-    'https://inv.tux.pizza',
     'https://invidious.nerdvpn.de',
     'https://invidious.privacyredirect.com',
     'https://inv.in.projectsegfau.lt',
@@ -230,6 +219,15 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
     'https://inv.nadeko.net',
     'https://yewtu.be',
     'https://invidious.privacydev.net',
+    'https://inv.tux.pizza',
+    'https://invidious.no-logs.com',
+    'https://inv.vern.cc',
+    'https://invidious.io.lol',
+    'https://invidious.flokinet.to',
+    'https://invidious.projectsegfau.lt',
+    'https://invidious.slipfox.xyz',
+    'https://inv.us.projectsegfau.lt',
+    'https://invidious.lunar.icu'
   ]
 
   try {
@@ -244,7 +242,6 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
             return stats && stats.api && stats.type === 'https' && stats.uri
           })
           .map(item => item[1].uri)
-          .slice(0, 5)
         if (dynamicInstances.length > 0) {
           instances = [...new Set([...dynamicInstances, ...instances])]
         }
@@ -254,78 +251,103 @@ async function fetchYouTubeViaInvidious(videoId, infoTitle, infoThumb) {
     console.warn('[Invidious] Failed to fetch dynamic instances list:', e.message)
   }
 
-  for (const instance of instances) {
-    try {
-      console.log(`[Invidious] Trying ${instance}…`)
-      const resp = await fetch(
-        `${instance}/api/v1/videos/${videoId}?fields=title,videoThumbnails,formatStreams,adaptiveFormats`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-          },
+  // Shuffle the list to distribute request load and avoid Cloudflare IP bans
+  instances.sort(() => Math.random() - 0.5)
+
+  // Try top 12 instances in parallel to ensure fast sub-second resolution
+  const candidates = instances.slice(0, 12)
+  console.log(`[Invidious] Querying ${candidates.length} instances in parallel for ID ${videoId}...`)
+
+  const fetchPromise = (instance) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 4000) // 4s timeout per request
+
+        const resp = await fetch(
+          `${instance}/api/v1/videos/${videoId}?fields=title,videoThumbnails,formatStreams,adaptiveFormats`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'application/json',
+            },
+            signal: controller.signal
+          }
+        )
+        clearTimeout(timeoutId)
+
+        if (!resp.ok) {
+          reject(new Error(`HTTP ${resp.status}`))
+          return
         }
-      )
-      if (!resp.ok) { console.warn(`[Invidious] ${instance} HTTP ${resp.status}`); continue }
-      const data = await resp.json()
 
-      const title = data.title || t
-      const thumb = data.videoThumbnails?.find(t => t.quality === 'maxres')?.url
-        || data.videoThumbnails?.[0]?.url || infoThumb
+        const data = await resp.json()
+        const title = data.title || t
+        const thumb = data.videoThumbnails?.find(t => t.quality === 'maxres')?.url
+          || data.videoThumbnails?.[0]?.url || infoThumb
 
-      // formatStreams = combined video+audio (no merge needed) — typically 360p/720p
-      const seenQ = new Set()
-      const videoFormats = (data.formatStreams || [])
-        .filter(f => f.type?.startsWith('video/mp4') && f.qualityLabel)
-        .sort((a, b) => (parseInt(b.qualityLabel) || 0) - (parseInt(a.qualityLabel) || 0))
-        .reduce((acc, f) => {
-          if (!seenQ.has(f.qualityLabel)) {
-            seenQ.add(f.qualityLabel)
-            acc.push({
-              quality: f.qualityLabel,
-              ext: 'mp4',
-              size: null,
-              downloadType: 'direct',
-              directUrl: f.url,  // Invidious proxy URL — stable for the session
-              filename: makeFilename(title, 'mp4'),
-            })
-          }
-          return acc
-        }, [])
+        // formatStreams = combined video+audio (no merge needed) — typically 360p/720p
+        const seenQ = new Set()
+        const videoFormats = (data.formatStreams || [])
+          .filter(f => f.type?.startsWith('video/mp4') && f.qualityLabel)
+          .sort((a, b) => (parseInt(b.qualityLabel) || 0) - (parseInt(a.qualityLabel) || 0))
+          .reduce((acc, f) => {
+            if (!seenQ.has(f.qualityLabel)) {
+              seenQ.add(f.qualityLabel)
+              acc.push({
+                quality: f.qualityLabel,
+                ext: 'mp4',
+                size: null,
+                downloadType: 'direct',
+                directUrl: f.url,
+                filename: makeFilename(title, 'mp4'),
+              })
+            }
+            return acc
+          }, [])
 
-      if (!videoFormats.length) { console.warn(`[Invidious] ${instance} returned no video formats`); continue }
+        if (!videoFormats.length) {
+          reject(new Error('No video formats available'))
+          return
+        }
 
-      // adaptiveFormats has audio-only streams
-      const seenA = new Set()
-      const audioFormats = (data.adaptiveFormats || [])
-        .filter(f => f.type?.startsWith('audio/') && f.bitrate)
-        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
-        .reduce((acc, f) => {
-          const bitrate = Math.round((f.bitrate || 0) / 1000)
-          if (bitrate > 0 && !seenA.has(bitrate)) {
-            seenA.add(bitrate)
-            const ext = f.type?.includes('webm') ? 'webm' : 'm4a'
-            acc.push({
-              quality: `${bitrate}kbps`,
-              ext: ext,
-              size: null,
-              downloadType: 'direct',
-              directUrl: f.url,
-              filename: makeFilename(title, ext),
-            })
-          }
-          return acc
-        }, [])
-        .slice(0, 4)
+        // adaptiveFormats has audio-only streams
+        const seenA = new Set()
+        const audioFormats = (data.adaptiveFormats || [])
+          .filter(f => f.type?.startsWith('audio/') && f.bitrate)
+          .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
+          .reduce((acc, f) => {
+            const bitrate = Math.round((f.bitrate || 0) / 1000)
+            if (bitrate > 0 && !seenA.has(bitrate)) {
+              seenA.add(bitrate)
+              const ext = f.type?.includes('webm') ? 'webm' : 'm4a'
+              acc.push({
+                quality: `${bitrate}kbps`,
+                ext: ext,
+                size: null,
+                downloadType: 'direct',
+                directUrl: f.url,
+                filename: makeFilename(title, ext),
+              })
+            }
+            return acc
+          }, [])
+          .slice(0, 4)
 
-      console.log(`[Invidious] Success via ${instance}: ${videoFormats.length} video, ${audioFormats.length} audio formats`)
-      return { title, thumbnail: thumb, platform: 'youtube', videoFormats, audioFormats }
-    } catch (e) {
-      console.warn(`[Invidious] ${instance} failed:`, e.message.slice(0, 80))
-    }
+        console.log(`[Invidious] Succeeded via ${instance}`)
+        resolve({ title, thumbnail: thumb, platform: 'youtube', videoFormats, audioFormats })
+      } catch (e) {
+        reject(e)
+      }
+    })
   }
 
-  throw new Error('All Invidious instances failed. Please try again later or use a different video.')
+  try {
+    return await Promise.any(candidates.map(fetchPromise))
+  } catch (aggregateError) {
+    console.error('[Invidious] All parallel queries failed:', aggregateError.errors)
+    throw new Error('All Invidious instances failed to resolve video info. The video may be private or unavailable.')
+  }
 }
 
 
