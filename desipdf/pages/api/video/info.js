@@ -472,97 +472,102 @@ async function fetchWithYtDlp(url, platform) {
   })
 }
 
-// ── Instagram embed fallback (no auth needed for public posts) ─────────────
-async function fetchInstagramEmbed(url) {
+// ── Instagram fallback: OG meta tags via Facebook bot UA ─────────────────────
+// Instagram reliably serves og:image / og:video to Facebook's crawler
+// because FB itself embeds Instagram posts — no auth needed for public posts.
+async function fetchInstagramOG(url) {
   const match = url.match(/instagram\.com\/(?:p|reel|tv|stories\/[^/]+)\/([A-Za-z0-9_-]+)/)
   if (!match) throw new Error('Invalid Instagram URL. Please use a direct post link (e.g. instagram.com/p/...).')
   const shortcode = match[1]
 
-  const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/captioned/`
-  let html = ''
-  try {
-    const resp = await fetch(embedUrl, {
+  const unescape = s => s
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/\\\\/g, '\\')
+
+  // ── Approach 1: OG meta tags with Facebook crawler UA ────────────────────
+  const attempts = [
+    {
+      fetchUrl: `https://www.instagram.com/p/${shortcode}/`,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Accept': 'text/html',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.instagram.com/',
       },
-    })
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    html = await resp.text()
-  } catch (e) {
-    throw new Error('Could not reach Instagram. The post may be private or require login.')
-  }
-
-  // Unescape unicode sequences in the HTML blob
-  const unescape = s => s.replace(/\\u0026/g, '&').replace(/\\u003c/g, '<').replace(/\\u003e/g, '>').replace(/\\\//g, '/').replace(/\\\\/g, '\\')
-
-  // ── Try to extract video URL ────────────────────────────────────────────────
-  const videoPatterns = [
-    /"video_url"\s*:\s*"([^"]+)"/,
-    /class="[^"]*EmbedVideo[^"]*"[^>]*src="([^"]+)"/,
-    /<video[^>]+src="([^"]+)"/,
+    },
+    {
+      fetchUrl: `https://www.instagram.com/p/${shortcode}/`,
+      headers: {
+        'User-Agent': 'Twitterbot/1.0',
+        'Accept': 'text/html',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    },
+    {
+      fetchUrl: `https://www.instagram.com/p/${shortcode}/embed/captioned/`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Accept': 'text/html',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    },
   ]
-  for (const pattern of videoPatterns) {
-    const m = html.match(pattern)
-    if (m) {
-      const videoUrl = unescape(m[1])
-      const titleMatch = html.match(/"text"\s*:\s*"([^"]{1,120})"/) || html.match(/<title>([^<]+)<\/title>/)
-      const title = titleMatch ? unescape(titleMatch[1]).replace(/ on Instagram.*/, '').slice(0, 80).trim() : 'Instagram Video'
-      const thumbMatch = html.match(/"display_url"\s*:\s*"([^"]+)"/) || html.match(/<img[^>]+src="(https:\/\/[^"]+cdninstagram[^"]+)"/)
-      const thumbnail = thumbMatch ? unescape(thumbMatch[1]) : null
 
-      return {
-        title,
-        thumbnail,
-        platform: 'instagram',
-        videoFormats: [{
-          quality: 'HD',
-          ext: 'mp4',
-          size: null,
-          downloadType: 'direct',
-          directUrl: videoUrl,
-          filename: makeFilename(title, 'mp4'),
-        }],
-        audioFormats: [],
+  for (const attempt of attempts) {
+    try {
+      const resp = await fetch(attempt.fetchUrl, { headers: attempt.headers })
+      if (!resp.ok) continue
+      const html = await resp.text()
+
+      // Extract title
+      const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/) ||
+                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:title"/)
+      const title = ogTitle ? unescape(ogTitle[1]).replace(/ on Instagram.*/, '').replace(/@\w+:\s*/, '').slice(0, 80).trim() : 'Instagram Media'
+
+      // Extract thumbnail
+      const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/) ||
+                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+      const thumbnail = ogImage ? unescape(ogImage[1]) : null
+
+      // Check for video first
+      const ogVideo = html.match(/<meta[^>]+property="og:video(?::secure_url)?"[^>]+content="([^"]+)"/) ||
+                      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:video/) ||
+                      html.match(/"video_url"\s*:\s*"([^"]+)"/) ||
+                      html.match(/<video[^>]+src="([^"]+)"/)
+
+      if (ogVideo) {
+        const videoUrl = unescape(ogVideo[1])
+        console.log(`[Instagram] Found video via OG (${attempt.fetchUrl.includes('embed') ? 'embed' : 'OG'})`)
+        return {
+          title, thumbnail, platform: 'instagram',
+          videoFormats: [{
+            quality: 'HD', ext: 'mp4', size: null,
+            downloadType: 'direct', directUrl: videoUrl,
+            filename: makeFilename(title, 'mp4'),
+          }],
+          audioFormats: [],
+        }
       }
+
+      // Photo post: use og:image as the downloadable file
+      if (thumbnail && (thumbnail.includes('cdninstagram') || thumbnail.includes('scontent') || thumbnail.includes('fbcdn'))) {
+        const ext = thumbnail.includes('.png') ? 'png' : 'jpg'
+        console.log(`[Instagram] Found image via OG`)
+        return {
+          title, thumbnail, platform: 'instagram',
+          videoFormats: [{
+            quality: 'Original', ext, size: null,
+            downloadType: 'direct', directUrl: thumbnail,
+            filename: makeFilename(title, ext),
+          }],
+          audioFormats: [],
+        }
+      }
+    } catch (e) {
+      console.warn(`[Instagram] OG attempt failed (${attempt.fetchUrl}):`, e.message.slice(0, 80))
     }
   }
 
-  // ── Try to extract image URL ────────────────────────────────────────────────
-  const imgPatterns = [
-    /"display_url"\s*:\s*"([^"]+)"/,
-    /src="(https:\/\/[^"]+\.cdninstagram\.com[^"]+\.jpg[^"]*)"/,
-    /src="(https:\/\/[^"]+scontent[^"]+\.jpg[^"]*)"/,
-    /<img[^>]+src="(https:\/\/[^"]+(?:cdninstagram|scontent)[^"]+)"/,
-  ]
-  for (const pattern of imgPatterns) {
-    const m = html.match(pattern)
-    if (m) {
-      const imgUrl = unescape(m[1])
-      const ext = imgUrl.includes('.png') ? 'png' : 'jpg'
-      const titleMatch = html.match(/<title>([^<]+)<\/title>/)
-      const title = titleMatch ? unescape(titleMatch[1]).replace(/ on Instagram.*/, '').slice(0, 80).trim() : 'Instagram Photo'
-
-      return {
-        title,
-        thumbnail: imgUrl,
-        platform: 'instagram',
-        videoFormats: [{
-          quality: 'Original',
-          ext,
-          size: null,
-          downloadType: 'direct',
-          directUrl: imgUrl,
-          filename: makeFilename(title, ext),
-        }],
-        audioFormats: [],
-      }
-    }
-  }
-
-  throw new Error('Could not extract media from this Instagram post. The post may be private or require login.')
+  throw new Error('Could not extract this Instagram post. It may be private, require login, or be a carousel/multi-image post. Please try a single public photo or video post.')
 }
 
 async function fetchInstagram(url) {
@@ -571,12 +576,13 @@ async function fetchInstagram(url) {
     try {
       return await fetchWithYtDlp(url, 'instagram')
     } catch (err) {
-      console.warn('[Instagram] yt-dlp failed, trying embed fallback:', err.message.slice(0, 120))
+      console.warn('[Instagram] yt-dlp failed, trying OG fallback:', err.message.slice(0, 120))
     }
   }
-  // Fallback: scrape Instagram's public embed page (works for public posts without auth)
-  return await fetchInstagramEmbed(url)
+  // Fallback: OG meta tags via Facebook/Twitter bot crawler UA
+  return await fetchInstagramOG(url)
 }
+
 
 
 async function fetchTikTok(url) {
