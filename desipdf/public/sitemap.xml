@@ -195,4 +195,28 @@
     <priority>0.6</priority>
   </url>
 
+  <!-- ── Video Tools ────────────────────────────────────────────── -->
+  <url><loc>https://pdfchampion.com/tools/video/youtube-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-video-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-audio-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-music-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-song-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-shorts-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-movies-downloader</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-to-mp4</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/youtube-to-mp3</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+
+  <url><loc>https://pdfchampion.com/tools/video/instagram-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-video-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-reels-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-photo-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-story-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-carousel-downloader</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/instagram-profile-downloader</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://pdfchampion.com/tools/video/facebook-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/tiktok-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/pinterest-downloader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://pdfchampion.com/tools/video/pinterest-gif-downloader</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+
 </urlset>

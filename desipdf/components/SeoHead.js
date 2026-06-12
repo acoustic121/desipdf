@@ -18,7 +18,7 @@ export default function SeoHead({
   ogImage = 'https://pdfchampion.com/og-image.png',
 }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pdfchampion.com'
-  const fullTitle = title ? `PDFChampion - ${title}` : 'PDFChampion - Free PDF Tools'
+  const fullTitle = title || 'PDFChampion - Free PDF Tools'
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl
   const structuredData = {
     '@context': 'https://schema.org',
