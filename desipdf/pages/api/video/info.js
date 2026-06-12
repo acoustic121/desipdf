@@ -169,7 +169,7 @@ function makeFilename(title = 'video', ext = 'mp4') {
 function detectPlatform(url) {
   if (/youtube\.com|youtu\.be/.test(url)) return 'youtube'
   if (/instagram\.com/.test(url)) return 'instagram'
-  if (/tiktok\.com|vm\.tiktok\.com/.test(url)) return 'tiktok'
+
   if (/facebook\.com|fb\.watch/.test(url)) return 'facebook'
   if (/pinterest\.(com|co\.uk|ca|au|fr|de)|pin\.it/.test(url)) return 'pinterest'
   return null
@@ -551,7 +551,7 @@ async function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
 }
 
 
-// ── Generic yt-dlp info extractor (Instagram, TikTok, Facebook, Pinterest) ─────
+// ── Generic yt-dlp info extractor (Instagram, Facebook, Pinterest) ─────
 async function fetchWithYtDlp(url, platform) {
   const ytDlpPath = await getYtDlpPath()
   if (!ytDlpPath) throw new Error(`yt-dlp not available for ${platform}`)
@@ -634,10 +634,8 @@ async function fetchWithYtDlp(url, platform) {
 
         const best = combined[0]  // Best combined format
 
-        // TikTok CDN URLs are session/IP-restricted — proxying them from Node.js returns 403.
-        // For TikTok, always use yt-dlp re-download (downloadType: 'ytdlp') at download time.
         // Instagram/Facebook fbcdn.net URLs work fine for direct proxying.
-        const canProxyDirectly = platform !== 'tiktok'
+        const canProxyDirectly = true
         const directUrl = canProxyDirectly ? (best?.url || data.url) : null
 
         if (directUrl) {
@@ -657,7 +655,7 @@ async function fetchWithYtDlp(url, platform) {
             audioFormats: [],
           })
         } else {
-          // TikTok or no combined format found — re-download with yt-dlp at download time
+          // No combined format found — re-download with yt-dlp at download time
           resolve({
             title, thumbnail, platform,
             videoFormats: [{
@@ -864,44 +862,6 @@ async function fetchInstagram(url) {
 }
 
 
-
-async function fetchTikTok(url) {
-  const ytDlpPath = await getYtDlpPath()
-  if (ytDlpPath) {
-    try {
-      return await fetchWithYtDlp(url, 'tiktok')
-    } catch (err) {
-      console.warn('[TikTok] yt-dlp failed, falling back to tikwm.com:', err.message.slice(0, 100))
-    }
-  }
-
-  // Fallback: tikwm.com API
-  // NOTE: tikwm.com sometimes returns relative URLs — always prefix the domain
-  const fixUrl = (u) => {
-    if (!u) return null
-    if (u.startsWith('http://') || u.startsWith('https://')) return u
-    return `https://www.tikwm.com${u.startsWith('/') ? '' : '/'}${u}`
-  }
-
-  const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&count=12&cursor=0&web=1&hd=1`
-  const resp = await fetch(apiUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-  })
-  const data = await resp.json()
-  if (!data?.data) throw new Error('Could not fetch TikTok video info. Ensure the video is public.')
-
-  const { play, wmplay, music, title, cover } = data.data
-  const videoFormats = []
-  const playUrl = fixUrl(play), wmUrl = fixUrl(wmplay)
-  if (playUrl) videoFormats.push({ quality: 'HD (No Watermark)', ext: 'mp4', size: null, directUrl: playUrl, downloadType: 'direct', filename: makeFilename(title, 'mp4') })
-  if (wmUrl)  videoFormats.push({ quality: 'SD (With Watermark)', ext: 'mp4', size: null, directUrl: wmUrl,  downloadType: 'direct', filename: makeFilename(title, 'mp4') })
-  const audioFormats = []
-  const musicUrl = fixUrl(music)
-  if (musicUrl) audioFormats.push({ quality: 'Original Audio', ext: 'mp3', size: null, directUrl: musicUrl, downloadType: 'direct', filename: makeFilename(title, 'mp3') })
-
-  return { title: title || 'TikTok Video', thumbnail: cover || null, platform: 'tiktok', videoFormats, audioFormats }
-}
-
 async function fetchFacebook(url) {
   const ytDlpPath = await getYtDlpPath()
   if (ytDlpPath) {
@@ -974,14 +934,14 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ error: 'URL parameter is required' })
 
   const platform = detectPlatform(url)
-  if (!platform) return res.status(400).json({ error: 'Unsupported platform. Supported: YouTube, Instagram, TikTok, Facebook, Pinterest' })
+  if (!platform) return res.status(400).json({ error: 'Unsupported platform. Supported: YouTube, Instagram, Facebook, Pinterest' })
 
   try {
     let result
     switch (platform) {
       case 'youtube':   result = await fetchYouTube(url);   break
       case 'instagram': result = await fetchInstagram(url); break
-      case 'tiktok':    result = await fetchTikTok(url);    break
+
       case 'facebook':  result = await fetchFacebook(url);  break
       case 'pinterest': result = await fetchPinterest(url); break
     }

@@ -58,7 +58,7 @@ const videoTools = [
   { name: '📸 Instagram Downloader', href: '/tools/video/instagram-downloader' },
   { name: '🎞️ Instagram Reels', href: '/tools/video/instagram-reels-downloader' },
   { name: '👥 Facebook Downloader', href: '/tools/video/facebook-downloader' },
-  { name: '🎵 TikTok Downloader', href: '/tools/video/tiktok-downloader' },
+
   { name: '📌 Pinterest Downloader', href: '/tools/video/pinterest-downloader' },
 ]
 
@@ -206,7 +206,7 @@ export default function Header() {
               </div>
 
               <Link href="/tools/video/facebook-downloader" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase">Facebook</Link>
-              <Link href="/tools/video/tiktok-downloader" className="hover:text-zinc-800 dark:hover:text-zinc-400 transition-colors uppercase">TikTok</Link>
+
 
               {/* Pinterest Dropdown */}
               <div className="relative group py-5">

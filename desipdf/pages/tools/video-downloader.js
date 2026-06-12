@@ -57,7 +57,7 @@ const PLATFORMS = [
     bg: 'bg-gray-50 dark:bg-gray-900/50',
     border: 'border-gray-100 dark:border-gray-800',
     tools: [
-      { name: 'TikTok Downloader', href: '/tools/video/tiktok-downloader', icon: '🎵' },
+
     ],
   },
   {
@@ -77,7 +77,7 @@ const SUPPORTED_PLATFORMS = [
   { name: 'YouTube', icon: '▶️', href: '/tools/video/youtube-downloader', desc: 'Download YouTube videos, shorts & music' },
   { name: 'Facebook', icon: '👥', href: '/tools/video/facebook-downloader', desc: 'Download Facebook videos & reels' },
   { name: 'Instagram', icon: '📸', href: '/tools/video/instagram-downloader', desc: 'Download reels, stories & photos' },
-  { name: 'TikTok', icon: '🎵', href: '/tools/video/tiktok-downloader', desc: 'Download TikTok videos without watermark' },
+
   { name: 'Pinterest', icon: '📌', href: '/tools/video/pinterest-downloader', desc: 'Download Pinterest images, GIFs & videos' },
 ]
 
@@ -95,7 +95,7 @@ export default function VideoDownloaderHub() {
     // Auto-detect platform and route to the appropriate tool
     if (/youtube\.com|youtu\.be/.test(trimmed)) router.push(`/tools/video/youtube-downloader?url=${encodeURIComponent(trimmed)}`)
     else if (/instagram\.com/.test(trimmed)) router.push(`/tools/video/instagram-downloader?url=${encodeURIComponent(trimmed)}`)
-    else if (/tiktok\.com/.test(trimmed)) router.push(`/tools/video/tiktok-downloader?url=${encodeURIComponent(trimmed)}`)
+
     else if (/facebook\.com|fb\.watch/.test(trimmed)) router.push(`/tools/video/facebook-downloader?url=${encodeURIComponent(trimmed)}`)
     else if (/pinterest\.com|pin\.it/.test(trimmed)) router.push(`/tools/video/pinterest-downloader?url=${encodeURIComponent(trimmed)}`)
     else router.push(`/tools/video/youtube-downloader?url=${encodeURIComponent(trimmed)}`)
@@ -104,9 +104,9 @@ export default function VideoDownloaderHub() {
   return (
     <>
       <SeoHead
-        title="Free All Video Downloader – Download YouTube, Instagram, TikTok, Facebook & Pinterest Videos"
-        description="Download videos from YouTube, Instagram, TikTok, Facebook, and Pinterest for free. No signup required. Choose MP4 quality or extract MP3 audio instantly."
-        keywords="video downloader, youtube downloader, instagram downloader, tiktok downloader, facebook video downloader, pinterest downloader, mp4 download, mp3 download"
+        title="Free All Video Downloader – Download YouTube, Instagram, Facebook & Pinterest Videos"
+        description="Download videos from YouTube, Instagram, Facebook, and Pinterest for free. No signup required. Choose MP4 quality or extract MP3 audio instantly."
+        keywords="video downloader, youtube downloader, instagram downloader, facebook video downloader, pinterest downloader, mp4 download, mp3 download"
         canonical="/tools/video-downloader"
       />
 
@@ -235,7 +235,7 @@ export default function VideoDownloaderHub() {
         </div>
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { step: '1', icon: '📋', title: 'Copy the Video Link', desc: 'Find the video on YouTube, TikTok, Instagram, or Facebook. Tap Share → Copy link.' },
+            { step: '1', icon: '📋', title: 'Copy the Video Link', desc: 'Find the video on YouTube, Instagram, or Facebook. Tap Share → Copy link.' },
             { step: '2', icon: '⬇️', title: 'Paste & Click Download', desc: 'Paste the copied URL into the box above, then click the Download button.' },
             { step: '3', icon: '💾', title: 'Choose Quality & Save', desc: 'Select your preferred format (MP4 or MP3) and quality, then save to your device.' },
           ].map(s => (
@@ -261,7 +261,7 @@ export default function VideoDownloaderHub() {
           {[
             { icon: '⚡', title: 'Instant Analysis', desc: 'Paste a link and get all available download formats in seconds.' },
             { icon: '📱', title: 'Works on Any Device', desc: 'Download on mobile, tablet, or desktop — no extra apps needed.' },
-            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports YouTube, TikTok, Instagram, Facebook, Pinterest and more.' },
+            { icon: '🌍', title: 'Wide Platform Support', desc: 'Supports YouTube, Instagram, Facebook, Pinterest and more.' },
             { icon: '🎯', title: 'Flexible Quality', desc: 'Pick the quality you want — from 144p up to 1080p+ when available.' },
             { icon: '🔒', title: 'Privacy-First', desc: 'No data storage. Your links are processed privately and never saved.' },
             { icon: '🆓', title: 'Completely Free', desc: 'No signup, no watermarks, no limits. 100% free forever.' },
