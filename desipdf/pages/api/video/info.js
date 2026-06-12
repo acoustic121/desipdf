@@ -386,7 +386,12 @@ async function fetchWithYtDlp(url, platform) {
           .sort((a, b) => (b.height || 0) - (a.height || 0) || (b.filesize || b.filesize_approx || 0) - (a.filesize || a.filesize_approx || 0))
 
         const best = combined[0]  // Best combined format
-        const directUrl = best?.url || data.url  // Fallback: top-level url for single-format videos
+
+        // TikTok CDN URLs are session/IP-restricted — proxying them from Node.js returns 403.
+        // For TikTok, always use yt-dlp re-download (downloadType: 'ytdlp') at download time.
+        // Instagram/Facebook fbcdn.net URLs work fine for direct proxying.
+        const canProxyDirectly = platform !== 'tiktok'
+        const directUrl = canProxyDirectly ? (best?.url || data.url) : null
 
         if (directUrl) {
           const finalHeight = best?.height || height
@@ -405,7 +410,7 @@ async function fetchWithYtDlp(url, platform) {
             audioFormats: [],
           })
         } else {
-          // No combined format with direct URL found — fall back to re-downloading with yt-dlp
+          // TikTok or no combined format found — re-download with yt-dlp at download time
           resolve({
             title, thumbnail, platform,
             videoFormats: [{

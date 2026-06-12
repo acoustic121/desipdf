@@ -321,38 +321,45 @@ export default async function handler(req, res) {
   const safeFilename = (filename || 'video.mp4').replace(/"/g, '')
 
   try {
-    // ── yt-dlp generic download (Instagram, TikTok, Facebook, etc.) ────────────
+    // ── yt-dlp generic download (TikTok, Pinterest, Instagram/Facebook fallback) ──
     if (downloadType === 'ytdlp' && videoUrl) {
       const ytDlpPath = await getYtDlpPath()
       if (!ytDlpPath) return res.status(500).json({ error: 'yt-dlp is not available on this server' })
       const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      const outFile = join(tmpdir(), `ytdl_${id}.mp4`)
+      // Use %(ext)s template so yt-dlp picks the extension (combined format, no merge needed)
+      const outTemplate = join(tmpdir(), `ytdl_${id}.%(ext)s`)
       console.log(`[download] yt-dlp generic: ${videoUrl.slice(0, 60)}`)
       try {
         await new Promise((resolve, reject) => {
           const args = [
             videoUrl,
-            '--format', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            '--output', outFile,
-            '--merge-output-format', 'mp4',
+            // 'best[ext=mp4]' prefers mp4 combined format — no ffmpeg merge needed.
+            // Fallback to 'best' for platforms like Pinterest with non-mp4 combined formats.
+            '--format', 'best[ext=mp4]/best[ext=webm]/best',
+            '--output', outTemplate,
             '--no-playlist', '--no-warnings',
-            '--ffmpeg-location', dirname(ffmpegPath),
             '--progress', '--newline',
           ]
           const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
           const stderr = []
           proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
           proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderr.push(String(d)) })
-          proc.on('close', code => code === 0 ? resolve() : reject(new Error(`yt-dlp failed: ${stderr.join('').slice(-300) || `exit ${code}`}`)))
+          proc.on('close', code => code === 0 ? resolve() : reject(new Error(`yt-dlp failed: ${stderr.join('').slice(-400) || `exit ${code}`}`)))
           proc.on('error', reject)
         })
-        if (!existsSync(outFile)) throw new Error('yt-dlp did not produce output file')
-        res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`)
-        res.setHeader('Content-Type', 'video/mp4')
+        // Find the actual output file (yt-dlp picks the extension via %(ext)s template)
+        const possibleExts = ['mp4', 'webm', 'mkv', 'm4v', 'mov', 'avi']
+        const actualFile = possibleExts.map(ext => join(tmpdir(), `ytdl_${id}.${ext}`)).find(f => existsSync(f))
+        if (!actualFile) throw new Error('yt-dlp did not produce output file')
+        const ext = actualFile.split('.').pop()
+        const ct = ext === 'webm' ? 'video/webm' : 'video/mp4'
+        res.setHeader('Content-Disposition', `attachment; filename="${safeFilename.replace(/\.\w+$/, `.${ext}`)}"`)
+        res.setHeader('Content-Type', ct)
         res.setHeader('Cache-Control', 'no-store')
-        await pipeFileToResponse(outFile, res, req)
+        await pipeFileToResponse(actualFile, res, req)
       } finally {
-        unlink(outFile, () => {})
+        // Clean up all possible temp file variants
+        ['mp4','webm','mkv','m4v','mov','avi'].forEach(ext => unlink(join(tmpdir(), `ytdl_${id}.${ext}`), () => {}))
       }
       if (!res.writableEnded) res.end()
       return
