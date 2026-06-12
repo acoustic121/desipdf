@@ -397,20 +397,20 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     }
     const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
 
-    // When cookies are available: skip --extractor-args (they conflict with cookie auth)
-    // Without cookies: use ios client to bypass YouTube's bot detection on cloud IPs
+    // Use --dump-single-json and -f "all" to prevent yt-dlp from crashing when it can't 
+    // find a pre-merged "best" format (due to lacking ffmpeg in Vercel).
+    // The ios player client is required for reliable extraction of formats.
     const args = [
-      '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
+      '--dump-single-json', '-f', 'all', '--no-warnings', '--no-playlist', '--skip-download',
+      '--extractor-args', 'youtube:player_client=ios,android,web',
       '--force-ipv4',
-      ...(hasCookies
-        ? ['--cookies', cookiePath]  // cookies alone are sufficient
-        : ['--extractor-args', 'youtube:player_client=ios,android_music,web']
-      ),
+      ...(hasCookies ? ['--cookies', cookiePath] : []),
       url
     ]
 
-    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES (no extractor-args override)')
+    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES for authentication')
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+
 
     let stdout = '', stderr = ''
     proc.stdout.on('data', d => { stdout += d })
