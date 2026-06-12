@@ -335,6 +335,16 @@ async function fetchInstagram(url) {
 }
 
 async function fetchTikTok(url) {
+  // Try yt-dlp first — no watermark, no third-party API dependency
+  if (YT_DLP_PATH) {
+    try {
+      return await fetchWithYtDlp(url, 'tiktok')
+    } catch (err) {
+      console.warn('[TikTok] yt-dlp failed, falling back to tikwm.com:', err.message.slice(0, 100))
+    }
+  }
+
+  // Fallback: tikwm.com API
   const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&count=12&cursor=0&web=1&hd=1`
   const resp = await fetch(apiUrl, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -353,6 +363,16 @@ async function fetchTikTok(url) {
 }
 
 async function fetchFacebook(url) {
+  // Try yt-dlp first — handles more cases (public pages, groups, etc.)
+  if (YT_DLP_PATH) {
+    try {
+      return await fetchWithYtDlp(url, 'facebook')
+    } catch (err) {
+      console.warn('[Facebook] yt-dlp failed, falling back to embed scraping:', err.message.slice(0, 100))
+    }
+  }
+
+  // Fallback: Facebook plugin embed scraping
   const resp = await fetch(
     `https://www.facebook.com/plugins/video/embed/?href=${encodeURIComponent(url)}`,
     { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' } }
@@ -372,6 +392,17 @@ async function fetchFacebook(url) {
 }
 
 async function fetchPinterest(url) {
+  // Try yt-dlp first — handles Pinterest video pins reliably
+  if (YT_DLP_PATH) {
+    try {
+      return await fetchWithYtDlp(url, 'pinterest')
+    } catch (err) {
+      // yt-dlp may fail for image/GIF pins (not video) — fall through to scraping
+      console.warn('[Pinterest] yt-dlp failed (may be an image pin), falling back:', err.message.slice(0, 100))
+    }
+  }
+
+  // Fallback: HTML scraping (handles images, GIFs, and video pins)
   const resp = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
   })
@@ -394,6 +425,7 @@ async function fetchPinterest(url) {
   }
   throw new Error('Could not extract media from this Pinterest URL')
 }
+
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
