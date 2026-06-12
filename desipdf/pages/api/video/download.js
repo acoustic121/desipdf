@@ -47,44 +47,55 @@ function findYtDlp() {
 
 const YT_DLP_PATH = findYtDlp()
 
-// ── Download with yt-dlp subprocess ──────────────────────────────────────────
-// Merges video + audio, writes directly to a /tmp file.
-function ytDlpDownload(videoId, quality, outputPath) {
+// ── Download video+audio with yt-dlp, write merged MP4 to /tmp ───────────────
+function ytDlpVideo(videoId, quality, outputPath) {
   return new Promise((resolve, reject) => {
-    // Map quality to yt-dlp format selector
-    // e.g. '2160p' → bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best
     const height = parseInt(quality?.replace('p', '') || '1080', 10)
     const formatSel = `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=${height}]+bestaudio/best[height<=${height}]`
-
     const args = [
       `https://www.youtube.com/watch?v=${videoId}`,
       '--format', formatSel,
       '--output', outputPath,
       '--merge-output-format', 'mp4',
-      '--no-playlist',
-      '--no-warnings',
-      // Use ffmpeg for merging — pass the directory containing the ffmpeg binary
+      '--no-playlist', '--no-warnings',
       '--ffmpeg-location', dirname(ffmpegPath),
-      // Quiet but show progress
-      '--progress',
-      '--newline',
+      '--progress', '--newline',
     ]
-
-    console.log(`[yt-dlp] Starting: ${YT_DLP_PATH} (quality: ${quality})`)
+    console.log(`[yt-dlp] Video: ${quality}`)
     const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
-
     const stderrLines = []
     proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
     proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderrLines.push(String(d)) })
-
     proc.on('close', code => {
-      if (code === 0) {
-        console.log(`[yt-dlp] ✅ Done → ${outputPath}`)
-        resolve()
-      } else {
-        const errMsg = stderrLines.join('').slice(-500) || `exit code ${code}`
-        reject(new Error(`yt-dlp failed: ${errMsg}`))
-      }
+      if (code === 0) { console.log(`[yt-dlp] ✅ Video done → ${outputPath}`); resolve() }
+      else reject(new Error(`yt-dlp video failed: ${stderrLines.join('').slice(-400) || `exit ${code}`}`))
+    })
+    proc.on('error', reject)
+  })
+}
+
+// ── Download audio with yt-dlp, extract to MP3 ───────────────────────────────
+function ytDlpAudio(videoId, outputPath) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      `https://www.youtube.com/watch?v=${videoId}`,
+      '--format', 'bestaudio/best',
+      '--extract-audio',
+      '--audio-format', 'mp3',
+      '--audio-quality', '192K',
+      '--output', outputPath,
+      '--no-playlist', '--no-warnings',
+      '--ffmpeg-location', dirname(ffmpegPath),
+      '--progress', '--newline',
+    ]
+    console.log(`[yt-dlp] Audio: extracting MP3…`)
+    const proc = spawn(YT_DLP_PATH, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const stderrLines = []
+    proc.stdout.on('data', d => process.stdout.write(`[yt-dlp] ${d}`))
+    proc.stderr.on('data', d => { process.stderr.write(`[yt-dlp] ${d}`); stderrLines.push(String(d)) })
+    proc.on('close', code => {
+      if (code === 0) { console.log(`[yt-dlp] ✅ Audio done → ${outputPath}`); resolve() }
+      else reject(new Error(`yt-dlp audio failed: ${stderrLines.join('').slice(-400) || `exit ${code}`}`))
     })
     proc.on('error', reject)
   })
@@ -278,7 +289,7 @@ export default async function handler(req, res) {
         const outFile = `${outBase}.mp4`
 
         try {
-          await ytDlpDownload(videoId, downloadQuality, outFile)
+          await ytDlpVideo(videoId, downloadQuality, outFile)
 
           if (!existsSync(outFile)) throw new Error('yt-dlp did not produce output file')
 
@@ -302,7 +313,27 @@ export default async function handler(req, res) {
       const info = await yt.getInfo(videoId, { client: 'MWEB' })
       console.log(`[download] "${info.basic_info.title?.slice(0, 50)}" | type:${downloadType} q:${downloadQuality}`)
 
-      // ── Audio ─────────────────────────────────────────────────────────────
+      // ── Audio: use yt-dlp if available (extract to proper MP3) ──────────────
+      // The youtubei.js approach serves Opus/M4A as audio/mpeg which won't play,
+      // and also hits the CDN rate limit (only ~1 MB per session for audio).
+      if (isAudio && YT_DLP_PATH) {
+        const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        const outFile = join(tmpdir(), `ytda_${id}.mp3`)
+        try {
+          await ytDlpAudio(videoId, outFile)
+          if (!existsSync(outFile)) throw new Error('yt-dlp did not produce audio file')
+          res.setHeader('Content-Disposition', `attachment; filename="${safeFilename.replace(/\.mp4$/, '.mp3')}"`)
+          res.setHeader('Content-Type', 'audio/mpeg')
+          res.setHeader('Cache-Control', 'no-store')
+          await pipeFileToResponse(outFile, res, req)
+        } finally {
+          unlink(outFile, () => {})
+        }
+        if (!res.writableEnded) res.end()
+        return
+      }
+
+      // ── Audio (Fallback) ──────────────────────────────────────────────────
       if (isAudio) {
         const aOpts = { type: 'audio', quality: 'best', format: 'any', client: 'MWEB' }
         const firstUrl = await getDecipheredUrl(info, aOpts)
