@@ -290,6 +290,7 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
     const proc = spawn(ytDlpPath, [
       '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
       '--extractor-args', 'youtube:player_client=android,web',
+      '--force-ipv4',
       url
     ], { stdio: ['ignore', 'pipe', 'pipe'] })
 
@@ -305,17 +306,17 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         const thumbnail = data.thumbnail || infoThumb || null
         const fmts = data.formats || []
 
-        // Build quality list from combined formats (no ffmpeg merge needed)
+        // Build quality list from all video formats (ffmpeg will merge audio later)
         const seenH = new Set()
         const videoFormats = fmts
-          .filter(f => f.vcodec !== 'none' && f.acodec !== 'none' && f.height && f.url)
+          .filter(f => f.vcodec !== 'none' && f.height && f.url) // Allow video-only streams (ffmpeg will merge)
           .sort((a, b) => (b.height || 0) - (a.height || 0))
           .reduce((acc, f) => {
             if (!seenH.has(f.height)) {
               seenH.add(f.height)
               acc.push({
                 quality: `${f.height}p`,
-                ext: f.ext || 'mp4',
+                ext: 'mp4', // we force mp4 merging in download.js
                 size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
                 downloadType: 'ytdlp',
                 downloadQuality: `${f.height}p`,

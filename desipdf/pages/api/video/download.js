@@ -136,10 +136,11 @@ async function ytDlpVideo(videoId, quality, outputPath) {
       '--format', formatSel,
       '--output', outputPath,
       '--extractor-args', 'youtube:player_client=android,web',
+      '--force-ipv4',
       '--no-playlist', '--no-warnings',
       '--progress', '--newline',
       // Only pass ffmpeg-location if we know ffmpeg is accessible
-      ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', dirname(finalFfmpegPath)] : []),
+      ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
     ]
     console.log(`[yt-dlp] Video: ${quality} (ffmpeg: ${ffmpegOk ? 'yes' : 'no (combined format)'})`)
     const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -170,8 +171,9 @@ async function ytDlpAudio(videoId, outputPath) {
           '--extract-audio', '--audio-format', 'mp3', '--audio-quality', '192K',
           '--output', outputPath,
           '--extractor-args', 'youtube:player_client=android,web',
+          '--force-ipv4',
           '--no-playlist', '--no-warnings',
-          '--ffmpeg-location', dirname(finalFfmpegPath),
+          '--ffmpeg-location', finalFfmpegPath,
           '--progress', '--newline',
         ]
       : [
@@ -180,6 +182,7 @@ async function ytDlpAudio(videoId, outputPath) {
           '--format', 'bestaudio[ext=m4a]/bestaudio/best[ext=mp4]/best',
           '--output', outputPath.replace(/\.mp3$/, '.m4a'),
           '--extractor-args', 'youtube:player_client=android,web',
+          '--force-ipv4',
           '--no-playlist', '--no-warnings',
           '--progress', '--newline',
         ]
@@ -394,7 +397,7 @@ export default async function handler(req, res) {
             '--output', outTemplate,
             '--no-playlist', '--no-warnings',
             '--progress', '--newline',
-            ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', dirname(finalFfmpegPath)] : []),
+            ...(ffmpegOk ? ['--merge-output-format', 'mp4', '--ffmpeg-location', finalFfmpegPath] : []),
           ]
           const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
           const stderr = []
