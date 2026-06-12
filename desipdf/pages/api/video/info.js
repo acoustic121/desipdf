@@ -140,49 +140,68 @@ async function fetchYouTube(url) {
     throw new Error('Could not load video info. The video may be private, deleted, or unavailable in your region.')
   }
 
-  // ── Combined video+audio formats (these WORK server-side) ─────────────────
-  // Adaptive-only streams (1080p+, audio-only) are CDN-blocked from server IPs.
-  // We only expose combined streams + one audio option (extracted from combined).
+  // ── All formats: combined (muxed) + adaptive video-only + audio-only ─────────
+  // Now that we use 1MB chunked downloading + ffmpeg merge, ALL qualities work.
   const title = info.basic_info.title || 'YouTube Video'
   const thumbnail = info.basic_info.thumbnail?.[0]?.url
 
-  const combinedFormats = (info.streaming_data?.formats || [])
-    .filter(f => f.quality_label)
+  const combinedFormats = info.streaming_data?.formats || []
+  const adaptiveFormats = info.streaming_data?.adaptive_formats || []
+
+  // Video formats: combined first (they have audio), then adaptive video-only (higher quality)
+  const allVideoFormats = [
+    ...combinedFormats.filter(f => f.quality_label),
+    ...adaptiveFormats.filter(f => f.has_video && !f.has_audio && f.quality_label),
+  ]
 
   const seenQ = new Set()
-  const videoFormats = combinedFormats
+  const videoFormats = allVideoFormats
     .sort((a, b) => (parseInt(b.quality_label) || 0) - (parseInt(a.quality_label) || 0))
     .reduce((acc, f) => {
       if (!seenQ.has(f.quality_label)) {
         seenQ.add(f.quality_label)
+        const isCombined = f.has_audio !== false
         acc.push({
           quality: f.quality_label,
           ext: 'mp4',
           size: formatBytes(f.content_length),
-          downloadType: 'video',
+          downloadType: isCombined ? 'video' : 'videoOnly',
           downloadQuality: f.quality_label,
           filename: makeFilename(title, 'mp4'),
         })
       }
       return acc
     }, [])
-    .slice(0, 6)
+    .slice(0, 8)
 
-  // ── Audio: offer one option (ffmpeg-extracted from combined stream) ────────
-  const audioFormats = videoFormats.length > 0 ? [{
-    quality: 'Best Available',
-    ext: 'mp3',
-    size: null,
-    downloadType: 'audio',
-    downloadQuality: 'best',
-    filename: makeFilename(title, 'mp3'),
-  }] : []
+  // Audio formats: adaptive audio-only streams (MP3 via 1MB chunk download)
+  const seenA = new Set()
+  const audioFormats = adaptiveFormats
+    .filter(f => f.has_audio && !f.has_video)
+    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))
+    .reduce((acc, f) => {
+      const bitrate = Math.round((f.bitrate || f.average_bitrate || 0) / 1000)
+      if (bitrate > 0 && !seenA.has(bitrate)) {
+        seenA.add(bitrate)
+        acc.push({
+          quality: `${bitrate}kbps`,
+          ext: 'mp3',
+          size: formatBytes(f.content_length),
+          downloadType: 'audio',
+          downloadQuality: 'best',
+          filename: makeFilename(title, 'mp3'),
+        })
+      }
+      return acc
+    }, [])
+    .slice(0, 4)
 
   if (!videoFormats.length && !audioFormats.length) {
     throw new Error('No downloadable formats found. The video may be private, age-restricted, or region-blocked.')
   }
 
   return { title, thumbnail, platform: 'youtube', videoFormats, audioFormats }
+
 
 }
 
