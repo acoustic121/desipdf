@@ -319,12 +319,42 @@ async function fetchYouTube(url) {
 
 // ── Cobalt API fallback (final YouTube fallback when Vercel IPs are blocked) ─────
 // cobalt.tools runs on its own infrastructure not flagged by YouTube.
-// Returns tunnel URLs for multiple quality levels.
 async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
   const t = infoTitle || 'YouTube Video'
 
-  // Request multiple qualities in parallel to give the user options
-  const qualityRequests = [
+  // Manual timeout helper (AbortSignal.timeout not available in all Node versions)
+  function fetchWithTimeout(input, init, ms = 15000) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Cobalt request timed out')), ms)
+      fetch(input, init)
+        .then(r => { clearTimeout(timer); resolve(r) })
+        .catch(e => { clearTimeout(timer); reject(e) })
+    })
+  }
+
+  async function cobaltFetch(vQuality) {
+    const resp = await fetchWithTimeout('https://api.cobalt.tools/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      body: JSON.stringify({ url, vQuality, downloadMode: 'auto', filenameStyle: 'basic' }),
+    }, 15000)
+
+    const text = await resp.text()
+    console.log(`[Cobalt] ${vQuality} HTTP ${resp.status}: ${text.slice(0, 120)}`)
+    if (!resp.ok) throw new Error(`Cobalt HTTP ${resp.status}: ${text.slice(0, 100)}`)
+    const data = JSON.parse(text)
+    if (!data.url || !['tunnel', 'redirect', 'stream'].includes(data.status)) {
+      throw new Error(`Cobalt status=${data.status} code=${data.error?.code || 'none'}`)
+    }
+    return data
+  }
+
+  // Try best quality first, then fallbacks sequentially
+  const qualityLevels = [
     { q: 'max',  label: 'Best Available' },
     { q: '1080', label: '1080p' },
     { q: '720',  label: '720p' },
@@ -333,35 +363,20 @@ async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
   ]
 
   const settledResults = await Promise.allSettled(
-    qualityRequests.map(async ({ q, label }) => {
-      const resp = await fetch('https://api.cobalt.tools/', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url,
-          vQuality: q,
-          downloadMode: 'auto',
-          filenameStyle: 'basic',
-        }),
-        signal: AbortSignal.timeout(12000),
-      })
-      if (!resp.ok) throw new Error(`Cobalt HTTP ${resp.status}`)
-      const data = await resp.json()
-      if (!data.url || !['tunnel', 'redirect', 'stream'].includes(data.status)) {
-        throw new Error(`Cobalt status: ${data.status} | ${data.error?.code || ''}`)
-      }
-      return { q, label, url: data.url, filename: data.filename }
+    qualityLevels.map(async ({ q, label }) => {
+      const data = await cobaltFetch(q)
+      return { label, url: data.url, filename: data.filename }
     })
   )
 
-  // Deduplicate by URL (Cobalt may return the same tunnel for multiple quality requests)
+  // Deduplicate — Cobalt often returns the same tunnel for multiple quality requests
   const seen = new Set()
   const videoFormats = []
   for (const r of settledResults) {
-    if (r.status !== 'fulfilled') continue
+    if (r.status !== 'fulfilled') {
+      console.warn('[Cobalt] A quality request failed:', r.reason?.message?.slice(0, 80))
+      continue
+    }
     const { label, url: directUrl, filename } = r.value
     if (seen.has(directUrl)) continue
     seen.add(directUrl)
@@ -388,14 +403,26 @@ async function fetchYouTubeViaCobalt(url, infoTitle, infoThumb) {
 // ── YouTube via yt-dlp (fallback when Innertube is blocked on Vercel) ──────────
 function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
   return new Promise((resolve, reject) => {
+    // Write YouTube cookies to /tmp if YOUTUBE_COOKIES env var is set.
+    // This bypasses YouTube's "Sign in to confirm you're not a bot" error on cloud IPs.
+    const cookiePath = '/tmp/yt-cookies.txt'
+    const cookieContent = process.env.YOUTUBE_COOKIES || ''
+    if (cookieContent) {
+      try { require('fs').writeFileSync(cookiePath, cookieContent) } catch {}
+    }
+    const hasCookies = cookieContent && require('fs').existsSync(cookiePath)
+
     // ios client is most reliable in 2025 — doesn't require po_token
-    // android_music is a good secondary option
-    const proc = spawn(ytDlpPath, [
+    const args = [
       '--dump-json', '--no-warnings', '--no-playlist', '--skip-download',
       '--extractor-args', 'youtube:player_client=ios,android_music,web',
       '--force-ipv4',
+      ...(hasCookies ? ['--cookies', cookiePath] : []),
       url
-    ], { stdio: ['ignore', 'pipe', 'pipe'] })
+    ]
+
+    if (hasCookies) console.log('[yt-dlp] Using YOUTUBE_COOKIES for authentication')
+    const proc = spawn(ytDlpPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
 
     let stdout = '', stderr = ''
     proc.stdout.on('data', d => { stdout += d })
@@ -423,14 +450,14 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
         // Build quality list from all video formats (ffmpeg will merge audio later)
         const seenH = new Set()
         const videoFormats = fmts
-          .filter(f => f.vcodec !== 'none' && f.height && f.url) // Allow video-only streams (ffmpeg will merge)
+          .filter(f => f.vcodec !== 'none' && f.height && f.url)
           .sort((a, b) => (b.height || 0) - (a.height || 0))
           .reduce((acc, f) => {
             if (!seenH.has(f.height)) {
               seenH.add(f.height)
               acc.push({
                 quality: `${f.height}p`,
-                ext: 'mp4', // we force mp4 merging in download.js
+                ext: 'mp4',
                 size: f.filesize || f.filesize_approx ? formatBytes(f.filesize || f.filesize_approx) : null,
                 downloadType: 'ytdlp',
                 downloadQuality: `${f.height}p`,
@@ -442,7 +469,6 @@ function fetchYouTubeViaYtDlp(url, ytDlpPath, infoTitle, infoThumb) {
           .slice(0, 6)
 
         if (!videoFormats.length) {
-          // Just give a generic best-quality option
           videoFormats.push({
             quality: 'Best Available', ext: 'mp4', size: null,
             downloadType: 'ytdlp', downloadQuality: 'best',
